@@ -216,7 +216,10 @@ export default function VoiceAgent() {
 
       {/* Footer disclaimer */}
       <div className="fixed bottom-4 text-center text-gray-600 text-xs">
-        Not a real therapist. For entertainment and venting purposes only.
+        <p>Not a real therapist. For entertainment and venting purposes only.</p>
+        <a href="/privacy" className="hover:text-gray-400 transition-colors underline mt-1 inline-block">
+          Privacy Policy
+        </a>
       </div>
     </div>
   );
