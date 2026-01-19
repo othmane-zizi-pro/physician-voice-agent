@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
 export async function POST(request: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
   try {
     const { callId, transcript } = await request.json();
 
@@ -27,30 +26,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ quote: null, reason: "Transcript too short" });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert at finding powerful, quotable moments from conversations between burnt-out physicians and an AI companion. Extract a single compelling quote that captures the emotional truth of their experience with the healthcare system.
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `You are an expert at finding powerful, quotable moments from conversations between burnt-out physicians and an AI companion. Extract a single compelling quote that captures the emotional truth of their experience with the healthcare system.
 
 Rules:
 - Only extract quotes from the physician (lines starting with "You:")
 - Choose something raw, honest, and relatable to other physicians
 - Keep it to 1-2 sentences max
 - Remove the "You:" prefix from the quote
-- If there's nothing quotable, respond with just: NONE`,
-        },
-        {
-          role: "user",
-          content: `Extract the most powerful quote from this conversation:\n\n${transcript}`,
-        },
-      ],
-      max_tokens: 150,
-      temperature: 0.3,
-    });
+- If there's nothing quotable, respond with just: NONE
+- Only respond with the quote itself, no explanation or formatting
 
-    const quote = completion.choices[0]?.message?.content?.trim();
+Extract the most powerful quote from this conversation:
+
+${transcript}`;
+
+    const result = await model.generateContent(prompt);
+    const quote = result.response.text()?.trim();
 
     // Check if no quote was found
     if (!quote || quote === "NONE") {
