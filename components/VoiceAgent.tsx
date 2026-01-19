@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Vapi from "@vapi-ai/web";
 import { Mic, MicOff, Phone, PhoneOff } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG } from "@/lib/persona";
+import { supabase } from "@/lib/supabase";
+import PostCallForm from "./PostCallForm";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
@@ -12,7 +14,51 @@ export default function VoiceAgent() {
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [currentSpeaker, setCurrentSpeaker] = useState<"user" | "assistant" | null>(null);
+  const [lastCallId, setLastCallId] = useState<string | null>(null);
+  const [showPostCallForm, setShowPostCallForm] = useState(false);
+
   const vapiRef = useRef<Vapi | null>(null);
+  const ipAddressRef = useRef<string | null>(null);
+  const callStartTimeRef = useRef<number | null>(null);
+  const fullTranscriptRef = useRef<string[]>([]);
+
+  // Fetch IP address on mount
+  useEffect(() => {
+    fetch("/api/ip")
+      .then((res) => res.json())
+      .then((data) => {
+        ipAddressRef.current = data.ip;
+      })
+      .catch(console.error);
+  }, []);
+
+  // Save call to database
+  const saveCallToDatabase = useCallback(async () => {
+    const durationSeconds = callStartTimeRef.current
+      ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
+      : null;
+
+    const transcriptText = fullTranscriptRef.current.join("\n");
+
+    if (!transcriptText) return null;
+
+    const { data, error } = await supabase
+      .from("calls")
+      .insert({
+        transcript: transcriptText,
+        duration_seconds: durationSeconds,
+        ip_address: ipAddressRef.current,
+      })
+      .select("id")
+      .single();
+
+    if (error) {
+      console.error("Failed to save call:", error);
+      return null;
+    }
+
+    return data.id;
+  }, []);
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
@@ -27,11 +73,37 @@ export default function VoiceAgent() {
     vapi.on("call-start", () => {
       setCallStatus("active");
       setTranscript([]);
+      fullTranscriptRef.current = [];
+      callStartTimeRef.current = Date.now();
     });
 
-    vapi.on("call-end", () => {
+    vapi.on("call-end", async () => {
       setCallStatus("idle");
       setCurrentSpeaker(null);
+
+      // Save call to database
+      const callId = await saveCallToDatabase();
+      if (callId) {
+        setLastCallId(callId);
+        setShowPostCallForm(true);
+
+        // Extract quotable quote in background
+        const transcriptText = fullTranscriptRef.current.join("\n");
+        fetch("/api/extract-quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callId, transcript: transcriptText }),
+        }).catch(console.error);
+
+        // Geolocate IP in background
+        if (ipAddressRef.current) {
+          fetch("/api/geolocate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ callId, ipAddress: ipAddressRef.current }),
+          }).catch(console.error);
+        }
+      }
     });
 
     vapi.on("speech-start", () => {
@@ -46,7 +118,9 @@ export default function VoiceAgent() {
       if (message.type === "transcript") {
         if (message.transcriptType === "final") {
           const speaker = message.role === "user" ? "You" : "Doc";
-          setTranscript((prev) => [...prev.slice(-6), `${speaker}: ${message.transcript}`]);
+          const line = `${speaker}: ${message.transcript}`;
+          fullTranscriptRef.current.push(line);
+          setTranscript((prev) => [...prev.slice(-6), line]);
         }
       }
     });
@@ -59,7 +133,7 @@ export default function VoiceAgent() {
     return () => {
       vapi.stop();
     };
-  }, []);
+  }, [saveCallToDatabase]);
 
   const startCall = useCallback(async () => {
     if (!vapiRef.current) return;
@@ -221,6 +295,18 @@ export default function VoiceAgent() {
           Privacy Policy
         </a>
       </div>
+
+      {/* Post-call form */}
+      {showPostCallForm && lastCallId && (
+        <PostCallForm
+          callId={lastCallId}
+          onComplete={() => {
+            setShowPostCallForm(false);
+            setLastCallId(null);
+            setTranscript([]);
+          }}
+        />
+      )}
     </div>
   );
 }
