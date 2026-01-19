@@ -81,11 +81,13 @@ export default function VoiceAgent() {
       setCallStatus("idle");
       setCurrentSpeaker(null);
 
+      // Always show the form after a call ends
+      setShowPostCallForm(true);
+
       // Save call to database
       const callId = await saveCallToDatabase();
       if (callId) {
         setLastCallId(callId);
-        setShowPostCallForm(true);
 
         // Extract quotable quote in background
         const transcriptText = fullTranscriptRef.current.join("\n");
@@ -103,6 +105,8 @@ export default function VoiceAgent() {
             body: JSON.stringify({ callId, ipAddress: ipAddressRef.current }),
           }).catch(console.error);
         }
+      } else {
+        console.warn("Call not saved to database - transcript may be empty or save failed");
       }
     });
 
@@ -297,7 +301,7 @@ export default function VoiceAgent() {
       </div>
 
       {/* Post-call form */}
-      {showPostCallForm && lastCallId && (
+      {showPostCallForm && (
         <PostCallForm
           callId={lastCallId}
           onComplete={() => {

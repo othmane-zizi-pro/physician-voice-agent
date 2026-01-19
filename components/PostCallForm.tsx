@@ -11,7 +11,7 @@ type FormStep =
   | "thank_you_not_physician";
 
 interface PostCallFormProps {
-  callId: string;
+  callId: string | null;
   onComplete: () => void;
 }
 
