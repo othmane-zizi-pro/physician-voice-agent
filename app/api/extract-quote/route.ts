@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ quote: null, reason: "Transcript too short" });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
     const prompt = `You are an expert at finding powerful, quotable moments from conversations between burnt-out physicians and an AI companion. Extract a single compelling quote that captures the emotional truth of their experience with the healthcare system.
 
