@@ -209,7 +209,14 @@ export default function AdminDashboard() {
                 filteredCalls.map((call) => (
                   <tr key={call.id} className="border-b border-gray-800 hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-gray-300 text-sm">
-                      {formatDate(call.created_at)}
+                      <div className="flex items-center gap-2">
+                        {formatDate(call.created_at)}
+                        {call.is_sample && (
+                          <span className="bg-orange-500/20 text-orange-400 text-xs px-1.5 py-0.5 rounded">
+                            Sample
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-300 text-sm">
                       {formatDuration(call.duration_seconds)}

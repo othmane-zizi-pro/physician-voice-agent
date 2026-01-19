@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import type { Call } from "@/types/database";
 
-// Fix default marker icons for leaflet
-const defaultIcon = L.icon({
+// Default marker (blue) for real calls
+const realCallIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -16,7 +15,18 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-L.Marker.prototype.options.icon = defaultIcon;
+// Orange marker for sample/demo calls
+const sampleCallIcon = L.icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png",
+  iconRetinaUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+L.Marker.prototype.options.icon = realCallIcon;
 
 interface CallsMapProps {
   calls: Call[];
@@ -53,6 +63,9 @@ export default function CallsMap({ calls }: CallsMapProps) {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const realCalls = locatedCalls.filter((c) => !c.is_sample);
+  const sampleCalls = locatedCalls.filter((c) => c.is_sample);
+
   if (locatedCalls.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
@@ -66,10 +79,20 @@ export default function CallsMap({ calls }: CallsMapProps) {
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         <p className="text-gray-400 text-sm">
           {locatedCalls.length} call{locatedCalls.length !== 1 ? "s" : ""} on map
         </p>
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+            <span className="text-gray-400">Real ({realCalls.length})</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+            <span className="text-gray-400">Sample ({sampleCalls.length})</span>
+          </div>
+        </div>
       </div>
       <MapContainer
         center={center}
@@ -85,15 +108,23 @@ export default function CallsMap({ calls }: CallsMapProps) {
           <Marker
             key={call.id}
             position={[call.latitude!, call.longitude!]}
+            icon={call.is_sample ? sampleCallIcon : realCallIcon}
           >
             <Popup>
               <div className="text-sm">
-                <p className="font-medium">{call.city || "Unknown"}, {call.region || ""}</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="font-medium">{call.city || "Unknown"}, {call.region || ""}</p>
+                  {call.is_sample && (
+                    <span className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5 rounded">
+                      Sample
+                    </span>
+                  )}
+                </div>
                 <p className="text-gray-600">{formatDate(call.created_at)}</p>
                 <p className="text-gray-600">Duration: {formatDuration(call.duration_seconds)}</p>
                 {call.quotable_quote && (
                   <p className="mt-2 italic text-green-700 text-xs">
-                    &ldquo;{call.quotable_quote.slice(0, 100)}...&rdquo;
+                    &ldquo;{call.quotable_quote.slice(0, 100)}{call.quotable_quote.length > 100 ? "..." : ""}&rdquo;
                   </p>
                 )}
               </div>

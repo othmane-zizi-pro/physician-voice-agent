@@ -22,6 +22,7 @@ export interface Database {
           city: string | null;
           region: string | null;
           country: string | null;
+          is_sample: boolean;
           created_at: string;
         };
         Insert: {
@@ -36,6 +37,7 @@ export interface Database {
           city?: string | null;
           region?: string | null;
           country?: string | null;
+          is_sample?: boolean;
           created_at?: string;
         };
         Update: {
@@ -50,6 +52,7 @@ export interface Database {
           city?: string | null;
           region?: string | null;
           country?: string | null;
+          is_sample?: boolean;
           created_at?: string;
         };
         Relationships: [];
