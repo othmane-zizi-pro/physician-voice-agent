@@ -204,6 +204,7 @@ export default function AdminDashboard() {
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Duration</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Recording</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Transcript</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Quote</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
@@ -212,7 +213,7 @@ export default function AdminDashboard() {
             <tbody>
               {filteredCalls.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-gray-500 py-8">
+                  <td colSpan={7} className="text-center text-gray-500 py-8">
                     No calls found
                   </td>
                 </tr>
@@ -245,6 +246,15 @@ export default function AdminDashboard() {
                           </svg>
                           <span>Play</span>
                         </a>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm max-w-xs">
+                      {call.transcript ? (
+                        <span className="text-gray-300 line-clamp-2 text-xs">
+                          {call.transcript.slice(0, 100)}{call.transcript.length > 100 ? "..." : ""}
+                        </span>
                       ) : (
                         <span className="text-gray-500">-</span>
                       )}
