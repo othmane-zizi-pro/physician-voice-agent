@@ -103,6 +103,46 @@ export interface Database {
           }
         ];
       };
+      featured_quotes: {
+        Row: {
+          id: string;
+          call_id: string | null;
+          quote: string;
+          location: string | null;
+          display_order: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          call_id?: string | null;
+          quote: string;
+          location?: string | null;
+          display_order: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          call_id?: string | null;
+          quote?: string;
+          location?: string | null;
+          display_order?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_quotes_call_id_fkey";
+            columns: ["call_id"];
+            referencedRelation: "calls";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -123,3 +163,6 @@ export type Call = Database["public"]["Tables"]["calls"]["Row"];
 export type CallInsert = Database["public"]["Tables"]["calls"]["Insert"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
+export type FeaturedQuote = Database["public"]["Tables"]["featured_quotes"]["Row"];
+export type FeaturedQuoteInsert = Database["public"]["Tables"]["featured_quotes"]["Insert"];
+export type FeaturedQuoteUpdate = Database["public"]["Tables"]["featured_quotes"]["Update"];
