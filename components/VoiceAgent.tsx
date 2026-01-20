@@ -21,6 +21,7 @@ export default function VoiceAgent() {
   const ipAddressRef = useRef<string | null>(null);
   const callStartTimeRef = useRef<number | null>(null);
   const fullTranscriptRef = useRef<string[]>([]);
+  const vapiCallIdRef = useRef<string | null>(null);
 
   // Fetch IP address on mount
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function VoiceAgent() {
         transcript: transcriptText,
         duration_seconds: durationSeconds,
         ip_address: ipAddressRef.current,
+        vapi_call_id: vapiCallIdRef.current,
       })
       .select("id")
       .single();
@@ -148,10 +150,15 @@ export default function VoiceAgent() {
       // Use assistant ID if configured, otherwise use inline config
       const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
 
+      let call;
       if (assistantId) {
-        await vapiRef.current.start(assistantId);
+        call = await vapiRef.current.start(assistantId);
       } else {
-        await vapiRef.current.start(VAPI_ASSISTANT_CONFIG as any);
+        call = await vapiRef.current.start(VAPI_ASSISTANT_CONFIG as any);
+      }
+      // Capture call ID from start response
+      if (call?.id) {
+        vapiCallIdRef.current = call.id;
       }
     } catch (error) {
       console.error("Failed to start call:", error);

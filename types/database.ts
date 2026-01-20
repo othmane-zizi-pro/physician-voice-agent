@@ -12,6 +12,7 @@ export interface Database {
       calls: {
         Row: {
           id: string;
+          vapi_call_id: string | null;
           transcript: string | null;
           quotable_quote: string | null;
           recording_url: string | null;
@@ -27,6 +28,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
           recording_url?: string | null;
@@ -42,6 +44,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
           recording_url?: string | null;
