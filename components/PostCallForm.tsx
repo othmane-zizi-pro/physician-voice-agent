@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 type FormStep =
@@ -9,6 +9,11 @@ type FormStep =
   | "contact_form"
   | "thank_you"
   | "thank_you_not_physician";
+
+interface FeaturedQuote {
+  quote: string;
+  location: string;
+}
 
 interface PostCallFormProps {
   callId: string | null;
@@ -22,6 +27,19 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
+
+  // Fetch featured quotes on mount
+  useEffect(() => {
+    fetch("/api/featured-quotes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.quotes) {
+          setFeaturedQuotes(data.quotes);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   const handlePhysicianAnswer = (answer: boolean) => {
     setIsPhysicianOwner(answer);
@@ -198,9 +216,31 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
           </div>
         )}
 
+        {/* Featured Quotes - shown during form questions */}
+        {showSocials && featuredQuotes.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-800">
+            <p className="text-gray-500 text-xs text-center mb-4">What other physicians are saying</p>
+            <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
+              {featuredQuotes.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50"
+                >
+                  <p className="text-gray-300 text-sm italic leading-relaxed">
+                    &ldquo;{item.quote}&rdquo;
+                  </p>
+                  <p className="text-gray-500 text-xs mt-2">
+                    — {item.location}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Social Links - shown during form questions */}
         {showSocials && (
-          <div className="mt-8 pt-6 border-t border-gray-800">
+          <div className="mt-6 pt-4 border-t border-gray-800">
             <p className="text-gray-500 text-xs text-center mb-3">Follow Meroka</p>
             <div className="flex justify-center gap-4">
               <a

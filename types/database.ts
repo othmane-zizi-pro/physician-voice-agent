@@ -15,6 +15,7 @@ export interface Database {
           vapi_call_id: string | null;
           transcript: string | null;
           quotable_quote: string | null;
+          frustration_score: number | null;
           recording_url: string | null;
           duration_seconds: number | null;
           ip_address: string | null;
@@ -31,6 +32,7 @@ export interface Database {
           vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
+          frustration_score?: number | null;
           recording_url?: string | null;
           duration_seconds?: number | null;
           ip_address?: string | null;
@@ -47,6 +49,7 @@ export interface Database {
           vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
+          frustration_score?: number | null;
           recording_url?: string | null;
           duration_seconds?: number | null;
           ip_address?: string | null;
