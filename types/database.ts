@@ -68,6 +68,7 @@ export interface Database {
           id: string;
           call_id: string | null;
           is_physician_owner: boolean | null;
+          works_at_independent_clinic: boolean | null;
           interested_in_collective: boolean | null;
           name: string | null;
           email: string | null;
@@ -77,6 +78,7 @@ export interface Database {
           id?: string;
           call_id?: string | null;
           is_physician_owner?: boolean | null;
+          works_at_independent_clinic?: boolean | null;
           interested_in_collective?: boolean | null;
           name?: string | null;
           email?: string | null;
@@ -86,6 +88,7 @@ export interface Database {
           id?: string;
           call_id?: string | null;
           is_physician_owner?: boolean | null;
+          works_at_independent_clinic?: boolean | null;
           interested_in_collective?: boolean | null;
           name?: string | null;
           email?: string | null;

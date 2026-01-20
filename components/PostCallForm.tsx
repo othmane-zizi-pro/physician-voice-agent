@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 type FormStep =
   | "physician_question"
+  | "clinic_question"
   | "collective_question"
   | "contact_form"
   | "thank_you"
@@ -23,6 +24,7 @@ interface PostCallFormProps {
 export default function PostCallForm({ callId, onComplete }: PostCallFormProps) {
   const [step, setStep] = useState<FormStep>("physician_question");
   const [isPhysicianOwner, setIsPhysicianOwner] = useState<boolean | null>(null);
+  const [worksAtClinic, setWorksAtClinic] = useState<boolean | null>(null);
   const [interestedInCollective, setInterestedInCollective] = useState<boolean | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,8 +48,19 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
     if (answer) {
       setStep("collective_question");
     } else {
+      setStep("clinic_question");
+    }
+  };
+
+  const handleClinicAnswer = (answer: boolean) => {
+    setWorksAtClinic(answer);
+    if (answer) {
+      // Works at independent clinic - ask about collective
+      setStep("collective_question");
+    } else {
+      // Doesn't work at independent clinic - thank and close
       setStep("thank_you_not_physician");
-      saveLead({ is_physician_owner: false });
+      saveLead({ is_physician_owner: false, works_at_independent_clinic: false });
     }
   };
 
@@ -57,7 +70,11 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
       setStep("contact_form");
     } else {
       setStep("thank_you");
-      saveLead({ is_physician_owner: true, interested_in_collective: false });
+      saveLead({
+        is_physician_owner: isPhysicianOwner ?? false,
+        works_at_independent_clinic: worksAtClinic,
+        interested_in_collective: false,
+      });
     }
   };
 
@@ -67,7 +84,8 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
 
     setIsSubmitting(true);
     await saveLead({
-      is_physician_owner: true,
+      is_physician_owner: isPhysicianOwner ?? false,
+      works_at_independent_clinic: worksAtClinic,
       interested_in_collective: true,
       name: name.trim(),
       email: email.trim(),
@@ -78,6 +96,7 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
 
   const saveLead = async (data: {
     is_physician_owner?: boolean;
+    works_at_independent_clinic?: boolean | null;
     interested_in_collective?: boolean;
     name?: string;
     email?: string;
@@ -112,6 +131,29 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
               </button>
               <button
                 onClick={() => handlePhysicianAnswer(false)}
+                className="flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Clinic Question - for non-physician-owners */}
+        {step === "clinic_question" && (
+          <div className="animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-6 text-center">
+              Do you work at an independent clinic?
+            </h2>
+            <div className="flex gap-4">
+              <button
+                onClick={() => handleClinicAnswer(true)}
+                className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => handleClinicAnswer(false)}
                 className="flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
               >
                 No
