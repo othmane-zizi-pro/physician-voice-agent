@@ -203,6 +203,7 @@ export default function AdminDashboard() {
               <tr className="border-b border-gray-800">
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Duration</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Recording</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Quote</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
@@ -211,7 +212,7 @@ export default function AdminDashboard() {
             <tbody>
               {filteredCalls.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-500 py-8">
+                  <td colSpan={6} className="text-center text-gray-500 py-8">
                     No calls found
                   </td>
                 </tr>
@@ -230,6 +231,23 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-gray-300 text-sm">
                       {formatDuration(call.duration_seconds)}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {call.recording_url ? (
+                        <a
+                          href={call.recording_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-green-400 hover:text-green-300"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                          <span>Play</span>
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm max-w-xs">
                       {call.quotable_quote ? (
