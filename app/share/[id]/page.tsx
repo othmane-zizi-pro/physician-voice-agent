@@ -1,8 +1,9 @@
 import { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
-import { Phone, Twitter, Linkedin, Link2 } from "lucide-react";
+import { Phone, Twitter, Linkedin } from "lucide-react";
 import type { Database } from "@/types/database";
+import CopyLinkButton from "./CopyLinkButton";
 
 // Create supabase client for server-side
 const supabase = createClient<Database>(
@@ -149,15 +150,7 @@ export default async function SharePage({ params }: PageProps) {
           >
             <Linkedin size={20} />
           </a>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(shareUrl);
-            }}
-            className="p-3 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
-            title="Copy link"
-          >
-            <Link2 size={20} />
-          </button>
+          <CopyLinkButton shareUrl={shareUrl} />
         </div>
 
         {/* CTA */}
