@@ -217,6 +217,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      page_visits: {
+        Row: {
+          id: string;
+          page_path: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          referrer: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          page_path: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          referrer?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          page_path?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          referrer?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -242,3 +278,5 @@ export type FeaturedQuoteInsert = Database["public"]["Tables"]["featured_quotes"
 export type FeaturedQuoteUpdate = Database["public"]["Tables"]["featured_quotes"]["Update"];
 export type LinkClick = Database["public"]["Tables"]["link_clicks"]["Row"];
 export type LinkClickInsert = Database["public"]["Tables"]["link_clicks"]["Insert"];
+export type PageVisit = Database["public"]["Tables"]["page_visits"]["Row"];
+export type PageVisitInsert = Database["public"]["Tables"]["page_visits"]["Insert"];

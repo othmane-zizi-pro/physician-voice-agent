@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import type { Call, Lead, FeaturedQuote, LinkClick } from "@/types/database";
+import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit } from "@/types/database";
 import FeaturedQuotesManager from "@/components/FeaturedQuotesManager";
 import QuotePreviewModal from "@/components/QuotePreviewModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -19,7 +19,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits";
 type QuotesFilter = "all" | "featured" | "not-featured";
 
 export default function AdminDashboard() {
@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
   const [linkClicks, setLinkClicks] = useState<LinkClick[]>([]);
+  const [pageVisits, setPageVisits] = useState<PageVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,17 +61,19 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [callsRes, leadsRes, featuredRes, clicksRes] = await Promise.all([
+    const [callsRes, leadsRes, featuredRes, clicksRes, visitsRes] = await Promise.all([
       supabase.from("calls").select("*").order("created_at", { ascending: false }),
       supabase.from("leads").select("*").order("created_at", { ascending: false }),
       supabase.from("featured_quotes").select("*").order("display_order", { ascending: true }),
       supabase.from("link_clicks").select("*").order("created_at", { ascending: false }),
+      supabase.from("page_visits").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
 
     if (callsRes.data) setCalls(callsRes.data);
     if (leadsRes.data) setLeads(leadsRes.data);
     if (featuredRes.data) setFeaturedQuotes(featuredRes.data);
     if (clicksRes.data) setLinkClicks(clicksRes.data);
+    if (visitsRes.data) setPageVisits(visitsRes.data);
     setLoading(false);
   };
 
@@ -411,10 +414,20 @@ export default function AdminDashboard() {
         >
           Clicks ({linkClicks.length})
         </button>
+        <button
+          onClick={() => setActiveTab("visits")}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeTab === "visits"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+          }`}
+        >
+          Traffic ({pageVisits.length})
+        </button>
       </div>
 
       {/* Search */}
-      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && (
+      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && activeTab !== "visits" && (
         <div className="mb-6 flex flex-wrap gap-4 items-center relative z-10">
           <input
             type="text"
@@ -1065,6 +1078,133 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate" title={click.user_agent || ""}>
                         {click.user_agent ? click.user_agent.slice(0, 50) + (click.user_agent.length > 50 ? "..." : "") : "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Page Visits Tab */}
+      {activeTab === "visits" && (
+        <div className="space-y-6 relative z-10">
+          {/* Visit Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">Total Visits</p>
+              <p className="text-2xl font-bold text-white">{pageVisits.length}</p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">Unique IPs</p>
+              <p className="text-2xl font-bold text-meroka-primary">
+                {new Set(pageVisits.map((v) => v.ip_address).filter(Boolean)).size}
+              </p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">From Referrers</p>
+              <p className="text-2xl font-bold text-cyan-400">
+                {pageVisits.filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost")).length}
+              </p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">With UTM</p>
+              <p className="text-2xl font-bold text-blue-400">
+                {pageVisits.filter((v) => v.utm_source).length}
+              </p>
+            </div>
+          </div>
+
+          {/* Top Referrers */}
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+            <p className="text-gray-400 text-sm mb-3">Top Traffic Sources</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(
+                pageVisits
+                  .filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost"))
+                  .reduce((acc, v) => {
+                    try {
+                      const domain = new URL(v.referrer!).hostname;
+                      acc[domain] = (acc[domain] || 0) + 1;
+                    } catch {
+                      acc[v.referrer!] = (acc[v.referrer!] || 0) + 1;
+                    }
+                    return acc;
+                  }, {} as Record<string, number>)
+              )
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([domain, count]) => (
+                  <span
+                    key={domain}
+                    className="px-3 py-1 bg-gray-800 rounded-full text-sm text-gray-300"
+                  >
+                    {domain} <span className="text-meroka-primary font-medium">({count})</span>
+                  </span>
+                ))}
+              {pageVisits.filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost")).length === 0 && (
+                <span className="text-gray-500 text-sm">No external referrers yet</span>
+              )}
+            </div>
+          </div>
+
+          {/* Visits Table */}
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Page</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP Address</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Referrer</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">UTM</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageVisits.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center text-gray-500 py-8">
+                      No visits tracked yet
+                    </td>
+                  </tr>
+                ) : (
+                  pageVisits.slice(0, 200).map((visit) => (
+                    <tr key={visit.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                        {formatDate(visit.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className="text-gray-300">{visit.page_path}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm font-mono">
+                        {visit.ip_address || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-sm max-w-xs truncate" title={visit.referrer || ""}>
+                        {visit.referrer ? (
+                          <span className="text-cyan-400">
+                            {(() => {
+                              try {
+                                return new URL(visit.referrer).hostname;
+                              } catch {
+                                return visit.referrer.slice(0, 30);
+                              }
+                            })()}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Direct</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {visit.utm_source ? (
+                          <span className="text-blue-400">
+                            {visit.utm_source}
+                            {visit.utm_medium && ` / ${visit.utm_medium}`}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">-</span>
+                        )}
                       </td>
                     </tr>
                   ))
