@@ -97,3 +97,9 @@ export function isValidEmail(email: string): boolean {
 export function isValidPassword(password: string): boolean {
   return password.length >= 8;
 }
+
+// Get user ID from current session (for API routes)
+export async function getCurrentUserId(): Promise<string | null> {
+  const session = await getSession();
+  return session?.userId || null;
+}

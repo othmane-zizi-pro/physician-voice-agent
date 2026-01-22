@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
+import { getCurrentUserId } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+  // Get user ID if logged in (null for anonymous)
+  const userId = await getCurrentUserId();
 
   const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
         transcript: content,
         session_type: "text",
         ip_address: ipAddress,
+        user_id: userId, // Link to user if logged in, null if anonymous
       })
       .select()
       .single();

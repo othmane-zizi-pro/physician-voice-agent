@@ -225,6 +225,7 @@ export default function VoiceAgent() {
         duration_seconds: durationSeconds,
         ip_address: ipAddressRef.current,
         vapi_call_id: vapiCallIdRef.current,
+        user_id: user?.id || null, // Link to user if logged in
       })
       .select("id")
       .single();
@@ -235,7 +236,7 @@ export default function VoiceAgent() {
     }
 
     return data.id;
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
