@@ -80,6 +80,9 @@ export default function VoiceAgent() {
   const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Stats state
+  const [todayCount, setTodayCount] = useState<number | null>(null);
+
   // Rate limiting state
   const [usageData, setUsageData] = useState<UsageData>({ usedSeconds: 0, windowStart: Date.now() });
   const [currentCallSeconds, setCurrentCallSeconds] = useState(0);
@@ -110,10 +113,31 @@ export default function VoiceAgent() {
       })
       .catch(console.error);
 
-    // Initialize rate limiting
-    const usage = getUsageData();
-    setUsageData(usage);
-    setIsRateLimited(usage.usedSeconds >= RATE_LIMIT_SECONDS);
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => {
+        setTodayCount(data.todayCount || 0);
+      })
+      .catch(console.error);
+
+    // Initialize rate limiting - check backend first, fallback to localStorage
+    fetch("/api/rate-limit")
+      .then((res) => res.json())
+      .then((data) => {
+        const usage = {
+          usedSeconds: data.usedSeconds || 0,
+          windowStart: new Date(data.windowStart).getTime() || Date.now(),
+        };
+        setUsageData(usage);
+        setIsRateLimited(data.isLimited || false);
+        saveUsageData(usage); // Sync localStorage with backend
+      })
+      .catch(() => {
+        // Fallback to localStorage
+        const usage = getUsageData();
+        setUsageData(usage);
+        setIsRateLimited(usage.usedSeconds >= RATE_LIMIT_SECONDS);
+      });
   }, []);
 
   // Live quote rotation effect
@@ -216,11 +240,32 @@ export default function VoiceAgent() {
       setCurrentSpeaker(null);
 
       // Finalize rate limit tracking
+      const callDuration = callStartTimeRef.current
+        ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
+        : 0;
+
+      // Sync to backend
+      if (callDuration > 0) {
+        fetch("/api/rate-limit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seconds: callDuration }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            setUsageData((prev) => ({
+              usedSeconds: data.usedSeconds || prev.usedSeconds + callDuration,
+              windowStart: prev.windowStart,
+            }));
+            setIsRateLimited(data.isLimited || false);
+          })
+          .catch(console.error);
+      }
+
+      // Also update localStorage
       setUsageData((prev) => {
         const newData = {
-          usedSeconds: prev.usedSeconds + (callStartTimeRef.current
-            ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
-            : 0),
+          usedSeconds: prev.usedSeconds + callDuration,
           windowStart: prev.windowStart,
         };
         saveUsageData(newData);
@@ -325,24 +370,27 @@ export default function VoiceAgent() {
   }, []);
 
   // Share functions
-  const getShareUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
+  const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
+  const getShareUrl = (quoteId: string) => `${getBaseUrl()}/share/${quoteId}`;
 
   const shareToTwitter = useCallback((quote: FeaturedQuote) => {
-    const text = `"${quote.quote}" - Anonymous Healthcare Worker\n\nTalk to Doc, an AI companion for burnt-out physicians:`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getShareUrl())}`;
+    const shareUrl = getShareUrl(quote.id);
+    const text = `"${quote.quote.length > 100 ? quote.quote.slice(0, 97) + "..." : quote.quote}"\n\nTalk to Doc:`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, "_blank", "width=550,height=420");
     setShareMenuOpen(null);
   }, []);
 
   const shareToLinkedIn = useCallback((quote: FeaturedQuote) => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getShareUrl())}`;
+    const shareUrl = getShareUrl(quote.id);
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
     window.open(url, "_blank", "width=550,height=420");
     setShareMenuOpen(null);
   }, []);
 
   const copyLink = useCallback(async (quote: FeaturedQuote) => {
-    const text = `"${quote.quote}" - Anonymous Healthcare Worker\n\nTalk to Doc: ${getShareUrl()}`;
-    await navigator.clipboard.writeText(text);
+    const shareUrl = getShareUrl(quote.id);
+    await navigator.clipboard.writeText(shareUrl);
     setCopiedId(quote.id);
     setTimeout(() => setCopiedId(null), 2000);
     setShareMenuOpen(null);
@@ -362,16 +410,57 @@ export default function VoiceAgent() {
   }, [isMuted]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2 text-white">Doc</h1>
-        <p className="text-gray-400 text-lg max-w-md">
-          A sardonic AI companion for burnt-out physicians.
-          <br />
-          <span className="text-gray-500">Vent about the system with someone who gets it.</span>
-        </p>
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(34,197,94,0.1)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(59,130,246,0.08)_0%,_transparent_50%)]" />
       </div>
+
+      {/* Content container */}
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h1 className="text-5xl font-bold mb-3 text-white tracking-tight">Doc</h1>
+          <p className="text-gray-400 text-lg max-w-md leading-relaxed">
+            A sardonic AI companion for burnt-out healthcare workers.
+            <br />
+            <span className="text-gray-500">Vent about the system with someone who gets it.</span>
+          </p>
+        </div>
+
+        {/* Trust signals */}
+        <div className="flex items-center gap-4 mb-6 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Anonymous
+          </span>
+          <span className="text-gray-700">|</span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            No account needed
+          </span>
+          <span className="text-gray-700">|</span>
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            Free
+          </span>
+        </div>
+
+        {/* Today's venting counter */}
+        {todayCount !== null && todayCount > 0 && callStatus === "idle" && (
+          <div className="mb-6 px-4 py-2 bg-green-900/20 border border-green-800/30 rounded-full">
+            <p className="text-green-400 text-sm">
+              <span className="font-semibold">{todayCount}</span> healthcare worker{todayCount !== 1 ? "s" : ""} vented today
+            </p>
+          </div>
+        )}
 
       {/* Live Quote Feed - shown before the call */}
       {callStatus === "idle" && featuredQuotes.length > 0 && (
@@ -595,6 +684,7 @@ export default function VoiceAgent() {
           </div>
         </div>
       )}
+      </div>{/* End content container */}
 
       {/* Footer disclaimer */}
       <div className="fixed bottom-4 text-center text-gray-600 text-xs">

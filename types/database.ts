@@ -160,6 +160,36 @@ export interface Database {
           }
         ];
       };
+      usage_limits: {
+        Row: {
+          id: string;
+          ip_address: string;
+          fingerprint: string | null;
+          used_seconds: number;
+          window_start: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          ip_address: string;
+          fingerprint?: string | null;
+          used_seconds?: number;
+          window_start?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          ip_address?: string;
+          fingerprint?: string | null;
+          used_seconds?: number;
+          window_start?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
