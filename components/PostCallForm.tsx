@@ -296,7 +296,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                     onClick={() => setConsentShareQuote(false)}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       consentShareQuote === false
-                        ? "bg-gray-600 text-white"
+                        ? "bg-gray-500 text-white ring-2 ring-gray-400"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
@@ -328,7 +328,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                     onClick={() => setConsentStoreChatlog(false)}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       consentStoreChatlog === false
-                        ? "bg-gray-600 text-white"
+                        ? "bg-gray-500 text-white ring-2 ring-gray-400"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
