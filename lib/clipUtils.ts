@@ -118,6 +118,10 @@ export function parseTranscriptIntoExchanges(transcript: string): Exchange[] {
 /**
  * Parse VAPI timestamped messages into exchanges with timing info.
  * Each exchange is a user message followed by a bot response.
+ *
+ * Timing strategy:
+ * - Start: 1 second before the user starts speaking (to avoid cutting off first word)
+ * - End: When the next user message starts (more reliable than duration field)
  */
 export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedExchange[] {
   const exchanges: TimedExchange[] = [];
@@ -127,60 +131,87 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
     m => m.role === 'user' || m.role === 'bot' || m.role === 'assistant'
   );
 
-  let currentExchange: {
-    physicianLines: string[];
-    docLines: string[];
-    startSeconds: number | null;
-    endSeconds: number | null;
-  } | null = null;
+  // First pass: identify exchange boundaries
+  // An exchange starts with a user message and ends when the next user message begins
+  const exchangeBoundaries: { startIdx: number; endIdx: number }[] = [];
+  let currentStartIdx: number | null = null;
 
-  let exchangeIndex = 0;
-
-  for (const msg of conversationMessages) {
+  for (let i = 0; i < conversationMessages.length; i++) {
+    const msg = conversationMessages[i];
     const isUser = msg.role === 'user';
-    const isBot = msg.role === 'bot' || msg.role === 'assistant';
 
     if (isUser) {
-      // If we have a complete exchange (has doc response), save it
-      if (currentExchange && currentExchange.docLines.length > 0 && currentExchange.endSeconds !== null) {
-        exchanges.push({
-          index: exchangeIndex,
-          physicianText: currentExchange.physicianLines.join(' '),
-          docText: currentExchange.docLines.join(' '),
-          startSeconds: currentExchange.startSeconds!,
-          endSeconds: currentExchange.endSeconds,
-        });
-        exchangeIndex++;
+      // If we had a previous exchange, it ends here
+      if (currentStartIdx !== null) {
+        exchangeBoundaries.push({ startIdx: currentStartIdx, endIdx: i - 1 });
       }
-
-      // Start new exchange or add to existing user turn
-      if (!currentExchange || currentExchange.docLines.length > 0) {
-        currentExchange = {
-          physicianLines: [msg.message],
-          docLines: [],
-          startSeconds: msg.secondsFromStart,
-          endSeconds: null,
-        };
-      } else {
-        currentExchange.physicianLines.push(msg.message);
-      }
-    } else if (isBot && currentExchange) {
-      currentExchange.docLines.push(msg.message);
-      // Update end time to when this bot message ends
-      const msgEndSeconds = msg.secondsFromStart + (msg.duration || 0);
-      currentExchange.endSeconds = msgEndSeconds;
+      currentStartIdx = i;
     }
   }
 
-  // Don't forget the last exchange
-  if (currentExchange && currentExchange.docLines.length > 0 && currentExchange.endSeconds !== null) {
-    exchanges.push({
-      index: exchangeIndex,
-      physicianText: currentExchange.physicianLines.join(' '),
-      docText: currentExchange.docLines.join(' '),
-      startSeconds: currentExchange.startSeconds!,
-      endSeconds: currentExchange.endSeconds,
-    });
+  // Don't forget the last exchange (ends at last message)
+  if (currentStartIdx !== null) {
+    exchangeBoundaries.push({ startIdx: currentStartIdx, endIdx: conversationMessages.length - 1 });
+  }
+
+  // Second pass: build exchanges with timing
+  for (let exchangeIdx = 0; exchangeIdx < exchangeBoundaries.length; exchangeIdx++) {
+    const { startIdx, endIdx } = exchangeBoundaries[exchangeIdx];
+
+    const physicianLines: string[] = [];
+    const docLines: string[] = [];
+    let startSeconds: number | null = null;
+    let lastBotMessageStart: number | null = null;
+
+    for (let i = startIdx; i <= endIdx; i++) {
+      const msg = conversationMessages[i];
+      const isUser = msg.role === 'user';
+      const isBot = msg.role === 'bot' || msg.role === 'assistant';
+
+      if (isUser) {
+        physicianLines.push(msg.message);
+        if (startSeconds === null) {
+          // Start 1 second early to avoid cutting off first word
+          startSeconds = Math.max(0, msg.secondsFromStart - 1);
+        }
+      } else if (isBot) {
+        docLines.push(msg.message);
+        lastBotMessageStart = msg.secondsFromStart;
+      }
+    }
+
+    // Only create exchange if we have both user and bot messages
+    if (physicianLines.length > 0 && docLines.length > 0 && startSeconds !== null && lastBotMessageStart !== null) {
+      // Determine end time:
+      // - If there's a next exchange, use its start time
+      // - Otherwise, use lastBotMessageStart + duration (if available) or estimate
+      let endSeconds: number;
+
+      if (exchangeIdx < exchangeBoundaries.length - 1) {
+        // Next exchange exists - use its start time as our end
+        const nextExchangeStartIdx = exchangeBoundaries[exchangeIdx + 1].startIdx;
+        endSeconds = conversationMessages[nextExchangeStartIdx].secondsFromStart;
+      } else {
+        // Last exchange - try to use duration, otherwise add reasonable buffer
+        const lastMsg = conversationMessages[endIdx];
+        if (lastMsg.duration && lastMsg.duration > 0) {
+          endSeconds = lastMsg.secondsFromStart + lastMsg.duration;
+        } else {
+          // Estimate: add 1 second per 15 characters of text (rough speaking rate)
+          const lastDocText = docLines[docLines.length - 1] || '';
+          const estimatedDuration = Math.max(3, lastDocText.length / 15);
+          endSeconds = lastBotMessageStart + estimatedDuration;
+        }
+      }
+
+      exchanges.push({
+        index: exchangeIdx,
+        physicianText: physicianLines.join(' '),
+        docText: docLines.join(' '),
+        startSeconds,
+        endSeconds,
+      });
+    }
   }
 
   return exchanges;
