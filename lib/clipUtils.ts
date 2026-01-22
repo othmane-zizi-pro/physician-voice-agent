@@ -161,7 +161,7 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
     const physicianLines: string[] = [];
     const docLines: string[] = [];
     let startSeconds: number | null = null;
-    let lastBotMessageStart: number | null = null;
+    let maxBotEndSeconds: number | null = null;  // Track the latest end time across ALL bot messages
 
     for (let i = startIdx; i <= endIdx; i++) {
       const msg = conversationMessages[i];
@@ -176,29 +176,42 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
         }
       } else if (isBot) {
         docLines.push(msg.message);
-        lastBotMessageStart = msg.secondsFromStart;
+        // Calculate when THIS bot message ends and track the maximum
+        // Note: VAPI duration is in MILLISECONDS, secondsFromStart is in seconds
+        if (msg.duration && msg.duration > 0) {
+          const thisMsgEndSeconds = msg.secondsFromStart + (msg.duration / 1000);
+          if (maxBotEndSeconds === null || thisMsgEndSeconds > maxBotEndSeconds) {
+            maxBotEndSeconds = thisMsgEndSeconds;
+          }
+        }
       }
     }
 
     // Only create exchange if we have both user and bot messages
-    if (physicianLines.length > 0 && docLines.length > 0 && startSeconds !== null && lastBotMessageStart !== null) {
-      // Determine end time using the last bot message's duration
-      // Note: VAPI duration is in MILLISECONDS, secondsFromStart is in seconds
-      const lastMsg = conversationMessages[endIdx];
+    if (physicianLines.length > 0 && docLines.length > 0 && startSeconds !== null) {
       let endSeconds: number;
 
-      if (lastMsg.duration && lastMsg.duration > 0) {
-        // Convert duration from milliseconds to seconds
-        endSeconds = lastMsg.secondsFromStart + (lastMsg.duration / 1000);
+      if (maxBotEndSeconds !== null) {
+        // Use the maximum end time from all bot messages
+        endSeconds = maxBotEndSeconds;
       } else if (exchangeIdx < exchangeBoundaries.length - 1) {
         // Fallback: use next exchange's start time
         const nextExchangeStartIdx = exchangeBoundaries[exchangeIdx + 1].startIdx;
         endSeconds = conversationMessages[nextExchangeStartIdx].secondsFromStart;
       } else {
         // Last resort: estimate from text length
-        const lastDocText = docLines[docLines.length - 1] || '';
-        const estimatedDuration = Math.max(3, lastDocText.length / 15);
-        endSeconds = lastBotMessageStart + estimatedDuration;
+        const allDocText = docLines.join(' ');
+        const estimatedDuration = Math.max(3, allDocText.length / 15);
+        // Find the last bot message's start time for the estimate
+        let lastBotStart = 0;
+        for (let i = endIdx; i >= startIdx; i--) {
+          const msg = conversationMessages[i];
+          if (msg.role === 'bot' || msg.role === 'assistant') {
+            lastBotStart = msg.secondsFromStart;
+            break;
+          }
+        }
+        endSeconds = lastBotStart + estimatedDuration;
       }
 
       // Add small buffer (0.5s) to avoid cutting off the end
