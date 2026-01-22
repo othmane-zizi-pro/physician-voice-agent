@@ -89,10 +89,8 @@ export const VAPI_ASSISTANT_CONFIG = {
     systemPrompt: PHYSICIAN_THERAPIST_PERSONA,
   },
   voice: {
-    provider: "11labs",
-    voiceId: "pNInz6obpgDQGcFmaJgB", // "Adam" - warm, conversational male voice
-    stability: 0.6,
-    similarityBoost: 0.8,
+    provider: "deepgram",
+    voiceId: "aura-asteria-en", // Tara - warm, conversational female voice
   },
   firstMessage: "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.",
   transcriber: {
