@@ -90,9 +90,6 @@ export default function VoiceAgent() {
   const [showLowTimeWarning, setShowLowTimeWarning] = useState(false);
   const [showTimeLimitMessage, setShowTimeLimitMessage] = useState(false);
 
-  // Sound preview state
-  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -424,28 +421,6 @@ export default function VoiceAgent() {
     setIsMuted(newMuteState);
   }, [isMuted]);
 
-  // Sound preview - play a short sample of Doc's voice
-  const togglePreview = useCallback(() => {
-    if (!previewAudioRef.current) {
-      // Create audio element with a sample greeting (you can replace with actual audio URL)
-      previewAudioRef.current = new Audio("/doc-preview.mp3");
-      previewAudioRef.current.onended = () => setIsPlayingPreview(false);
-      previewAudioRef.current.onerror = () => setIsPlayingPreview(false);
-    }
-
-    if (isPlayingPreview) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.currentTime = 0;
-      setIsPlayingPreview(false);
-    } else {
-      previewAudioRef.current.play().catch(() => {
-        // Audio play failed (no audio file or browser blocked)
-        setIsPlayingPreview(false);
-      });
-      setIsPlayingPreview(true);
-    }
-  }, [isPlayingPreview]);
-
   // Dismiss time limit message
   const dismissTimeLimitMessage = useCallback(() => {
     setShowTimeLimitMessage(false);
@@ -693,30 +668,7 @@ export default function VoiceAgent() {
       {/* Status text */}
       <div className="text-center mb-8">
         {callStatus === "idle" && !isRateLimited && (
-          <div>
-            <p className="text-gray-400 mb-3">Tap to start venting</p>
-            {/* Sound preview button */}
-            <button
-              onClick={togglePreview}
-              className="text-gray-500 hover:text-gray-400 text-xs flex items-center gap-1.5 mx-auto transition-colors"
-            >
-              {isPlayingPreview ? (
-                <>
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
-                  </svg>
-                  Stop preview
-                </>
-              ) : (
-                <>
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                  </svg>
-                  Hear Doc&apos;s voice
-                </>
-              )}
-            </button>
-          </div>
+          <p className="text-gray-400">Tap to start venting</p>
         )}
         {callStatus === "idle" && isRateLimited && (
           <p className="text-gray-500">Come back later for more venting</p>
