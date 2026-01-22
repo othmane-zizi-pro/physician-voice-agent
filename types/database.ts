@@ -190,6 +190,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      link_clicks: {
+        Row: {
+          id: string;
+          link_type: string;
+          link_url: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          link_type: string;
+          link_url: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          link_type?: string;
+          link_url?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -213,3 +240,5 @@ export type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
 export type FeaturedQuote = Database["public"]["Tables"]["featured_quotes"]["Row"];
 export type FeaturedQuoteInsert = Database["public"]["Tables"]["featured_quotes"]["Insert"];
 export type FeaturedQuoteUpdate = Database["public"]["Tables"]["featured_quotes"]["Update"];
+export type LinkClick = Database["public"]["Tables"]["link_clicks"]["Row"];
+export type LinkClickInsert = Database["public"]["Tables"]["link_clicks"]["Insert"];

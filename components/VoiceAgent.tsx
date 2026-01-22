@@ -430,9 +430,9 @@ export default function VoiceAgent() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8 relative overflow-hidden">
+    <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-24 lg:pb-8 lg:justify-center relative overflow-x-hidden">
       {/* Animated gradient background - Meroka dark slate */}
-      <div className="absolute inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary">
+      <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
       </div>
@@ -748,10 +748,46 @@ export default function VoiceAgent() {
           </div>
         </div>
       )}
+
+      {/* Mobile Quote Feed - shown only on mobile, hidden on lg screens */}
+      {callStatus === "idle" && featuredQuotes.length > 0 && (
+        <div className="lg:hidden w-full max-w-md mt-12">
+          <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide text-center">
+            What others are saying
+          </p>
+          <div className="space-y-3">
+            {featuredQuotes.slice(0, 4).map((quote) => (
+              <div
+                key={quote.id}
+                className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
+              >
+                <p className="text-gray-300 text-sm italic leading-relaxed">
+                  &ldquo;{quote.quote}&rdquo;
+                </p>
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-gray-500 text-xs">— {quote.location}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setShareMenuPos({ x: Math.max(10, rect.left - 150), y: rect.top - 100 });
+                      setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    title="Share this quote"
+                  >
+                    <Share2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       </div>{/* End content container */}
 
       {/* Footer disclaimer */}
-      <div className="fixed bottom-4 text-center text-gray-600 text-xs">
+      <div className="mt-12 lg:fixed lg:bottom-4 text-center text-gray-600 text-xs relative z-10">
         <p>Not a real therapist. For entertainment and venting purposes only.</p>
         <div className="flex items-center justify-center gap-3 mt-2">
           <a href="/privacy" className="hover:text-gray-400 transition-colors underline">

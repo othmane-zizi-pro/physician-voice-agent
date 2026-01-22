@@ -18,22 +18,32 @@ function LoginContent() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-gray-600 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+        </div>
+        <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated gradient background - Meroka dark slate */}
+      <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+      </div>
+
+      <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-8 max-w-md w-full relative z-10 shadow-2xl">
         <h1 className="text-2xl font-bold text-white mb-2 text-center">Admin Login</h1>
         <p className="text-gray-400 text-center mb-6">
           Sign in with your Meroka Google account
         </p>
 
         {error && (
-          <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-sm text-center">
+          <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-xl mb-6 text-sm text-center">
             {error === "AccessDenied"
               ? "Access denied. Only @meroka.com emails are allowed."
               : "An error occurred. Please try again."}
@@ -42,7 +52,7 @@ function LoginContent() {
 
         <button
           onClick={() => signIn("google", { callbackUrl: "/admin" })}
-          className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-lg transition-colors"
+          className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-colors"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -65,7 +75,7 @@ function LoginContent() {
           Sign in with Google
         </button>
 
-        <p className="text-gray-600 text-xs text-center mt-6">
+        <p className="text-gray-500 text-xs text-center mt-6">
           Only @meroka.com accounts can access the admin panel
         </p>
       </div>
@@ -77,8 +87,12 @@ export default function AdminLogin() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-gray-600 border-t-white rounded-full animate-spin" />
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+          <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+          </div>
+          <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
         </div>
       }
     >

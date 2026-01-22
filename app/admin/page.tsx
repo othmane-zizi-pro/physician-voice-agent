@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import type { Call, Lead, FeaturedQuote } from "@/types/database";
+import type { Call, Lead, FeaturedQuote, LinkClick } from "@/types/database";
 import FeaturedQuotesManager from "@/components/FeaturedQuotesManager";
 import QuotePreviewModal from "@/components/QuotePreviewModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -19,7 +19,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks";
 type QuotesFilter = "all" | "featured" | "not-featured";
 
 export default function AdminDashboard() {
@@ -29,6 +29,7 @@ export default function AdminDashboard() {
   const [calls, setCalls] = useState<Call[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
+  const [linkClicks, setLinkClicks] = useState<LinkClick[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,22 +60,28 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [callsRes, leadsRes, featuredRes] = await Promise.all([
+    const [callsRes, leadsRes, featuredRes, clicksRes] = await Promise.all([
       supabase.from("calls").select("*").order("created_at", { ascending: false }),
       supabase.from("leads").select("*").order("created_at", { ascending: false }),
       supabase.from("featured_quotes").select("*").order("display_order", { ascending: true }),
+      supabase.from("link_clicks").select("*").order("created_at", { ascending: false }),
     ]);
 
     if (callsRes.data) setCalls(callsRes.data);
     if (leadsRes.data) setLeads(leadsRes.data);
     if (featuredRes.data) setFeaturedQuotes(featuredRes.data);
+    if (clicksRes.data) setLinkClicks(clicksRes.data);
     setLoading(false);
   };
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-gray-600 border-t-white rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+        </div>
+        <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
       </div>
     );
   }
@@ -301,49 +308,55 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-8 relative overflow-hidden">
+      {/* Animated gradient background - Meroka dark slate */}
+      <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 relative z-10">
         <div>
           <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
           <p className="text-gray-400">Welcome, {session.user?.name}</p>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          className="px-4 py-2 bg-gray-800/80 backdrop-blur-sm hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
         >
           Sign Out
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 relative z-10">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Total Calls</p>
           <p className="text-2xl font-bold text-white">{totalCalls}</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Avg Duration</p>
           <p className="text-2xl font-bold text-white">{formatDuration(avgDuration)}</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Physician Owners</p>
           <p className="text-2xl font-bold text-white">{physicianOwners}</p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Interested in Collective</p>
-          <p className="text-2xl font-bold text-green-400">{interestedLeads}</p>
+          <p className="text-2xl font-bold text-meroka-primary">{interestedLeads}</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6 relative z-10">
         <button
           onClick={() => setActiveTab("calls")}
           className={`px-4 py-2 rounded-lg transition-colors ${
             activeTab === "calls"
-              ? "bg-white text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
           }`}
         >
           Calls ({calls.length})
@@ -352,8 +365,8 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab("leads")}
           className={`px-4 py-2 rounded-lg transition-colors ${
             activeTab === "leads"
-              ? "bg-white text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
           }`}
         >
           Leads ({leads.length})
@@ -362,8 +375,8 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab("quotes")}
           className={`px-4 py-2 rounded-lg transition-colors ${
             activeTab === "quotes"
-              ? "bg-white text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
           }`}
         >
           Quotes ({calls.filter(c => c.quotable_quote).length})
@@ -372,8 +385,8 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab("map")}
           className={`px-4 py-2 rounded-lg transition-colors ${
             activeTab === "map"
-              ? "bg-white text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
           }`}
         >
           Map
@@ -382,17 +395,27 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab("form-flow")}
           className={`px-4 py-2 rounded-lg transition-colors ${
             activeTab === "form-flow"
-              ? "bg-white text-black"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
           }`}
         >
           Form Flow
         </button>
+        <button
+          onClick={() => setActiveTab("clicks")}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeTab === "clicks"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+          }`}
+        >
+          Clicks ({linkClicks.length})
+        </button>
       </div>
 
       {/* Search */}
-      {activeTab !== "map" && activeTab !== "form-flow" && (
-        <div className="mb-6 flex flex-wrap gap-4 items-center">
+      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && (
+        <div className="mb-6 flex flex-wrap gap-4 items-center relative z-10">
           <input
             type="text"
             placeholder={
@@ -404,7 +427,7 @@ export default function AdminDashboard() {
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-gray-600"
+            className="w-full max-w-md px-4 py-2 bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
           />
           {activeTab === "quotes" && (
             <div className="flex flex-wrap gap-2 items-center">
@@ -412,8 +435,8 @@ export default function AdminDashboard() {
                 onClick={() => setQuotesFilter("all")}
                 className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                   quotesFilter === "all"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    ? "bg-meroka-primary text-white"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
                 }`}
               >
                 All
@@ -423,7 +446,7 @@ export default function AdminDashboard() {
                 className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                   quotesFilter === "featured"
                     ? "bg-green-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
                 }`}
               >
                 Featured ({featuredQuotes.length})
@@ -433,7 +456,7 @@ export default function AdminDashboard() {
                 className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                   quotesFilter === "not-featured"
                     ? "bg-orange-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
                 }`}
               >
                 Not Featured
@@ -442,7 +465,7 @@ export default function AdminDashboard() {
               {/* Preview Button */}
               <button
                 onClick={() => setShowPreview(true)}
-                className="px-3 py-2 text-sm rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors flex items-center gap-1"
+                className="px-3 py-2 text-sm rounded-lg bg-meroka-primary hover:bg-meroka-primary-hover text-white transition-colors flex items-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -457,7 +480,7 @@ export default function AdminDashboard() {
 
       {/* Calls Table */}
       {activeTab === "calls" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden relative z-10">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800">
@@ -521,7 +544,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-sm max-w-xs">
                       {call.quotable_quote ? (
-                        <span className="text-green-400 italic line-clamp-2">
+                        <span className="text-meroka-primary italic line-clamp-2">
                           &ldquo;{call.quotable_quote}&rdquo;
                         </span>
                       ) : (
@@ -534,7 +557,7 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setSelectedCall(call)}
-                        className="text-blue-400 hover:text-blue-300 text-sm"
+                        className="text-meroka-primary hover:text-meroka-primary-hover text-sm"
                       >
                         View
                       </button>
@@ -549,7 +572,7 @@ export default function AdminDashboard() {
 
       {/* Leads Table */}
       {activeTab === "leads" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden overflow-x-auto relative z-10">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800">
@@ -652,7 +675,7 @@ export default function AdminDashboard() {
 
       {/* Bulk Action Toolbar */}
       {activeTab === "quotes" && quotesFilter !== "featured" && selectedQuoteIds.size > 0 && (
-        <div className="mb-4 p-3 bg-gray-800 border border-gray-700 rounded-lg flex items-center gap-4">
+        <div className="mb-4 p-3 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-xl flex items-center gap-4 relative z-10">
           <span className="text-gray-300 text-sm">
             {selectedQuoteIds.size} selected
           </span>
@@ -689,7 +712,7 @@ export default function AdminDashboard() {
 
       {/* Quotes Table (All or Not Featured) */}
       {activeTab === "quotes" && quotesFilter !== "featured" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden relative z-10">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800">
@@ -742,7 +765,7 @@ export default function AdminDashboard() {
                         {formatDate(call.created_at)}
                       </td>
                       <td className="px-4 py-3 text-sm max-w-md">
-                        <span className="text-green-400 italic">
+                        <span className="text-meroka-primary italic">
                           &ldquo;{call.quotable_quote}&rdquo;
                         </span>
                         {call.quotable_quote && call.quotable_quote.length > 200 && (
@@ -800,7 +823,7 @@ export default function AdminDashboard() {
                           <button
                             onClick={() => addToFeatured(call)}
                             disabled={isLoading}
-                            className="text-green-400 hover:text-green-300 text-sm disabled:opacity-50"
+                            className="text-meroka-primary hover:text-meroka-primary-hover text-sm disabled:opacity-50"
                           >
                             {isLoading ? "..." : "Feature"}
                           </button>
@@ -820,7 +843,7 @@ export default function AdminDashboard() {
 
       {/* Form Flow */}
       {activeTab === "form-flow" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 relative z-10">
           <h3 className="text-lg font-semibold text-white mb-6">Post-Call Form Decision Tree</h3>
           <div className="overflow-x-auto">
             <div className="min-w-[700px]">
@@ -957,10 +980,105 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Link Clicks Tab */}
+      {activeTab === "clicks" && (
+        <div className="space-y-6 relative z-10">
+          {/* Click Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">Total Clicks</p>
+              <p className="text-2xl font-bold text-white">{linkClicks.length}</p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">Website Clicks</p>
+              <p className="text-2xl font-bold text-meroka-primary">
+                {linkClicks.filter((c) => c.link_type === "website").length}
+              </p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">Twitter Clicks</p>
+              <p className="text-2xl font-bold text-cyan-400">
+                {linkClicks.filter((c) => c.link_type === "twitter").length}
+              </p>
+            </div>
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <p className="text-gray-400 text-sm">LinkedIn Clicks</p>
+              <p className="text-2xl font-bold text-blue-400">
+                {linkClicks.filter((c) => c.link_type === "linkedin").length}
+              </p>
+            </div>
+          </div>
+
+          {/* Clicks Table */}
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Type</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">URL</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP Address</th>
+                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">User Agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linkClicks.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center text-gray-500 py-8">
+                      No clicks tracked yet
+                    </td>
+                  </tr>
+                ) : (
+                  linkClicks.map((click) => (
+                    <tr key={click.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                        {formatDate(click.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                            click.link_type === "website"
+                              ? "bg-meroka-primary/20 text-meroka-primary"
+                              : click.link_type === "twitter"
+                              ? "bg-cyan-500/20 text-cyan-400"
+                              : click.link_type === "linkedin"
+                              ? "bg-blue-500/20 text-blue-400"
+                              : "bg-gray-500/20 text-gray-400"
+                          }`}
+                        >
+                          {click.link_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <a
+                          href={click.link_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-300 hover:text-white truncate block max-w-xs"
+                          title={click.link_url}
+                        >
+                          {click.link_url}
+                        </a>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-sm font-mono">
+                        {click.ip_address || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate" title={click.user_agent || ""}>
+                        {click.user_agent ? click.user_agent.slice(0, 50) + (click.user_agent.length > 50 ? "..." : "") : "-"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Call Detail Modal */}
       {selectedCall && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Call Details</h2>
               <button
@@ -990,15 +1108,15 @@ export default function AdminDashboard() {
               </div>
 
               {selectedCall.quotable_quote && (
-                <div className="bg-green-900/20 border border-green-800 rounded-lg p-4">
-                  <p className="text-green-400 text-sm font-medium mb-1">Quotable Quote</p>
+                <div className="bg-meroka-primary/20 border border-meroka-primary/50 rounded-xl p-4">
+                  <p className="text-meroka-primary text-sm font-medium mb-1">Quotable Quote</p>
                   <p className="text-white italic">&ldquo;{selectedCall.quotable_quote}&rdquo;</p>
                 </div>
               )}
 
               <div>
                 <p className="text-gray-400 text-sm font-medium mb-2">Transcript</p>
-                <div className="bg-gray-800 rounded-lg p-4 max-h-64 overflow-y-auto">
+                <div className="bg-gray-800/80 rounded-xl p-4 max-h-64 overflow-y-auto border border-gray-700">
                   {selectedCall.transcript ? (
                     <pre className="text-gray-300 text-sm whitespace-pre-wrap font-sans">
                       {selectedCall.transcript}
