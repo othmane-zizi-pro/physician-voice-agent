@@ -352,6 +352,7 @@ export default function VoiceAgent() {
     try {
       // Use assistant ID if configured, otherwise use inline config
       const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
+      console.log("Starting call with assistant ID:", assistantId || "using inline config");
 
       let call;
       if (assistantId) {
