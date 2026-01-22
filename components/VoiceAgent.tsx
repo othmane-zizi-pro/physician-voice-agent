@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import Vapi from "@vapi-ai/web";
 import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, User, LogOut, History } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
@@ -70,6 +71,7 @@ function formatTimeUntilReset(windowStart: number): string {
 }
 
 export default function VoiceAgent() {
+  const router = useRouter();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
@@ -538,7 +540,7 @@ export default function VoiceAgent() {
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
-                        // TODO: Navigate to history page (Phase 3)
+                        router.push("/dashboard");
                       }}
                       className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
                     >
