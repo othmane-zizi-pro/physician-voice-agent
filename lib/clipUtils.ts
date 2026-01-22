@@ -182,27 +182,27 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
 
     // Only create exchange if we have both user and bot messages
     if (physicianLines.length > 0 && docLines.length > 0 && startSeconds !== null && lastBotMessageStart !== null) {
-      // Determine end time:
-      // - If there's a next exchange, use its start time
-      // - Otherwise, use lastBotMessageStart + duration (if available) or estimate
+      // Determine end time using the last bot message's duration
+      // Note: VAPI duration is in MILLISECONDS, secondsFromStart is in seconds
+      const lastMsg = conversationMessages[endIdx];
       let endSeconds: number;
 
-      if (exchangeIdx < exchangeBoundaries.length - 1) {
-        // Next exchange exists - use its start time as our end
+      if (lastMsg.duration && lastMsg.duration > 0) {
+        // Convert duration from milliseconds to seconds
+        endSeconds = lastMsg.secondsFromStart + (lastMsg.duration / 1000);
+      } else if (exchangeIdx < exchangeBoundaries.length - 1) {
+        // Fallback: use next exchange's start time
         const nextExchangeStartIdx = exchangeBoundaries[exchangeIdx + 1].startIdx;
         endSeconds = conversationMessages[nextExchangeStartIdx].secondsFromStart;
       } else {
-        // Last exchange - try to use duration, otherwise add reasonable buffer
-        const lastMsg = conversationMessages[endIdx];
-        if (lastMsg.duration && lastMsg.duration > 0) {
-          endSeconds = lastMsg.secondsFromStart + lastMsg.duration;
-        } else {
-          // Estimate: add 1 second per 15 characters of text (rough speaking rate)
-          const lastDocText = docLines[docLines.length - 1] || '';
-          const estimatedDuration = Math.max(3, lastDocText.length / 15);
-          endSeconds = lastBotMessageStart + estimatedDuration;
-        }
+        // Last resort: estimate from text length
+        const lastDocText = docLines[docLines.length - 1] || '';
+        const estimatedDuration = Math.max(3, lastDocText.length / 15);
+        endSeconds = lastBotMessageStart + estimatedDuration;
       }
+
+      // Add small buffer (0.5s) to avoid cutting off the end
+      endSeconds += 0.5;
 
       exchanges.push({
         index: exchangeIdx,
