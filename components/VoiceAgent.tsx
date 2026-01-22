@@ -9,6 +9,11 @@ import PostCallForm from "./PostCallForm";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
+interface FeaturedQuote {
+  quote: string;
+  location: string;
+}
+
 export default function VoiceAgent() {
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
@@ -16,6 +21,8 @@ export default function VoiceAgent() {
   const [currentSpeaker, setCurrentSpeaker] = useState<"user" | "assistant" | null>(null);
   const [lastCallId, setLastCallId] = useState<string | null>(null);
   const [showPostCallForm, setShowPostCallForm] = useState(false);
+  const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
+  const [lastTranscript, setLastTranscript] = useState<string>("");
 
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -23,12 +30,21 @@ export default function VoiceAgent() {
   const fullTranscriptRef = useRef<string[]>([]);
   const vapiCallIdRef = useRef<string | null>(null);
 
-  // Fetch IP address on mount
+  // Fetch IP address and featured quotes on mount
   useEffect(() => {
     fetch("/api/ip")
       .then((res) => res.json())
       .then((data) => {
         ipAddressRef.current = data.ip;
+      })
+      .catch(console.error);
+
+    fetch("/api/featured-quotes")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.quotes) {
+          setFeaturedQuotes(data.quotes);
+        }
       })
       .catch(console.error);
   }, []);
@@ -82,6 +98,10 @@ export default function VoiceAgent() {
     vapi.on("call-end", async () => {
       setCallStatus("idle");
       setCurrentSpeaker(null);
+
+      // Save transcript for post-call form
+      const transcriptText = fullTranscriptRef.current.join("\n");
+      setLastTranscript(transcriptText);
 
       // Always show the form after a call ends
       setShowPostCallForm(true);
@@ -182,7 +202,7 @@ export default function VoiceAgent() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8">
       {/* Header */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-2 text-white">Doc</h1>
         <p className="text-gray-400 text-lg max-w-md">
           A sardonic AI companion for burnt-out physicians.
@@ -190,6 +210,28 @@ export default function VoiceAgent() {
           <span className="text-gray-500">Vent about the system with someone who gets it.</span>
         </p>
       </div>
+
+      {/* Featured Quotes - shown before the call */}
+      {callStatus === "idle" && featuredQuotes.length > 0 && (
+        <div className="w-full max-w-md mb-8">
+          <p className="text-gray-500 text-xs text-center mb-3 uppercase tracking-wide">
+            What other healthcare workers are saying
+          </p>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {featuredQuotes.slice(0, 3).map((item, index) => (
+              <div
+                key={index}
+                className="bg-gray-900/50 rounded-lg p-3 border border-gray-800"
+              >
+                <p className="text-gray-300 text-sm italic leading-relaxed">
+                  &ldquo;{item.quote}&rdquo;
+                </p>
+                <p className="text-gray-500 text-xs mt-1">— {item.location}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Call Button Area */}
       <div className="relative mb-12">
@@ -311,10 +353,12 @@ export default function VoiceAgent() {
       {showPostCallForm && (
         <PostCallForm
           callId={lastCallId}
+          transcript={lastTranscript}
           onComplete={() => {
             setShowPostCallForm(false);
             setLastCallId(null);
             setTranscript([]);
+            setLastTranscript("");
           }}
         />
       )}

@@ -4,12 +4,16 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 type FormStep =
-  | "physician_question"
-  | "clinic_question"
+  | "consent"
+  | "healthcare_question"
+  | "workplace_question"
+  | "role_question"
   | "collective_question"
   | "contact_form"
-  | "thank_you"
-  | "thank_you_not_physician";
+  | "thank_you";
+
+type WorkplaceType = "independent" | "hospital" | null;
+type RoleType = "owner" | "provider" | "front_office" | null;
 
 interface FeaturedQuote {
   quote: string;
@@ -18,17 +22,29 @@ interface FeaturedQuote {
 
 interface PostCallFormProps {
   callId: string | null;
+  transcript: string;
   onComplete: () => void;
 }
 
-export default function PostCallForm({ callId, onComplete }: PostCallFormProps) {
-  const [step, setStep] = useState<FormStep>("physician_question");
-  const [isPhysicianOwner, setIsPhysicianOwner] = useState<boolean | null>(null);
-  const [worksAtClinic, setWorksAtClinic] = useState<boolean | null>(null);
+export default function PostCallForm({ callId, transcript, onComplete }: PostCallFormProps) {
+  const [step, setStep] = useState<FormStep>("consent");
+
+  // Consent answers
+  const [consentShareQuote, setConsentShareQuote] = useState<boolean | null>(null);
+  const [consentStoreChatlog, setConsentStoreChatlog] = useState<boolean | null>(null);
+
+  // Qualification answers
+  const [worksInHealthcare, setWorksInHealthcare] = useState<boolean | null>(null);
+  const [workplaceType, setWorkplaceType] = useState<WorkplaceType>(null);
+  const [roleType, setRoleType] = useState<RoleType>(null);
   const [interestedInCollective, setInterestedInCollective] = useState<boolean | null>(null);
+
+  // Contact info
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Featured quotes for sidebar
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
 
   // Fetch featured quotes on mount
@@ -43,25 +59,57 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
       .catch(console.error);
   }, []);
 
-  const handlePhysicianAnswer = (answer: boolean) => {
-    setIsPhysicianOwner(answer);
+  // Extract a preview from the transcript (user's words only)
+  const getTranscriptPreview = () => {
+    if (!transcript) return null;
+    const lines = transcript.split("\n");
+    const userLines = lines
+      .filter((line) => line.startsWith("You:"))
+      .map((line) => line.replace("You:", "").trim())
+      .filter((line) => line.length > 20); // Only meaningful lines
+
+    if (userLines.length === 0) return null;
+
+    // Get the most substantive line (longest)
+    const bestLine = userLines.reduce((a, b) => (a.length > b.length ? a : b));
+    return bestLine.length > 150 ? bestLine.slice(0, 150) + "..." : bestLine;
+  };
+
+  const transcriptPreview = getTranscriptPreview();
+
+  // Step handlers
+  const handleConsentComplete = () => {
+    setStep("healthcare_question");
+  };
+
+  const handleHealthcareAnswer = (answer: boolean) => {
+    setWorksInHealthcare(answer);
     if (answer) {
-      setStep("collective_question");
+      setStep("workplace_question");
     } else {
-      setStep("clinic_question");
+      // Not in healthcare - save and thank
+      saveLead({
+        works_in_healthcare: false,
+        consent_share_quote: consentShareQuote,
+        consent_store_chatlog: consentStoreChatlog,
+      });
+      setStep("thank_you");
     }
   };
 
-  const handleClinicAnswer = (answer: boolean) => {
-    setWorksAtClinic(answer);
-    if (answer) {
-      // Works at independent clinic - ask about collective
-      setStep("collective_question");
+  const handleWorkplaceAnswer = (type: WorkplaceType) => {
+    setWorkplaceType(type);
+    if (type === "independent") {
+      setStep("role_question");
     } else {
-      // Doesn't work at independent clinic - thank and close
-      setStep("thank_you_not_physician");
-      saveLead({ is_physician_owner: false, works_at_independent_clinic: false });
+      // Hospital group - ask about collective
+      setStep("collective_question");
     }
+  };
+
+  const handleRoleAnswer = (role: RoleType) => {
+    setRoleType(role);
+    setStep("collective_question");
   };
 
   const handleCollectiveAnswer = (answer: boolean) => {
@@ -69,12 +117,18 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
     if (answer) {
       setStep("contact_form");
     } else {
-      setStep("thank_you");
       saveLead({
-        is_physician_owner: isPhysicianOwner ?? false,
-        works_at_independent_clinic: worksAtClinic,
+        works_in_healthcare: worksInHealthcare,
+        workplace_type: workplaceType,
+        role_type: roleType,
         interested_in_collective: false,
+        consent_share_quote: consentShareQuote,
+        consent_store_chatlog: consentStoreChatlog,
+        // Backwards compatibility
+        is_physician_owner: workplaceType === "independent" && roleType === "owner",
+        works_at_independent_clinic: workplaceType === "independent",
       });
+      setStep("thank_you");
     }
   };
 
@@ -84,22 +138,33 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
 
     setIsSubmitting(true);
     await saveLead({
-      is_physician_owner: isPhysicianOwner ?? false,
-      works_at_independent_clinic: worksAtClinic,
+      works_in_healthcare: worksInHealthcare,
+      workplace_type: workplaceType,
+      role_type: roleType,
       interested_in_collective: true,
       name: name.trim(),
       email: email.trim(),
+      consent_share_quote: consentShareQuote,
+      consent_store_chatlog: consentStoreChatlog,
+      // Backwards compatibility
+      is_physician_owner: workplaceType === "independent" && roleType === "owner",
+      works_at_independent_clinic: workplaceType === "independent",
     });
     setIsSubmitting(false);
     setStep("thank_you");
   };
 
   const saveLead = async (data: {
-    is_physician_owner?: boolean;
-    works_at_independent_clinic?: boolean | null;
+    works_in_healthcare?: boolean | null;
+    workplace_type?: WorkplaceType;
+    role_type?: RoleType;
     interested_in_collective?: boolean;
     name?: string;
     email?: string;
+    consent_share_quote?: boolean | null;
+    consent_store_chatlog?: boolean | null;
+    is_physician_owner?: boolean;
+    works_at_independent_clinic?: boolean | null;
   }) => {
     try {
       await supabase.from("leads").insert({
@@ -111,26 +176,124 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
     }
   };
 
-  const showSocials = step !== "thank_you" && step !== "thank_you_not_physician";
+  const showSidebar = step !== "thank_you";
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
-        {/* Physician Question */}
-        {step === "physician_question" && (
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+        {/* Consent Step */}
+        {step === "consent" && (
+          <div className="animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-2 text-center">
+              Thanks for sharing
+            </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              We believe in being upfront about how we use your conversation.
+            </p>
+
+            {/* Show transcript preview if available */}
+            {transcriptPreview && (
+              <div className="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700">
+                <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
+                  From your conversation
+                </p>
+                <p className="text-gray-300 text-sm italic">
+                  &ldquo;{transcriptPreview}&rdquo;
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Share quote consent */}
+              <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                <p className="text-white text-sm mb-3">
+                  May we share highlights from your conversation anonymously?
+                </p>
+                <p className="text-gray-500 text-xs mb-3">
+                  This helps other healthcare workers see they&apos;re not alone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConsentShareQuote(true)}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      consentShareQuote === true
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    Yes, share
+                  </button>
+                  <button
+                    onClick={() => setConsentShareQuote(false)}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      consentShareQuote === false
+                        ? "bg-gray-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    No thanks
+                  </button>
+                </div>
+              </div>
+
+              {/* Store chatlog consent */}
+              <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+                <p className="text-white text-sm mb-3">
+                  Can we store this conversation to improve Doc?
+                </p>
+                <p className="text-gray-500 text-xs mb-3">
+                  Helps us understand healthcare workers better.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConsentStoreChatlog(true)}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      consentStoreChatlog === true
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    Yes, store
+                  </button>
+                  <button
+                    onClick={() => setConsentStoreChatlog(false)}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      consentStoreChatlog === false
+                        ? "bg-gray-600 text-white"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                  >
+                    No thanks
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleConsentComplete}
+              disabled={consentShareQuote === null || consentStoreChatlog === null}
+              className="w-full mt-6 py-3 px-6 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            >
+              Continue
+            </button>
+          </div>
+        )}
+
+        {/* Healthcare Question */}
+        {step === "healthcare_question" && (
           <div className="animate-fade-in">
             <h2 className="text-xl font-semibold text-white mb-6 text-center">
-              Are you a US independent physician owner?
+              Do you work in American healthcare?
             </h2>
             <div className="flex gap-4">
               <button
-                onClick={() => handlePhysicianAnswer(true)}
+                onClick={() => handleHealthcareAnswer(true)}
                 className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
               >
                 Yes
               </button>
               <button
-                onClick={() => handlePhysicianAnswer(false)}
+                onClick={() => handleHealthcareAnswer(false)}
                 className="flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
               >
                 No
@@ -139,47 +302,100 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
           </div>
         )}
 
-        {/* Clinic Question - for non-physician-owners */}
-        {step === "clinic_question" && (
+        {/* Workplace Type Question */}
+        {step === "workplace_question" && (
           <div className="animate-fade-in">
             <h2 className="text-xl font-semibold text-white mb-6 text-center">
-              Do you work at an independent clinic?
+              Which best describes your workplace?
             </h2>
-            <div className="flex gap-4">
+            <div className="space-y-3">
               <button
-                onClick={() => handleClinicAnswer(true)}
-                className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+                onClick={() => handleWorkplaceAnswer("independent")}
+                className="w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium rounded-lg transition-colors text-left"
               >
-                Yes
+                <span className="block text-white">Independent Practice</span>
+                <span className="block text-gray-400 text-sm mt-1">
+                  Private practice, physician-owned clinic
+                </span>
               </button>
               <button
-                onClick={() => handleClinicAnswer(false)}
-                className="flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
+                onClick={() => handleWorkplaceAnswer("hospital")}
+                className="w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium rounded-lg transition-colors text-left"
               >
-                No
+                <span className="block text-white">Hospital or Health System</span>
+                <span className="block text-gray-400 text-sm mt-1">
+                  Hospital, large health system, corporate practice
+                </span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Collective Question */}
+        {/* Role Type Question (for independent practices) */}
+        {step === "role_question" && (
+          <div className="animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-6 text-center">
+              Which best describes your role?
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={() => handleRoleAnswer("owner")}
+                className="w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium rounded-lg transition-colors text-left"
+              >
+                <span className="block text-white">Owner / Partner</span>
+                <span className="block text-gray-400 text-sm mt-1">
+                  You own or co-own the practice
+                </span>
+              </button>
+              <button
+                onClick={() => handleRoleAnswer("provider")}
+                className="w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium rounded-lg transition-colors text-left"
+              >
+                <span className="block text-white">Provider</span>
+                <span className="block text-gray-400 text-sm mt-1">
+                  Physician, NP, PA, or other clinician
+                </span>
+              </button>
+              <button
+                onClick={() => handleRoleAnswer("front_office")}
+                className="w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium rounded-lg transition-colors text-left"
+              >
+                <span className="block text-white">Front Office / Admin</span>
+                <span className="block text-gray-400 text-sm mt-1">
+                  Office manager, billing, reception
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Collective Question - with context */}
         {step === "collective_question" && (
           <div className="animate-fade-in">
+            <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-4 mb-6">
+              <p className="text-green-400 text-sm font-medium mb-2">About Meroka</p>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                We&apos;re building a collective of independent healthcare practices to
+                negotiate better rates with payers and reduce administrative burden.
+                Together, we have more leverage.
+              </p>
+            </div>
+
             <h2 className="text-xl font-semibold text-white mb-6 text-center">
-              Are you interested in joining a collective to stand your ground against the system?
+              Interested in learning more?
             </h2>
             <div className="flex gap-4">
               <button
                 onClick={() => handleCollectiveAnswer(true)}
                 className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
               >
-                Yes
+                Yes, tell me more
               </button>
               <button
                 onClick={() => handleCollectiveAnswer(false)}
                 className="flex-1 py-3 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
               >
-                No
+                Not now
               </button>
             </div>
           </div>
@@ -188,9 +404,12 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
         {/* Contact Form */}
         {step === "contact_form" && (
           <div className="animate-fade-in">
-            <h2 className="text-xl font-semibold text-white mb-6 text-center">
-              What&apos;s your name and email?
+            <h2 className="text-xl font-semibold text-white mb-2 text-center">
+              Great! Let&apos;s stay in touch.
             </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              We&apos;ll reach out with more information about the collective.
+            </p>
             <form onSubmit={handleContactSubmit} className="space-y-4">
               <input
                 type="text"
@@ -218,7 +437,7 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
           </div>
         )}
 
-        {/* Thank You - Interested */}
+        {/* Thank You */}
         {step === "thank_you" && (
           <div className="animate-fade-in text-center">
             <div className="text-4xl mb-4">🙏</div>
@@ -227,27 +446,8 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
             </h2>
             <p className="text-gray-400 mb-6">
               {interestedInCollective
-                ? "We'll be in touch soon."
-                : "Thanks for your time."}
-            </p>
-            <button
-              onClick={onComplete}
-              className="py-2 px-6 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        )}
-
-        {/* Thank You - Not Physician */}
-        {step === "thank_you_not_physician" && (
-          <div className="animate-fade-in text-center">
-            <div className="text-4xl mb-4">👋</div>
-            <h2 className="text-xl font-semibold text-white mb-2">
-              Thank you for your time
-            </h2>
-            <p className="text-gray-400 mb-6">
-              We appreciate you trying Doc.
+                ? "We'll be in touch soon with more information."
+                : "Thanks for trying Doc. Take care of yourself."}
             </p>
             <button
               onClick={onComplete}
@@ -259,11 +459,13 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
         )}
 
         {/* Featured Quotes - shown during form questions */}
-        {showSocials && featuredQuotes.length > 0 && (
+        {showSidebar && featuredQuotes.length > 0 && step !== "consent" && (
           <div className="mt-6 pt-6 border-t border-gray-800">
-            <p className="text-gray-500 text-xs text-center mb-4">What other physicians are saying</p>
-            <div className="space-y-3 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
-              {featuredQuotes.map((item, index) => (
+            <p className="text-gray-500 text-xs text-center mb-4">
+              What other healthcare workers are saying
+            </p>
+            <div className="space-y-3 max-h-32 overflow-y-auto pr-2 scrollbar-thin">
+              {featuredQuotes.slice(0, 2).map((item, index) => (
                 <div
                   key={index}
                   className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50"
@@ -271,9 +473,7 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
                   <p className="text-gray-300 text-sm italic leading-relaxed">
                     &ldquo;{item.quote}&rdquo;
                   </p>
-                  <p className="text-gray-500 text-xs mt-2">
-                    — {item.location}
-                  </p>
+                  <p className="text-gray-500 text-xs mt-2">— {item.location}</p>
                 </div>
               ))}
             </div>
@@ -281,7 +481,7 @@ export default function PostCallForm({ callId, onComplete }: PostCallFormProps) 
         )}
 
         {/* Social Links - shown during form questions */}
-        {showSocials && (
+        {showSidebar && (
           <div className="mt-6 pt-4 border-t border-gray-800">
             <p className="text-gray-500 text-xs text-center mb-3">Follow Meroka</p>
             <div className="flex justify-center gap-4">

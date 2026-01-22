@@ -549,28 +549,30 @@ export default function AdminDashboard() {
 
       {/* Leads Table */}
       {activeTab === "leads" && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Name</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Email</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Physician Owner</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Workplace</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Role</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Interested</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Consent</th>
               </tr>
             </thead>
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-gray-500 py-8">
+                  <td colSpan={7} className="text-center text-gray-500 py-8">
                     No leads found
                   </td>
                 </tr>
               ) : (
                 filteredLeads.map((lead) => (
                   <tr key={lead.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td className="px-4 py-3 text-gray-300 text-sm">
+                    <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
                       {formatDate(lead.created_at)}
                     </td>
                     <td className="px-4 py-3 text-white text-sm">
@@ -579,11 +581,34 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 text-gray-300 text-sm">
                       {lead.email || "-"}
                     </td>
-                    <td className="px-4 py-3">
-                      {lead.is_physician_owner ? (
-                        <span className="text-green-400 text-sm">Yes</span>
+                    <td className="px-4 py-3 text-sm">
+                      {lead.workplace_type ? (
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          lead.workplace_type === "independent"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-purple-500/20 text-purple-400"
+                        }`}>
+                          {lead.workplace_type === "independent" ? "Independent" : "Hospital"}
+                        </span>
+                      ) : lead.works_in_healthcare === false ? (
+                        <span className="text-gray-500 text-xs">Not healthcare</span>
                       ) : (
-                        <span className="text-gray-500 text-sm">No</span>
+                        <span className="text-gray-500">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {lead.role_type ? (
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          lead.role_type === "owner"
+                            ? "bg-green-500/20 text-green-400"
+                            : lead.role_type === "provider"
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : "bg-gray-500/20 text-gray-400"
+                        }`}>
+                          {lead.role_type === "owner" ? "Owner" : lead.role_type === "provider" ? "Provider" : "Front Office"}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -594,6 +619,19 @@ export default function AdminDashboard() {
                       ) : (
                         <span className="text-gray-500 text-sm">No</span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="flex gap-2">
+                        {lead.consent_share_quote && (
+                          <span className="text-green-400" title="Consented to share quote">Share</span>
+                        )}
+                        {lead.consent_store_chatlog && (
+                          <span className="text-blue-400" title="Consented to store chatlog">Store</span>
+                        )}
+                        {!lead.consent_share_quote && !lead.consent_store_chatlog && (
+                          <span className="text-gray-500">-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -785,85 +823,107 @@ export default function AdminDashboard() {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-6">Post-Call Form Decision Tree</h3>
           <div className="overflow-x-auto">
-            <div className="min-w-[600px]">
-              {/* Tree visualization */}
-              <div className="flex flex-col items-center">
-                {/* Q1: Physician Owner */}
-                <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4 text-center max-w-md">
-                  <p className="text-blue-400 text-xs uppercase tracking-wide mb-1">Question 1</p>
-                  <p className="text-white font-medium">Are you a US independent physician owner?</p>
+            <div className="min-w-[700px]">
+              {/* New Flow Visualization */}
+              <div className="space-y-4">
+                {/* Step 1: Consent */}
+                <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
+                  <p className="text-yellow-400 text-xs uppercase tracking-wide mb-2">Step 1: Consent</p>
+                  <div className="flex gap-4">
+                    <div className="flex-1 bg-gray-800/50 rounded p-3">
+                      <p className="text-white text-sm">May we share highlights anonymously?</p>
+                      <p className="text-gray-500 text-xs mt-1">Yes / No</p>
+                    </div>
+                    <div className="flex-1 bg-gray-800/50 rounded p-3">
+                      <p className="text-white text-sm">Can we store this conversation?</p>
+                      <p className="text-gray-500 text-xs mt-1">Yes / No</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-16 mt-4">
-                  {/* Yes branch */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-px h-8 bg-green-600"></div>
-                    <span className="text-green-400 text-sm font-medium mb-2">Yes</span>
-                    <div className="w-px h-8 bg-gray-600"></div>
+                <div className="flex justify-center">
+                  <div className="w-px h-6 bg-gray-600"></div>
+                </div>
 
-                    {/* Q2: Collective (for physician owners) */}
-                    <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-4 text-center max-w-sm mt-2">
-                      <p className="text-purple-400 text-xs uppercase tracking-wide mb-1">Question 2</p>
-                      <p className="text-white font-medium text-sm">Interested in joining a collective?</p>
-                    </div>
+                {/* Step 2: Healthcare */}
+                <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
+                  <p className="text-blue-400 text-xs uppercase tracking-wide mb-2">Step 2: Qualification</p>
+                  <p className="text-white text-sm font-medium">Do you work in American healthcare?</p>
 
-                    <div className="flex items-center gap-8 mt-4">
-                      {/* Yes - Contact form */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-px h-6 bg-green-600"></div>
-                        <span className="text-green-400 text-xs mb-2">Yes</span>
-                        <div className="bg-green-900/30 border border-green-700 rounded-lg p-3 text-center">
-                          <p className="text-green-400 text-xs">Contact Form</p>
-                          <p className="text-gray-400 text-xs mt-1">Name & Email</p>
-                        </div>
-                        <div className="w-px h-4 bg-gray-600 mt-2"></div>
-                        <div className="bg-gray-800 rounded-lg p-2 text-center mt-2">
-                          <p className="text-gray-300 text-xs">Thank You</p>
+                  <div className="flex gap-8 mt-4">
+                    {/* Yes branch */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-green-400 text-sm">Yes</span>
+                      </div>
+
+                      {/* Workplace type */}
+                      <div className="bg-gray-800/50 rounded p-3 mb-2">
+                        <p className="text-gray-300 text-sm">Which describes your workplace?</p>
+                        <div className="flex gap-2 mt-2">
+                          <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">Independent</span>
+                          <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-1 rounded">Hospital</span>
                         </div>
                       </div>
 
-                      {/* No - Thank you */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-px h-6 bg-gray-500"></div>
-                        <span className="text-gray-400 text-xs mb-2">No</span>
-                        <div className="bg-gray-800 rounded-lg p-3 text-center">
-                          <p className="text-gray-300 text-xs">Thank You</p>
+                      {/* Role type (if independent) */}
+                      <div className="bg-gray-800/50 rounded p-3 ml-4 border-l-2 border-blue-500/30">
+                        <p className="text-gray-400 text-xs mb-1">If Independent:</p>
+                        <p className="text-gray-300 text-sm">Which describes your role?</p>
+                        <div className="flex gap-2 mt-2">
+                          <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">Owner</span>
+                          <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded">Provider</span>
+                          <span className="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded">Front Office</span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* No branch */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <span className="text-gray-400 text-sm">No</span>
+                      </div>
+                      <div className="bg-gray-800 rounded p-3 text-center">
+                        <p className="text-gray-300 text-sm">Thank You</p>
+                        <p className="text-gray-500 text-xs mt-1">End of flow</p>
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* No branch */}
-                  <div className="flex flex-col items-center">
-                    <div className="w-px h-8 bg-gray-500"></div>
-                    <span className="text-gray-400 text-sm font-medium mb-2">No</span>
-                    <div className="w-px h-8 bg-gray-600"></div>
+                <div className="flex justify-center">
+                  <div className="w-px h-6 bg-gray-600"></div>
+                </div>
 
-                    {/* Q2: Works at clinic */}
-                    <div className="bg-orange-900/30 border border-orange-700 rounded-lg p-4 text-center max-w-sm mt-2">
-                      <p className="text-orange-400 text-xs uppercase tracking-wide mb-1">Question 2</p>
-                      <p className="text-white font-medium text-sm">Do you work at an independent clinic?</p>
-                    </div>
+                {/* Step 3: Collective */}
+                <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4">
+                  <p className="text-green-400 text-xs uppercase tracking-wide mb-2">Step 3: Interest</p>
+                  <div className="bg-green-800/20 rounded p-3 mb-3 border border-green-700/30">
+                    <p className="text-green-400 text-xs font-medium">About Meroka context shown</p>
+                    <p className="text-gray-400 text-xs mt-1">Explains collective for negotiating with payers</p>
+                  </div>
+                  <p className="text-white text-sm font-medium">Interested in learning more?</p>
 
-                    <div className="flex items-center gap-8 mt-4">
-                      {/* Yes - Continue to collective */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-px h-6 bg-green-600"></div>
-                        <span className="text-green-400 text-xs mb-2">Yes</span>
-                        <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-3 text-center">
-                          <p className="text-purple-400 text-xs">Collective Question</p>
-                          <p className="text-gray-400 text-xs mt-1">→ Same flow as left</p>
-                        </div>
+                  <div className="flex gap-8 mt-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="text-green-400 text-sm">Yes</span>
                       </div>
-
-                      {/* No - Thank you */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-px h-6 bg-gray-500"></div>
-                        <span className="text-gray-400 text-xs mb-2">No</span>
-                        <div className="bg-gray-800 rounded-lg p-3 text-center">
-                          <p className="text-gray-300 text-xs">Thank You</p>
-                          <p className="text-gray-500 text-xs mt-1">(Not target audience)</p>
-                        </div>
+                      <div className="bg-green-800/30 rounded p-3 text-center">
+                        <p className="text-green-400 text-sm">Contact Form</p>
+                        <p className="text-gray-400 text-xs mt-1">Name & Email</p>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <span className="text-gray-400 text-sm">Not now</span>
+                      </div>
+                      <div className="bg-gray-800 rounded p-3 text-center">
+                        <p className="text-gray-300 text-sm">Thank You</p>
                       </div>
                     </div>
                   </div>
@@ -876,15 +936,19 @@ export default function AdminDashboard() {
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded"></div>
-                    <span className="text-gray-400">High Value: Physician owner + interested</span>
+                    <span className="text-gray-400">High Value: Independent Owner + Interested</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                    <span className="text-gray-400">Medium: Provider/Front Office + Interested</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-purple-500 rounded"></div>
-                    <span className="text-gray-400">Medium: Clinic worker + interested</span>
+                    <span className="text-gray-400">Hospital: Hospital worker + Interested</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-gray-500 rounded"></div>
-                    <span className="text-gray-400">Low: Not interested / Not target</span>
+                    <span className="text-gray-400">Low: Not interested / Not healthcare</span>
                   </div>
                 </div>
               </div>

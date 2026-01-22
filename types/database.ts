@@ -73,6 +73,13 @@ export interface Database {
           name: string | null;
           email: string | null;
           created_at: string;
+          // New broader qualification fields
+          works_in_healthcare: boolean | null;
+          workplace_type: "independent" | "hospital" | null;
+          role_type: "owner" | "provider" | "front_office" | null;
+          // Consent fields
+          consent_share_quote: boolean | null;
+          consent_store_chatlog: boolean | null;
         };
         Insert: {
           id?: string;
@@ -83,6 +90,11 @@ export interface Database {
           name?: string | null;
           email?: string | null;
           created_at?: string;
+          works_in_healthcare?: boolean | null;
+          workplace_type?: "independent" | "hospital" | null;
+          role_type?: "owner" | "provider" | "front_office" | null;
+          consent_share_quote?: boolean | null;
+          consent_store_chatlog?: boolean | null;
         };
         Update: {
           id?: string;
@@ -93,6 +105,11 @@ export interface Database {
           name?: string | null;
           email?: string | null;
           created_at?: string;
+          works_in_healthcare?: boolean | null;
+          workplace_type?: "independent" | "hospital" | null;
+          role_type?: "owner" | "provider" | "front_office" | null;
+          consent_share_quote?: boolean | null;
+          consent_store_chatlog?: boolean | null;
         };
         Relationships: [
           {
