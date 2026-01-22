@@ -453,10 +453,10 @@ export default function VoiceAgent() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 relative overflow-hidden">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-900">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(34,197,94,0.1)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(59,130,246,0.08)_0%,_transparent_50%)]" />
+      {/* Animated gradient background - Meroka dark slate */}
+      <div className="absolute inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
       </div>
 
       {/* Content container */}
@@ -497,8 +497,8 @@ export default function VoiceAgent() {
 
         {/* Today's venting counter */}
         {todayCount !== null && callStatus === "idle" && (
-          <div className="mb-6 px-4 py-2 bg-green-900/20 border border-green-800/30 rounded-full">
-            <p className="text-green-400 text-sm">
+          <div className="mb-6 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full">
+            <p className="text-meroka-cream text-sm">
               <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
             </p>
           </div>
@@ -575,7 +575,7 @@ export default function VoiceAgent() {
                     onClick={() => setCurrentQuoteIndex(index)}
                     className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
                       index === currentQuoteIndex
-                        ? "bg-green-500 w-3"
+                        ? "bg-meroka-primary w-3"
                         : "bg-gray-600 hover:bg-gray-500"
                     }`}
                   />
@@ -609,9 +609,9 @@ export default function VoiceAgent() {
         {/* Pulse rings when active */}
         {callStatus === "active" && (
           <>
-            <div className="absolute inset-0 bg-green-500/20 rounded-full pulse-ring"
+            <div className="absolute inset-0 bg-meroka-primary/20 rounded-full pulse-ring"
                  style={{ width: "200px", height: "200px", left: "-30px", top: "-30px" }} />
-            <div className="absolute inset-0 bg-green-500/10 rounded-full pulse-ring"
+            <div className="absolute inset-0 bg-meroka-primary/10 rounded-full pulse-ring"
                  style={{ width: "240px", height: "240px", left: "-50px", top: "-50px", animationDelay: "0.5s" }} />
           </>
         )}
@@ -626,7 +626,7 @@ export default function VoiceAgent() {
             ${isRateLimited
               ? "bg-gray-700 cursor-not-allowed"
               : callStatus === "idle"
-              ? "bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/30"
+              ? "bg-meroka-primary hover:bg-meroka-primary-hover shadow-lg shadow-meroka-primary/30"
               : callStatus === "active"
               ? "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/30"
               : "bg-gray-600 cursor-not-allowed"
@@ -666,20 +666,20 @@ export default function VoiceAgent() {
       {/* Time limit reached message */}
       {showTimeLimitMessage && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-sm w-full text-center">
+          <div className="bg-meroka-secondary border border-gray-700 rounded-2xl p-8 max-w-sm w-full text-center">
             <div className="text-4xl mb-4">⏰</div>
             <h2 className="text-xl font-semibold text-white mb-2">
               Time&apos;s up for today
             </h2>
-            <p className="text-gray-400 mb-2">
+            <p className="text-gray-300 mb-2">
               Doc says: &quot;Hey, you&apos;ve used your 7 minutes. Even I need a break from this broken system.&quot;
             </p>
-            <p className="text-gray-500 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-6">
               Your time resets in {formatTimeUntilReset(usageData.windowStart)}
             </p>
             <button
               onClick={dismissTimeLimitMessage}
-              className="py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+              className="py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
             >
               Got it
             </button>
@@ -722,7 +722,7 @@ export default function VoiceAgent() {
           <p className="text-yellow-400">Connecting to Doc...</p>
         )}
         {callStatus === "active" && (
-          <div className="flex items-center gap-2 text-green-400">
+          <div className="flex items-center gap-2 text-meroka-cream">
             {currentSpeaker === "assistant" ? (
               <>
                 <span>Doc is talking</span>
@@ -730,7 +730,7 @@ export default function VoiceAgent() {
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="w-1 bg-green-400 rounded-full waveform-bar"
+                      className="w-1 bg-meroka-primary rounded-full waveform-bar"
                       style={{ height: "8px" }}
                     />
                   ))}

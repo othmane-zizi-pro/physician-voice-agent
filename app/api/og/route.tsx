@@ -3,6 +3,14 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+// Meroka brand colors
+const COLORS = {
+  primary: "#9b420f",      // Burnt orange-brown
+  secondary: "#18212d",    // Dark slate
+  cream: "#F7F5F2",        // Light beige
+  warm: "#FBF5EB",         // Warm peachy beige
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const quote = searchParams.get("quote") || "Healthcare workers are venting here.";
@@ -21,8 +29,8 @@ export async function GET(request: NextRequest) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#0a0a0a",
-          backgroundImage: "radial-gradient(circle at 25% 25%, #1a1a2e 0%, transparent 50%), radial-gradient(circle at 75% 75%, #16213e 0%, transparent 50%)",
+          backgroundColor: COLORS.secondary,
+          backgroundImage: `radial-gradient(circle at 25% 25%, rgba(155, 66, 15, 0.15) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(247, 245, 242, 0.05) 0%, transparent 50%)`,
           padding: "60px",
         }}
       >
@@ -33,8 +41,8 @@ export async function GET(request: NextRequest) {
             top: "40px",
             left: "60px",
             fontSize: "120px",
-            color: "#22c55e",
-            opacity: 0.3,
+            color: COLORS.primary,
+            opacity: 0.4,
             fontFamily: "Georgia, serif",
           }}
         >
@@ -54,7 +62,7 @@ export async function GET(request: NextRequest) {
           <p
             style={{
               fontSize: displayQuote.length > 100 ? "36px" : "44px",
-              color: "#e5e7eb",
+              color: COLORS.cream,
               textAlign: "center",
               lineHeight: 1.4,
               fontStyle: "italic",
@@ -67,7 +75,7 @@ export async function GET(request: NextRequest) {
           <p
             style={{
               fontSize: "24px",
-              color: "#6b7280",
+              color: "#9ca3af",
               marginBottom: "40px",
             }}
           >
@@ -90,7 +98,7 @@ export async function GET(request: NextRequest) {
               width: "48px",
               height: "48px",
               borderRadius: "50%",
-              backgroundColor: "#22c55e",
+              backgroundColor: COLORS.primary,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -126,7 +134,7 @@ export async function GET(request: NextRequest) {
             bottom: "40px",
             right: "60px",
             fontSize: "14px",
-            color: "#6b7280",
+            color: COLORS.primary,
           }}
         >
           by Meroka

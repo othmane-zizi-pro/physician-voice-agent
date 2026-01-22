@@ -286,7 +286,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                     onClick={() => setConsentShareQuote(true)}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       consentShareQuote === true
-                        ? "bg-green-600 text-white"
+                        ? "bg-meroka-primary text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
@@ -318,7 +318,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                     onClick={() => setConsentStoreChatlog(true)}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       consentStoreChatlog === true
-                        ? "bg-green-600 text-white"
+                        ? "bg-meroka-primary text-white"
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                   >
@@ -341,7 +341,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
             <button
               onClick={handleConsentComplete}
               disabled={consentShareQuote === null || consentStoreChatlog === null}
-              className="w-full mt-6 py-3 px-6 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+              className="w-full mt-6 py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
             >
               Continue
             </button>
@@ -386,14 +386,14 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 onClick={copyShareLink}
                 className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
               >
-                {copiedLink ? <Check size={18} className="text-green-400" /> : <Link2 size={18} />}
+                {copiedLink ? <Check size={18} className="text-meroka-primary" /> : <Link2 size={18} />}
                 <span>{copiedLink ? "Copied!" : "Copy"}</span>
               </button>
             </div>
 
             <button
               onClick={handleShareComplete}
-              className="w-full py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+              className="w-full py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
             >
               Continue
             </button>
@@ -416,7 +416,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
             <div className="flex gap-4">
               <button
                 onClick={() => handleHealthcareAnswer(true)}
-                className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+                className="flex-1 py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
               >
                 Yes
               </button>
@@ -500,8 +500,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         {/* Collective Question - with context */}
         {step === "collective_question" && (
           <div className="animate-fade-in">
-            <div className="bg-green-900/20 border border-green-800/50 rounded-lg p-4 mb-6">
-              <p className="text-green-400 text-sm font-medium mb-2">About Meroka</p>
+            <div className="bg-meroka-primary/10 border border-meroka-primary/30 rounded-lg p-4 mb-6">
+              <p className="text-meroka-primary text-sm font-medium mb-2">About Meroka</p>
               <p className="text-gray-300 text-sm leading-relaxed">
                 We&apos;re building a collective of independent healthcare practices to
                 negotiate better rates with payers and reduce administrative burden.
@@ -515,7 +515,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
             <div className="flex gap-4">
               <button
                 onClick={() => handleCollectiveAnswer(true)}
-                className="flex-1 py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+                className="flex-1 py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
               >
                 Yes, tell me more
               </button>
@@ -544,7 +544,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary transition-colors"
                 autoFocus
               />
               <input
@@ -552,12 +552,12 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 placeholder="Your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary transition-colors"
               />
               <button
                 type="submit"
                 disabled={!name.trim() || !email.trim() || isSubmitting}
-                className="w-full py-3 px-6 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                className="w-full py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
               >
                 {isSubmitting ? "Submitting..." : "Submit"}
               </button>

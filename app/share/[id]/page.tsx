@@ -92,11 +92,11 @@ export default async function SharePage({ params }: PageProps) {
 
   if (!quote) {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen bg-meroka-secondary flex flex-col items-center justify-center p-8">
         <h1 className="text-2xl text-white mb-4">Quote not found</h1>
         <Link
           href="/"
-          className="text-green-400 hover:text-green-300 transition-colors"
+          className="text-meroka-primary hover:text-meroka-primary-hover transition-colors"
         >
           Go to Doc
         </Link>
@@ -108,24 +108,24 @@ export default async function SharePage({ params }: PageProps) {
   const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-meroka-secondary flex flex-col items-center justify-center p-8">
       {/* Quote Card */}
       <div className="max-w-2xl w-full">
-        <div className="bg-gray-900/50 rounded-2xl p-8 border border-gray-800 mb-8">
+        <div className="bg-[#0f151d] rounded-2xl p-8 border border-gray-700 mb-8">
           {/* Quote */}
           <div className="relative">
-            <span className="absolute -top-4 -left-2 text-6xl text-green-500/30 font-serif">
+            <span className="absolute -top-4 -left-2 text-6xl text-meroka-primary/30 font-serif">
               &ldquo;
             </span>
             <p className="text-xl md:text-2xl text-gray-200 italic leading-relaxed pl-6">
               {quote.quote}
             </p>
-            <span className="absolute -bottom-8 right-0 text-6xl text-green-500/30 font-serif">
+            <span className="absolute -bottom-8 right-0 text-6xl text-meroka-primary/30 font-serif">
               &rdquo;
             </span>
           </div>
 
-          <p className="text-gray-500 mt-8 text-right">— {quote.location}</p>
+          <p className="text-gray-400 mt-8 text-right">— {quote.location}</p>
         </div>
 
         {/* Share buttons */}
@@ -170,7 +170,7 @@ export default async function SharePage({ params }: PageProps) {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-3 bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-full text-lg font-medium transition-all transform hover:scale-105 shadow-lg shadow-green-500/30"
+            className="inline-flex items-center gap-3 bg-meroka-primary hover:bg-meroka-primary-hover text-white px-8 py-4 rounded-full text-lg font-medium transition-all transform hover:scale-105 shadow-lg shadow-meroka-primary/30"
           >
             <Phone size={24} />
             Talk to Doc

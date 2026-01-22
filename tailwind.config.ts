@@ -7,7 +7,23 @@ const config: Config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        meroka: {
+          primary: "#9b420f",      // Burnt orange-brown (CTAs)
+          "primary-hover": "#b54d12", // Lighter for hover
+          secondary: "#18212d",    // Dark slate
+          cream: "#F7F5F2",        // Light beige (primary bg)
+          warm: "#FBF5EB",         // Warm peachy beige (secondary bg)
+          text: "#18212d",         // Primary text on light
+          "text-soft": "#1F1F1F",  // Softer text
+        },
+      },
+      fontFamily: {
+        geist: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "system-ui", "sans-serif"],
+        "geist-mono": ["Geist Mono", "monospace"],
+      },
+    },
   },
   plugins: [],
 };
