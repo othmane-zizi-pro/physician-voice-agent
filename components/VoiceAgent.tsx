@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Vapi from "@vapi-ai/web";
-import { Mic, MicOff, Phone, PhoneOff } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
 import PostCallForm from "./PostCallForm";
@@ -10,8 +10,59 @@ import PostCallForm from "./PostCallForm";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
 interface FeaturedQuote {
+  id: string;
   quote: string;
   location: string;
+}
+
+// Rate limit constants
+const RATE_LIMIT_SECONDS = 7 * 60; // 7 minutes
+const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface UsageData {
+  usedSeconds: number;
+  windowStart: number;
+}
+
+function getUsageData(): UsageData {
+  if (typeof window === "undefined") return { usedSeconds: 0, windowStart: Date.now() };
+
+  const stored = localStorage.getItem("doc_usage");
+  if (!stored) return { usedSeconds: 0, windowStart: Date.now() };
+
+  try {
+    const data = JSON.parse(stored) as UsageData;
+    // Reset if window has expired
+    if (Date.now() - data.windowStart > RATE_LIMIT_WINDOW_MS) {
+      return { usedSeconds: 0, windowStart: Date.now() };
+    }
+    return data;
+  } catch {
+    return { usedSeconds: 0, windowStart: Date.now() };
+  }
+}
+
+function saveUsageData(data: UsageData) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("doc_usage", JSON.stringify(data));
+}
+
+function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+function formatTimeUntilReset(windowStart: number): string {
+  const resetTime = windowStart + RATE_LIMIT_WINDOW_MS;
+  const msUntilReset = resetTime - Date.now();
+  if (msUntilReset <= 0) return "now";
+
+  const hours = Math.floor(msUntilReset / (60 * 60 * 1000));
+  const mins = Math.floor((msUntilReset % (60 * 60 * 1000)) / (60 * 1000));
+
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
 }
 
 export default function VoiceAgent() {
@@ -24,13 +75,24 @@ export default function VoiceAgent() {
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
   const [lastTranscript, setLastTranscript] = useState<string>("");
 
+  // Live feed state
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Rate limiting state
+  const [usageData, setUsageData] = useState<UsageData>({ usedSeconds: 0, windowStart: Date.now() });
+  const [currentCallSeconds, setCurrentCallSeconds] = useState(0);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
   const callStartTimeRef = useRef<number | null>(null);
   const fullTranscriptRef = useRef<string[]>([]);
   const vapiCallIdRef = useRef<string | null>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch IP address and featured quotes on mount
+  // Fetch IP address, featured quotes, and check rate limit on mount
   useEffect(() => {
     fetch("/api/ip")
       .then((res) => res.json())
@@ -47,7 +109,61 @@ export default function VoiceAgent() {
         }
       })
       .catch(console.error);
+
+    // Initialize rate limiting
+    const usage = getUsageData();
+    setUsageData(usage);
+    setIsRateLimited(usage.usedSeconds >= RATE_LIMIT_SECONDS);
   }, []);
+
+  // Live quote rotation effect
+  useEffect(() => {
+    if (callStatus !== "idle" || featuredQuotes.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentQuoteIndex((prev) => (prev + 1) % featuredQuotes.length);
+    }, 5000); // Rotate every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [callStatus, featuredQuotes.length]);
+
+  // Call timer for rate limiting
+  useEffect(() => {
+    if (callStatus === "active") {
+      callTimerRef.current = setInterval(() => {
+        setCurrentCallSeconds((prev) => {
+          const newSeconds = prev + 1;
+          const totalUsed = usageData.usedSeconds + newSeconds;
+
+          // Update localStorage periodically
+          if (newSeconds % 5 === 0) {
+            saveUsageData({ ...usageData, usedSeconds: totalUsed });
+          }
+
+          // Check if limit reached
+          if (totalUsed >= RATE_LIMIT_SECONDS) {
+            // Auto-end call when limit reached
+            if (vapiRef.current) {
+              vapiRef.current.stop();
+            }
+          }
+
+          return newSeconds;
+        });
+      }, 1000);
+    } else {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+        callTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (callTimerRef.current) {
+        clearInterval(callTimerRef.current);
+      }
+    };
+  }, [callStatus, usageData]);
 
   // Save call to database
   const saveCallToDatabase = useCallback(async () => {
@@ -98,6 +214,20 @@ export default function VoiceAgent() {
     vapi.on("call-end", async () => {
       setCallStatus("idle");
       setCurrentSpeaker(null);
+
+      // Finalize rate limit tracking
+      setUsageData((prev) => {
+        const newData = {
+          usedSeconds: prev.usedSeconds + (callStartTimeRef.current
+            ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
+            : 0),
+          windowStart: prev.windowStart,
+        };
+        saveUsageData(newData);
+        setIsRateLimited(newData.usedSeconds >= RATE_LIMIT_SECONDS);
+        return newData;
+      });
+      setCurrentCallSeconds(0);
 
       // Save transcript for post-call form
       const transcriptText = fullTranscriptRef.current.join("\n");
@@ -164,6 +294,14 @@ export default function VoiceAgent() {
   const startCall = useCallback(async () => {
     if (!vapiRef.current) return;
 
+    // Check rate limit before starting
+    const usage = getUsageData();
+    if (usage.usedSeconds >= RATE_LIMIT_SECONDS) {
+      setIsRateLimited(true);
+      setUsageData(usage);
+      return;
+    }
+
     setCallStatus("connecting");
 
     try {
@@ -184,6 +322,30 @@ export default function VoiceAgent() {
       console.error("Failed to start call:", error);
       setCallStatus("idle");
     }
+  }, []);
+
+  // Share functions
+  const getShareUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
+
+  const shareToTwitter = useCallback((quote: FeaturedQuote) => {
+    const text = `"${quote.quote}" - Anonymous Healthcare Worker\n\nTalk to Doc, an AI companion for burnt-out physicians:`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(getShareUrl())}`;
+    window.open(url, "_blank", "width=550,height=420");
+    setShareMenuOpen(null);
+  }, []);
+
+  const shareToLinkedIn = useCallback((quote: FeaturedQuote) => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getShareUrl())}`;
+    window.open(url, "_blank", "width=550,height=420");
+    setShareMenuOpen(null);
+  }, []);
+
+  const copyLink = useCallback(async (quote: FeaturedQuote) => {
+    const text = `"${quote.quote}" - Anonymous Healthcare Worker\n\nTalk to Doc: ${getShareUrl()}`;
+    await navigator.clipboard.writeText(text);
+    setCopiedId(quote.id);
+    setTimeout(() => setCopiedId(null), 2000);
+    setShareMenuOpen(null);
   }, []);
 
   const endCall = useCallback(() => {
@@ -211,25 +373,103 @@ export default function VoiceAgent() {
         </p>
       </div>
 
-      {/* Featured Quotes - shown before the call */}
+      {/* Live Quote Feed - shown before the call */}
       {callStatus === "idle" && featuredQuotes.length > 0 && (
         <div className="w-full max-w-md mb-8">
           <p className="text-gray-500 text-xs text-center mb-3 uppercase tracking-wide">
             What other healthcare workers are saying
           </p>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {featuredQuotes.slice(0, 3).map((item, index) => (
-              <div
-                key={index}
-                className="bg-gray-900/50 rounded-lg p-3 border border-gray-800"
-              >
-                <p className="text-gray-300 text-sm italic leading-relaxed">
-                  &ldquo;{item.quote}&rdquo;
-                </p>
-                <p className="text-gray-500 text-xs mt-1">— {item.location}</p>
+
+          {/* Main rotating quote */}
+          <div className="relative">
+            <div
+              className="bg-gray-900/50 rounded-lg p-4 border border-gray-800 transition-all duration-500"
+            >
+              <p className="text-gray-300 text-base italic leading-relaxed pr-8">
+                &ldquo;{featuredQuotes[currentQuoteIndex]?.quote}&rdquo;
+              </p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-gray-500 text-xs">— {featuredQuotes[currentQuoteIndex]?.location}</p>
+
+                {/* Share button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShareMenuOpen(
+                      shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id
+                        ? null
+                        : featuredQuotes[currentQuoteIndex]?.id
+                    )}
+                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    title="Share this quote"
+                  >
+                    <Share2 size={14} />
+                  </button>
+
+                  {/* Share menu dropdown */}
+                  {shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id && (
+                    <div className="absolute right-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
+                      <button
+                        onClick={() => shareToTwitter(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Twitter size={14} />
+                        Twitter/X
+                      </button>
+                      <button
+                        onClick={() => shareToLinkedIn(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Linkedin size={14} />
+                        LinkedIn
+                      </button>
+                      <button
+                        onClick={() => copyLink(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Link2 size={14} />
+                        {copiedId === featuredQuotes[currentQuoteIndex]?.id ? "Copied!" : "Copy Link"}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Quote navigation dots */}
+            {featuredQuotes.length > 1 && (
+              <div className="flex justify-center gap-1.5 mt-3">
+                {featuredQuotes.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentQuoteIndex(index)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                      index === currentQuoteIndex
+                        ? "bg-green-500 w-3"
+                        : "bg-gray-600 hover:bg-gray-500"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* Rate limit indicator */}
+      {callStatus === "idle" && !isRateLimited && usageData.usedSeconds > 0 && (
+        <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
+          <Clock size={12} />
+          <span>{formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds)} remaining today</span>
+        </div>
+      )}
+
+      {/* Rate limited message */}
+      {isRateLimited && callStatus === "idle" && (
+        <div className="w-full max-w-md mb-6 bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-4 text-center">
+          <p className="text-yellow-400 text-sm font-medium mb-1">Daily limit reached</p>
+          <p className="text-gray-400 text-xs">
+            Your time resets in {formatTimeUntilReset(usageData.windowStart)}
+          </p>
         </div>
       )}
 
@@ -248,11 +488,13 @@ export default function VoiceAgent() {
         {/* Main call button */}
         <button
           onClick={callStatus === "idle" ? startCall : endCall}
-          disabled={callStatus === "connecting" || callStatus === "ending"}
+          disabled={callStatus === "connecting" || callStatus === "ending" || isRateLimited}
           className={`
-            relative z-10 w-36 h-36 rounded-full flex items-center justify-center
+            relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center
             transition-all duration-300 transform hover:scale-105
-            ${callStatus === "idle"
+            ${isRateLimited
+              ? "bg-gray-700 cursor-not-allowed"
+              : callStatus === "idle"
               ? "bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/30"
               : callStatus === "active"
               ? "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/30"
@@ -260,11 +502,21 @@ export default function VoiceAgent() {
             }
           `}
         >
-          {callStatus === "idle" && <Phone size={48} className="text-white" />}
+          {callStatus === "idle" && !isRateLimited && <Phone size={48} className="text-white" />}
+          {callStatus === "idle" && isRateLimited && (
+            <Clock size={48} className="text-gray-400" />
+          )}
           {callStatus === "connecting" && (
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {callStatus === "active" && <PhoneOff size={48} className="text-white" />}
+          {callStatus === "active" && (
+            <>
+              <PhoneOff size={36} className="text-white" />
+              <span className="text-white text-sm mt-1 font-mono">
+                {formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds - currentCallSeconds)}
+              </span>
+            </>
+          )}
           {callStatus === "ending" && (
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
           )}
@@ -273,8 +525,11 @@ export default function VoiceAgent() {
 
       {/* Status text */}
       <div className="text-center mb-8">
-        {callStatus === "idle" && (
+        {callStatus === "idle" && !isRateLimited && (
           <p className="text-gray-400">Tap to start venting</p>
+        )}
+        {callStatus === "idle" && isRateLimited && (
+          <p className="text-gray-500">Come back later for more venting</p>
         )}
         {callStatus === "connecting" && (
           <p className="text-yellow-400">Connecting to Doc...</p>

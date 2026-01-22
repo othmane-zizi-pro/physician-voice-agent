@@ -33,6 +33,7 @@ export async function GET() {
     // If we have at least 7 curated quotes, use those
     if (!curatedError && curatedQuotes && curatedQuotes.length >= 7) {
       const featured = curatedQuotes.map(q => ({
+        id: q.id,
         quote: q.quote,
         location: q.location || "Anonymous",
       }));
@@ -55,6 +56,7 @@ export async function GET() {
 
     // Start with curated quotes if any
     const curatedList = (curatedQuotes || []).map(q => ({
+      id: q.id,
       quote: q.quote,
       location: q.location || "Anonymous",
     }));
@@ -69,6 +71,7 @@ export async function GET() {
     // Shuffle and take remaining needed
     const shuffled = filteredQuotes.sort(() => Math.random() - 0.5);
     const fromCalls = shuffled.slice(0, 7 - curatedList.length).map(q => ({
+      id: `call-${q.id}`,
       quote: q.quotable_quote,
       location: q.city && q.region ? `${q.city}, ${q.region}` : q.region || q.city || "Anonymous",
     }));
