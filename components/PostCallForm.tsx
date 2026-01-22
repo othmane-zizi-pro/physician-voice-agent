@@ -120,6 +120,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
     const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
     const text = `"${extractedQuote.length > 100 ? extractedQuote.slice(0, 97) + "..." : extractedQuote}"\n\nTalk to Doc:`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+    trackClick("form_share_twitter", url);
     window.open(url, "_blank", "width=550,height=420");
   };
 
@@ -127,12 +128,14 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
     if (!callId) return;
     const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    trackClick("form_share_linkedin", url);
     window.open(url, "_blank", "width=550,height=420");
   };
 
   const copyShareLink = async () => {
     if (!callId) return;
     const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
+    trackClick("form_share_copy", shareUrl);
     await navigator.clipboard.writeText(shareUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
@@ -618,7 +621,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://www.meroka.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackClick("website", "https://www.meroka.com/")}
+                onClick={() => trackClick("form_meroka", "https://www.meroka.com/")}
                 className="text-gray-400 hover:text-white transition-colors"
                 title="Meroka Website"
               >
@@ -630,7 +633,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://x.com/MerokaInc"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackClick("twitter", "https://x.com/MerokaInc")}
+                onClick={() => trackClick("form_twitter", "https://x.com/MerokaInc")}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -641,7 +644,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://www.linkedin.com/company/merokainc"
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackClick("linkedin", "https://www.linkedin.com/company/merokainc")}
+                onClick={() => trackClick("form_linkedin", "https://www.linkedin.com/company/merokainc")}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

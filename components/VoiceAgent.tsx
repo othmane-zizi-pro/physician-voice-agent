@@ -80,6 +80,7 @@ export default function VoiceAgent() {
   // Live feed state
   const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
   const [shareMenuPos, setShareMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [shareMenuSource, setShareMenuSource] = useState<"sidebar" | "mobile">("sidebar");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Stats state
@@ -388,23 +389,26 @@ export default function VoiceAgent() {
   const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
   const getShareUrl = (quoteId: string) => `${getBaseUrl()}/share/${quoteId}`;
 
-  const shareToTwitter = useCallback((quote: FeaturedQuote) => {
+  const shareToTwitter = useCallback((quote: FeaturedQuote, source: "sidebar" | "mobile") => {
     const shareUrl = getShareUrl(quote.id);
     const text = `"${quote.quote.length > 100 ? quote.quote.slice(0, 97) + "..." : quote.quote}"\n\nTalk to Doc:`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+    trackClick(`${source}_quote_twitter`, url);
     window.open(url, "_blank", "width=550,height=420");
     setShareMenuOpen(null);
   }, []);
 
-  const shareToLinkedIn = useCallback((quote: FeaturedQuote) => {
+  const shareToLinkedIn = useCallback((quote: FeaturedQuote, source: "sidebar" | "mobile") => {
     const shareUrl = getShareUrl(quote.id);
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    trackClick(`${source}_quote_linkedin`, url);
     window.open(url, "_blank", "width=550,height=420");
     setShareMenuOpen(null);
   }, []);
 
-  const copyLink = useCallback(async (quote: FeaturedQuote) => {
+  const copyLink = useCallback(async (quote: FeaturedQuote, source: "sidebar" | "mobile") => {
     const shareUrl = getShareUrl(quote.id);
+    trackClick(`${source}_quote_copy`, shareUrl);
     await navigator.clipboard.writeText(shareUrl);
     setCopiedId(quote.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -462,6 +466,7 @@ export default function VoiceAgent() {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
                       setShareMenuPos({ x: rect.left - 150, y: rect.top });
+                      setShareMenuSource("sidebar");
                       setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
                     }}
                     className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
@@ -486,7 +491,7 @@ export default function VoiceAgent() {
           <button
             onClick={() => {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
-              if (quote) shareToTwitter(quote);
+              if (quote) shareToTwitter(quote, shareMenuSource);
             }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
           >
@@ -496,7 +501,7 @@ export default function VoiceAgent() {
           <button
             onClick={() => {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
-              if (quote) shareToLinkedIn(quote);
+              if (quote) shareToLinkedIn(quote, shareMenuSource);
             }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
           >
@@ -506,7 +511,7 @@ export default function VoiceAgent() {
           <button
             onClick={() => {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
-              if (quote) copyLink(quote);
+              if (quote) copyLink(quote, shareMenuSource);
             }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
           >
@@ -771,6 +776,7 @@ export default function VoiceAgent() {
                       e.stopPropagation();
                       const rect = e.currentTarget.getBoundingClientRect();
                       setShareMenuPos({ x: Math.max(10, rect.left - 150), y: rect.top - 100 });
+                      setShareMenuSource("mobile");
                       setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
                     }}
                     className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
@@ -790,7 +796,11 @@ export default function VoiceAgent() {
       <div className="mt-12 lg:fixed lg:bottom-4 text-center text-gray-600 text-xs relative z-10">
         <p>Not a real therapist. For entertainment and venting purposes only.</p>
         <div className="flex items-center justify-center gap-3 mt-2">
-          <a href="/privacy" className="hover:text-gray-400 transition-colors underline">
+          <a
+            href="/privacy"
+            onClick={() => trackClick("footer_privacy", "/privacy")}
+            className="hover:text-gray-400 transition-colors underline"
+          >
             Privacy Policy
           </a>
           <span className="text-gray-700">|</span>
@@ -798,7 +808,7 @@ export default function VoiceAgent() {
             href="https://www.meroka.com/"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackClick("website", "https://www.meroka.com/")}
+            onClick={() => trackClick("footer_meroka", "https://www.meroka.com/")}
             className="flex items-center gap-1.5 hover:text-gray-400 transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 100 100" fill="none">
