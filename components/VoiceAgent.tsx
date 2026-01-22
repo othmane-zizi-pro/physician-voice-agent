@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Vapi from "@vapi-ai/web";
 import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock } from "lucide-react";
-import { VAPI_ASSISTANT_CONFIG } from "@/lib/persona";
+import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
 import PostCallForm from "./PostCallForm";
 
@@ -356,7 +356,16 @@ export default function VoiceAgent() {
 
       let call;
       if (assistantId) {
-        call = await vapiRef.current.start(assistantId);
+        // Use assistant ID but override with our persona
+        call = await vapiRef.current.start(assistantId, {
+          model: {
+            provider: "openai",
+            model: "gpt-4o",
+            temperature: 0.9,
+            systemPrompt: PHYSICIAN_THERAPIST_PERSONA,
+          },
+          firstMessage: "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.",
+        });
       } else {
         call = await vapiRef.current.start(VAPI_ASSISTANT_CONFIG as any);
       }
