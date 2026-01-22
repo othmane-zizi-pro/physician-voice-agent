@@ -1,5 +1,11 @@
 // lib/clipUtils.ts
 
+export interface AudioSegment {
+  speaker: 'physician' | 'doc';
+  text: string;
+  audioPath: string;
+}
+
 export interface Exchange {
   index: number;
   physicianText: string;
@@ -59,4 +65,40 @@ export function parseTranscriptIntoExchanges(transcript: string): Exchange[] {
   }
 
   return exchanges;
+}
+
+/**
+ * Generate audio from text using Deepgram TTS API.
+ *
+ * Voice IDs:
+ * - Doc: aura-asteria-en (same as live calls)
+ * - Physician: aura-orpheus-en (male, distinct)
+ */
+export async function generateTTSAudio(
+  text: string,
+  speaker: 'physician' | 'doc',
+  outputPath: string
+): Promise<void> {
+  const voiceId = speaker === 'doc' ? 'aura-asteria-en' : 'aura-orpheus-en';
+
+  const response = await fetch(
+    `https://api.deepgram.com/v1/speak?model=${voiceId}`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Deepgram TTS failed: ${response.status} ${errorText}`);
+  }
+
+  const audioBuffer = await response.arrayBuffer();
+  const fs = await import('fs/promises');
+  await fs.writeFile(outputPath, Buffer.from(audioBuffer));
 }
