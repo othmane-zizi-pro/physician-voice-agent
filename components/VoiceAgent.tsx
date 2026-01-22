@@ -491,16 +491,14 @@ export default function VoiceAgent() {
       <div className="relative z-10 flex flex-col items-center">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <svg className="w-10 h-10 text-white" viewBox="0 0 100 100" fill="none">
+          <div className="relative inline-block mb-3">
+            <svg className="absolute -left-14 top-1/2 -translate-y-1/2 w-10 h-10 text-white" viewBox="0 0 100 100" fill="none">
               <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
               <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
               <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
-            <div>
-              <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
-              <p className="text-gray-500 text-sm">by <span className="font-medium tracking-tight">Meroka</span></p>
-            </div>
+            <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
+            <p className="text-gray-500 text-sm">by <span className="font-medium tracking-tight">Meroka</span></p>
           </div>
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
             A sardonic AI companion for burnt-out healthcare workers.
