@@ -465,11 +465,9 @@ export default function VoiceAgent() {
                       <Share2 size={14} />
                     </button>
 
-                    {/* Share menu dropdown - show below for first quote, above for others */}
+                    {/* Share menu dropdown - position to left of button to avoid clipping */}
                     {shareMenuOpen === quote.id && (
-                      <div className={`absolute right-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px] ${
-                        index === 0 ? "top-8" : "bottom-8"
-                      }`}>
+                      <div className="absolute right-8 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px]">
                         <button
                           onClick={() => shareToTwitter(quote)}
                           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
