@@ -258,3 +258,34 @@ export async function generateVideo(
     throw new Error(`FFmpeg failed: ${err.stderr || err.message}`);
   }
 }
+
+/**
+ * Download a recording and slice it to a specific time range.
+ * Uses FFmpeg to extract the audio segment.
+ */
+export async function sliceRecording(
+  recordingUrl: string,
+  startSeconds: number,
+  endSeconds: number,
+  outputPath: string
+): Promise<void> {
+  const duration = endSeconds - startSeconds;
+
+  // FFmpeg can read directly from URL and slice in one command
+  // -ss before -i seeks efficiently, -t specifies duration
+  const command = [
+    'ffmpeg -y',
+    `-ss ${startSeconds}`,
+    `-i "${recordingUrl}"`,
+    `-t ${duration}`,
+    '-c:a aac -b:a 192k',  // Re-encode to AAC for compatibility
+    `"${outputPath}"`,
+  ].join(' ');
+
+  try {
+    await execAsync(command);
+  } catch (error) {
+    const err = error as { stderr?: string; message?: string };
+    throw new Error(`FFmpeg slice failed: ${err.stderr || err.message}`);
+  }
+}
