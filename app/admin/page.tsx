@@ -21,6 +21,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
 
 type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits";
 type QuotesFilter = "all" | "featured" | "not-featured";
+type SessionTypeFilter = "all" | "voice" | "text";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -35,6 +36,7 @@ export default function AdminDashboard() {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
+  const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
@@ -134,19 +136,27 @@ export default function AdminDashboard() {
 
   // Stats
   const totalCalls = calls.length;
+  const voiceCalls = calls.filter((c) => c.session_type !== "text").length;
+  const textConfessions = calls.filter((c) => c.session_type === "text").length;
   const totalLeads = leads.length;
   const physicianOwners = leads.filter((l) => l.is_physician_owner).length;
   const interestedLeads = leads.filter((l) => l.interested_in_collective).length;
   const totalDuration = calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0);
-  const avgDuration = totalCalls > 0 ? Math.round(totalDuration / totalCalls) : 0;
+  const avgDuration = voiceCalls > 0 ? Math.round(totalDuration / voiceCalls) : 0;
 
   // Filter
-  const filteredCalls = calls.filter(
-    (c) =>
+  const filteredCalls = calls.filter((c) => {
+    // Session type filter
+    if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
+    if (sessionTypeFilter === "text" && c.session_type !== "text") return false;
+
+    // Search filter
+    return (
       c.transcript?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.quotable_quote?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.ip_address?.includes(searchQuery)
-  );
+    );
+  });
 
   const filteredLeads = leads.filter(
     (l) =>
@@ -372,14 +382,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 relative z-10">
         <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Total Calls</p>
+          <p className="text-gray-400 text-sm">Total Sessions</p>
           <p className="text-2xl font-bold text-white">{totalCalls}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {voiceCalls} voice · {textConfessions} text
+          </p>
         </div>
         <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Avg Duration</p>
           <p className="text-2xl font-bold text-white">{formatDuration(avgDuration)}</p>
+          <p className="text-xs text-gray-500 mt-1">voice calls only</p>
+        </div>
+        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+          <p className="text-gray-400 text-sm">Text Confessions</p>
+          <p className="text-2xl font-bold text-amber-400">{textConfessions}</p>
         </div>
         <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
           <p className="text-gray-400 text-sm">Physician Owners</p>
@@ -481,6 +499,40 @@ export default function AdminDashboard() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full max-w-md px-4 py-2 bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
           />
+          {activeTab === "calls" && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSessionTypeFilter("all")}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  sessionTypeFilter === "all"
+                    ? "bg-meroka-primary text-white"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+                }`}
+              >
+                All ({totalCalls})
+              </button>
+              <button
+                onClick={() => setSessionTypeFilter("voice")}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  sessionTypeFilter === "voice"
+                    ? "bg-meroka-primary text-white"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+                }`}
+              >
+                Voice ({voiceCalls})
+              </button>
+              <button
+                onClick={() => setSessionTypeFilter("text")}
+                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                  sessionTypeFilter === "text"
+                    ? "bg-amber-600 text-white"
+                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+                }`}
+              >
+                Text ({textConfessions})
+              </button>
+            </div>
+          )}
           {activeTab === "quotes" && (
             <div className="flex flex-wrap gap-2 items-center">
               <button
@@ -537,9 +589,10 @@ export default function AdminDashboard() {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Type</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Duration</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Recording</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Transcript</th>
+                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Content</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Quote</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP</th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
@@ -548,13 +601,13 @@ export default function AdminDashboard() {
             <tbody>
               {filteredCalls.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-500 py-8">
-                    No calls found
+                  <td colSpan={8} className="text-center text-gray-500 py-8">
+                    No sessions found
                   </td>
                 </tr>
               ) : (
                 filteredCalls.map((call) => (
-                  <tr key={call.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  <tr key={call.id} className={`border-b border-gray-800 hover:bg-gray-800/50 ${call.session_type === "text" ? "bg-amber-900/5" : ""}`}>
                     <td className="px-4 py-3 text-gray-300 text-sm">
                       <div className="flex items-center gap-2">
                         {formatDate(call.created_at)}
@@ -565,11 +618,26 @@ export default function AdminDashboard() {
                         )}
                       </div>
                     </td>
+                    <td className="px-4 py-3 text-sm">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        call.session_type === "text"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-gray-600/30 text-gray-400"
+                      }`}>
+                        {call.session_type === "text" ? "Text" : "Voice"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-gray-300 text-sm">
-                      {formatDuration(call.duration_seconds)}
+                      {call.session_type === "text" ? (
+                        <span className="text-gray-500">-</span>
+                      ) : (
+                        formatDuration(call.duration_seconds)
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      {call.recording_url ? (
+                      {call.session_type === "text" ? (
+                        <span className="text-gray-500 text-xs">N/A</span>
+                      ) : call.recording_url ? (
                         <a
                           href={call.recording_url}
                           target="_blank"
@@ -587,7 +655,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-sm max-w-xs">
                       {call.transcript ? (
-                        <span className="text-gray-300 line-clamp-2 text-xs">
+                        <span className={`line-clamp-2 text-xs ${call.session_type === "text" ? "text-amber-300/80" : "text-gray-300"}`}>
                           {call.transcript.slice(0, 100)}{call.transcript.length > 100 ? "..." : ""}
                         </span>
                       ) : (
@@ -1350,7 +1418,18 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Call Details</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-xl font-semibold text-white">
+                  {selectedCall.session_type === "text" ? "Text Confession" : "Call Details"}
+                </h2>
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  selectedCall.session_type === "text"
+                    ? "bg-amber-500/20 text-amber-400"
+                    : "bg-gray-600/30 text-gray-400"
+                }`}>
+                  {selectedCall.session_type === "text" ? "Text" : "Voice"}
+                </span>
+              </div>
               <button
                 onClick={() => setSelectedCall(null)}
                 className="text-gray-400 hover:text-white"
@@ -1362,19 +1441,27 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex gap-4 text-sm">
+              <div className="flex flex-wrap gap-4 text-sm">
                 <div>
                   <span className="text-gray-400">Date:</span>{" "}
                   <span className="text-white">{formatDate(selectedCall.created_at)}</span>
                 </div>
-                <div>
-                  <span className="text-gray-400">Duration:</span>{" "}
-                  <span className="text-white">{formatDuration(selectedCall.duration_seconds)}</span>
-                </div>
+                {selectedCall.session_type !== "text" && (
+                  <div>
+                    <span className="text-gray-400">Duration:</span>{" "}
+                    <span className="text-white">{formatDuration(selectedCall.duration_seconds)}</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-gray-400">IP:</span>{" "}
                   <span className="text-white font-mono">{selectedCall.ip_address || "-"}</span>
                 </div>
+                {selectedCall.city && (
+                  <div>
+                    <span className="text-gray-400">Location:</span>{" "}
+                    <span className="text-white">{[selectedCall.city, selectedCall.region].filter(Boolean).join(", ")}</span>
+                  </div>
+                )}
               </div>
 
               {selectedCall.quotable_quote && (
@@ -1385,19 +1472,29 @@ export default function AdminDashboard() {
               )}
 
               <div>
-                <p className="text-gray-400 text-sm font-medium mb-2">Transcript</p>
-                <div className="bg-gray-800/80 rounded-xl p-4 max-h-64 overflow-y-auto border border-gray-700">
+                <p className="text-gray-400 text-sm font-medium mb-2">
+                  {selectedCall.session_type === "text" ? "Confession" : "Transcript"}
+                </p>
+                <div className={`rounded-xl p-4 max-h-64 overflow-y-auto border ${
+                  selectedCall.session_type === "text"
+                    ? "bg-amber-900/20 border-amber-700/30"
+                    : "bg-gray-800/80 border-gray-700"
+                }`}>
                   {selectedCall.transcript ? (
-                    <pre className="text-gray-300 text-sm whitespace-pre-wrap font-sans">
+                    <pre className={`text-sm whitespace-pre-wrap font-sans ${
+                      selectedCall.session_type === "text" ? "text-amber-200/90" : "text-gray-300"
+                    }`}>
                       {selectedCall.transcript}
                     </pre>
                   ) : (
-                    <p className="text-gray-500 text-sm">No transcript available</p>
+                    <p className="text-gray-500 text-sm">
+                      {selectedCall.session_type === "text" ? "No confession text" : "No transcript available"}
+                    </p>
                   )}
                 </div>
               </div>
 
-              {selectedCall.recording_url && (
+              {selectedCall.session_type !== "text" && selectedCall.recording_url && (
                 <div>
                   <p className="text-gray-400 text-sm font-medium mb-2">Recording</p>
                   <audio controls className="w-full" src={selectedCall.recording_url}>

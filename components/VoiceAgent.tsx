@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Vapi from "@vapi-ai/web";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, MessageSquare, Send, X } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
@@ -92,6 +92,12 @@ export default function VoiceAgent() {
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [showLowTimeWarning, setShowLowTimeWarning] = useState(false);
   const [showTimeLimitMessage, setShowTimeLimitMessage] = useState(false);
+
+  // Text confession state
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [confessionText, setConfessionText] = useState("");
+  const [isSubmittingConfession, setIsSubmittingConfession] = useState(false);
+  const [confessionError, setConfessionError] = useState<string | null>(null);
 
 
   const vapiRef = useRef<Vapi | null>(null);
@@ -433,6 +439,42 @@ export default function VoiceAgent() {
     setShowTimeLimitMessage(false);
   }, []);
 
+  // Submit text confession
+  const submitConfession = useCallback(async () => {
+    if (!confessionText.trim() || isSubmittingConfession) return;
+
+    setIsSubmittingConfession(true);
+    setConfessionError(null);
+
+    try {
+      const response = await fetch("/api/submit-confession", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: confessionText.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setConfessionError(data.error || "Failed to submit. Please try again.");
+        setIsSubmittingConfession(false);
+        return;
+      }
+
+      // Success - show post-call form
+      setLastCallId(data.callId);
+      setLastTranscript(confessionText.trim());
+      setShowPostCallForm(true);
+      setShowTextInput(false);
+      setConfessionText("");
+    } catch (error) {
+      console.error("Failed to submit confession:", error);
+      setConfessionError("Something went wrong. Please try again.");
+    }
+
+    setIsSubmittingConfession(false);
+  }, [confessionText, isSubmittingConfession]);
+
   return (
     <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-24 lg:pb-8 lg:justify-center relative overflow-x-hidden">
       {/* Animated gradient background - Meroka dark slate */}
@@ -683,7 +725,7 @@ export default function VoiceAgent() {
 
       {/* Status text */}
       <div className="text-center mb-8">
-        {callStatus === "idle" && !isRateLimited && (
+        {callStatus === "idle" && !isRateLimited && !showTextInput && (
           <p className="text-gray-400">Tap to start venting</p>
         )}
         {callStatus === "idle" && isRateLimited && (
@@ -716,6 +758,78 @@ export default function VoiceAgent() {
           <p className="text-gray-400">Ending call...</p>
         )}
       </div>
+
+      {/* Text confession option */}
+      {callStatus === "idle" && !isRateLimited && (
+        <div className="w-full max-w-md mb-8">
+          {!showTextInput ? (
+            <button
+              onClick={() => setShowTextInput(true)}
+              className="flex items-center justify-center gap-2 w-full py-3 text-gray-500 hover:text-gray-300 transition-colors text-sm"
+            >
+              <MessageSquare size={16} />
+              <span>Prefer to type?</span>
+            </button>
+          ) : (
+            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-gray-400 text-sm">What&apos;s frustrating you?</p>
+                <button
+                  onClick={() => {
+                    setShowTextInput(false);
+                    setConfessionText("");
+                    setConfessionError(null);
+                  }}
+                  className="p-1 text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <textarea
+                value={confessionText}
+                onChange={(e) => setConfessionText(e.target.value)}
+                placeholder="Let it out. Insurance denials, prior auths, admin burden, the whole broken system..."
+                className="w-full h-32 bg-gray-800/50 border border-gray-700 rounded-xl p-3 text-gray-200 placeholder-gray-500 text-sm resize-none focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
+                maxLength={5000}
+                disabled={isSubmittingConfession}
+              />
+
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-gray-600 text-xs">
+                  {confessionText.length}/5000
+                </span>
+
+                <button
+                  onClick={submitConfession}
+                  disabled={confessionText.trim().length < 10 || isSubmittingConfession}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    confessionText.trim().length >= 10 && !isSubmittingConfession
+                      ? "bg-meroka-primary hover:bg-meroka-primary-hover text-white"
+                      : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  {isSubmittingConfession ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Sending...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={16} />
+                      <span>Submit</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {confessionError && (
+                <p className="mt-2 text-red-400 text-sm">{confessionError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Mute button (only when active) */}
       {callStatus === "active" && (

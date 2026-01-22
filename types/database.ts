@@ -26,6 +26,7 @@ export interface Database {
           country: string | null;
           is_sample: boolean;
           created_at: string;
+          session_type: "voice" | "text";
         };
         Insert: {
           id?: string;
@@ -43,6 +44,7 @@ export interface Database {
           country?: string | null;
           is_sample?: boolean;
           created_at?: string;
+          session_type?: "voice" | "text";
         };
         Update: {
           id?: string;
@@ -60,6 +62,7 @@ export interface Database {
           country?: string | null;
           is_sample?: boolean;
           created_at?: string;
+          session_type?: "voice" | "text";
         };
         Relationships: [];
       };
