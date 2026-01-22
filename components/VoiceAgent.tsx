@@ -87,6 +87,12 @@ export default function VoiceAgent() {
   const [usageData, setUsageData] = useState<UsageData>({ usedSeconds: 0, windowStart: Date.now() });
   const [currentCallSeconds, setCurrentCallSeconds] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [showLowTimeWarning, setShowLowTimeWarning] = useState(false);
+  const [showTimeLimitMessage, setShowTimeLimitMessage] = useState(false);
+
+  // Sound preview state
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -158,15 +164,22 @@ export default function VoiceAgent() {
         setCurrentCallSeconds((prev) => {
           const newSeconds = prev + 1;
           const totalUsed = usageData.usedSeconds + newSeconds;
+          const remainingSeconds = RATE_LIMIT_SECONDS - totalUsed;
 
           // Update localStorage periodically
           if (newSeconds % 5 === 0) {
             saveUsageData({ ...usageData, usedSeconds: totalUsed });
           }
 
+          // Show warning when 1 minute remaining
+          if (remainingSeconds <= 60 && remainingSeconds > 0 && !showLowTimeWarning) {
+            setShowLowTimeWarning(true);
+          }
+
           // Check if limit reached
           if (totalUsed >= RATE_LIMIT_SECONDS) {
-            // Auto-end call when limit reached
+            // Show time limit message and auto-end call
+            setShowTimeLimitMessage(true);
             if (vapiRef.current) {
               vapiRef.current.stop();
             }
@@ -180,6 +193,8 @@ export default function VoiceAgent() {
         clearInterval(callTimerRef.current);
         callTimerRef.current = null;
       }
+      // Reset warning when call ends
+      setShowLowTimeWarning(false);
     }
 
     return () => {
@@ -187,7 +202,7 @@ export default function VoiceAgent() {
         clearInterval(callTimerRef.current);
       }
     };
-  }, [callStatus, usageData]);
+  }, [callStatus, usageData, showLowTimeWarning]);
 
   // Save call to database
   const saveCallToDatabase = useCallback(async () => {
@@ -409,6 +424,33 @@ export default function VoiceAgent() {
     setIsMuted(newMuteState);
   }, [isMuted]);
 
+  // Sound preview - play a short sample of Doc's voice
+  const togglePreview = useCallback(() => {
+    if (!previewAudioRef.current) {
+      // Create audio element with a sample greeting (you can replace with actual audio URL)
+      previewAudioRef.current = new Audio("/doc-preview.mp3");
+      previewAudioRef.current.onended = () => setIsPlayingPreview(false);
+      previewAudioRef.current.onerror = () => setIsPlayingPreview(false);
+    }
+
+    if (isPlayingPreview) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.currentTime = 0;
+      setIsPlayingPreview(false);
+    } else {
+      previewAudioRef.current.play().catch(() => {
+        // Audio play failed (no audio file or browser blocked)
+        setIsPlayingPreview(false);
+      });
+      setIsPlayingPreview(true);
+    }
+  }, [isPlayingPreview]);
+
+  // Dismiss time limit message
+  const dismissTimeLimitMessage = useCallback(() => {
+    setShowTimeLimitMessage(false);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 relative overflow-hidden">
       {/* Animated gradient background */}
@@ -612,10 +654,66 @@ export default function VoiceAgent() {
         </button>
       </div>
 
+      {/* Low time warning */}
+      {showLowTimeWarning && callStatus === "active" && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-900/90 border border-yellow-700 rounded-lg px-4 py-2 z-20 animate-pulse">
+          <p className="text-yellow-400 text-sm font-medium">
+            Less than 1 minute remaining
+          </p>
+        </div>
+      )}
+
+      {/* Time limit reached message */}
+      {showTimeLimitMessage && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-sm w-full text-center">
+            <div className="text-4xl mb-4">⏰</div>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              Time&apos;s up for today
+            </h2>
+            <p className="text-gray-400 mb-2">
+              Doc says: &quot;Hey, you&apos;ve used your 7 minutes. Even I need a break from this broken system.&quot;
+            </p>
+            <p className="text-gray-500 text-sm mb-6">
+              Your time resets in {formatTimeUntilReset(usageData.windowStart)}
+            </p>
+            <button
+              onClick={dismissTimeLimitMessage}
+              className="py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Status text */}
       <div className="text-center mb-8">
         {callStatus === "idle" && !isRateLimited && (
-          <p className="text-gray-400">Tap to start venting</p>
+          <div>
+            <p className="text-gray-400 mb-3">Tap to start venting</p>
+            {/* Sound preview button */}
+            <button
+              onClick={togglePreview}
+              className="text-gray-500 hover:text-gray-400 text-xs flex items-center gap-1.5 mx-auto transition-colors"
+            >
+              {isPlayingPreview ? (
+                <>
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                  </svg>
+                  Stop preview
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                  </svg>
+                  Hear Doc&apos;s voice
+                </>
+              )}
+            </button>
+          </div>
         )}
         {callStatus === "idle" && isRateLimited && (
           <p className="text-gray-500">Come back later for more venting</p>

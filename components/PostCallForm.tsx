@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Twitter, Linkedin, Link2, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type FormStep =
   | "consent"
+  | "share_quote"
   | "healthcare_question"
   | "workplace_question"
   | "role_question"
@@ -47,6 +49,10 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
   // Featured quotes for sidebar
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
 
+  // Share quote state
+  const [extractedQuote, setExtractedQuote] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Fetch featured quotes on mount
   useEffect(() => {
     fetch("/api/featured-quotes")
@@ -58,6 +64,34 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       })
       .catch(console.error);
   }, []);
+
+  // Fetch extracted quote when callId is available
+  useEffect(() => {
+    if (!callId) return;
+
+    // Poll for the extracted quote (it's extracted async after call ends)
+    const checkQuote = async () => {
+      const { data } = await supabase
+        .from("calls")
+        .select("quotable_quote")
+        .eq("id", callId)
+        .single();
+
+      if (data?.quotable_quote) {
+        setExtractedQuote(data.quotable_quote);
+      }
+    };
+
+    // Check immediately, then poll a few times
+    checkQuote();
+    const interval = setInterval(checkQuote, 2000);
+    const timeout = setTimeout(() => clearInterval(interval), 10000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [callId]);
 
   // Extract a preview from the transcript (user's words only)
   const getTranscriptPreview = () => {
@@ -77,8 +111,43 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
 
   const transcriptPreview = getTranscriptPreview();
 
+  // Share functions
+  const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
+
+  const shareToTwitter = () => {
+    if (!extractedQuote || !callId) return;
+    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
+    const text = `"${extractedQuote.length > 100 ? extractedQuote.slice(0, 97) + "..." : extractedQuote}"\n\nTalk to Doc:`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, "_blank", "width=550,height=420");
+  };
+
+  const shareToLinkedIn = () => {
+    if (!callId) return;
+    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, "_blank", "width=550,height=420");
+  };
+
+  const copyShareLink = async () => {
+    if (!callId) return;
+    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   // Step handlers
   const handleConsentComplete = () => {
+    // Show share step if user consented to sharing and we have a quote
+    if (consentShareQuote && extractedQuote) {
+      setStep("share_quote");
+    } else {
+      setStep("healthcare_question");
+    }
+  };
+
+  const handleShareComplete = () => {
     setStep("healthcare_question");
   };
 
@@ -275,6 +344,65 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
               className="w-full mt-6 py-3 px-6 bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
             >
               Continue
+            </button>
+          </div>
+        )}
+
+        {/* Share Quote Step */}
+        {step === "share_quote" && extractedQuote && (
+          <div className="animate-fade-in">
+            <h2 className="text-xl font-semibold text-white mb-2 text-center">
+              Share your confession?
+            </h2>
+            <p className="text-gray-400 text-sm text-center mb-6">
+              Let other healthcare workers know they&apos;re not alone.
+            </p>
+
+            {/* Quote preview */}
+            <div className="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700">
+              <p className="text-gray-300 text-base italic leading-relaxed">
+                &ldquo;{extractedQuote}&rdquo;
+              </p>
+              <p className="text-gray-500 text-xs mt-2">— Anonymous Healthcare Worker</p>
+            </div>
+
+            {/* Share buttons */}
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={shareToTwitter}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
+              >
+                <Twitter size={18} />
+                <span>Twitter</span>
+              </button>
+              <button
+                onClick={shareToLinkedIn}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
+              >
+                <Linkedin size={18} />
+                <span>LinkedIn</span>
+              </button>
+              <button
+                onClick={copyShareLink}
+                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
+              >
+                {copiedLink ? <Check size={18} className="text-green-400" /> : <Link2 size={18} />}
+                <span>{copiedLink ? "Copied!" : "Copy"}</span>
+              </button>
+            </div>
+
+            <button
+              onClick={handleShareComplete}
+              className="w-full py-3 px-6 bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg transition-colors"
+            >
+              Continue
+            </button>
+
+            <button
+              onClick={handleShareComplete}
+              className="w-full mt-2 py-2 text-gray-500 hover:text-gray-400 text-sm transition-colors"
+            >
+              Skip sharing
             </button>
           </div>
         )}
