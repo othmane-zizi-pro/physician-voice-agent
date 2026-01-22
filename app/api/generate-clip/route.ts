@@ -8,8 +8,9 @@ import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import type { Database } from '@/types/database';
 import { getSession } from '@/lib/auth';
 import {
-  parseTranscriptIntoExchanges,
-  generateTTSAudio,
+  fetchVapiCallDetails,
+  parseVapiMessagesIntoExchanges,
+  sliceRecording,
   generateVideo,
 } from '@/lib/clipUtils';
 
@@ -19,7 +20,6 @@ const supabase = createClient<Database>(
 );
 
 export async function POST(request: NextRequest) {
-  // Auth check
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,10 +37,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the call
+    // Fetch the call from our database to get vapi_call_id and verify ownership
     const { data: call, error: callError } = await supabase
       .from('calls')
-      .select('transcript, user_id')
+      .select('vapi_call_id, user_id, recording_url')
       .eq('id', callId)
       .single();
 
@@ -48,20 +48,44 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Call not found' }, { status: 404 });
     }
 
-    // Verify ownership
     if (call.user_id !== session.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (!call.transcript) {
+    if (!call.vapi_call_id) {
       return NextResponse.json(
-        { error: 'Call has no transcript' },
+        { error: 'Call has no VAPI ID (text-only session?)' },
         { status: 400 }
       );
     }
 
-    // Parse exchanges
-    const exchanges = parseTranscriptIntoExchanges(call.transcript);
+    // Fetch timestamped transcript from VAPI
+    const vapiDetails = await fetchVapiCallDetails(call.vapi_call_id);
+
+    if (
+      !vapiDetails.artifact?.messages ||
+      vapiDetails.artifact.messages.length === 0
+    ) {
+      return NextResponse.json(
+        { error: 'No transcript available from VAPI' },
+        { status: 400 }
+      );
+    }
+
+    // Get recording URL - prefer from VAPI response, fallback to our stored URL
+    const recordingUrl =
+      vapiDetails.artifact?.recordingUrl || call.recording_url;
+    if (!recordingUrl) {
+      return NextResponse.json(
+        { error: 'No recording available for this call' },
+        { status: 400 }
+      );
+    }
+
+    // Parse into timed exchanges
+    const exchanges = parseVapiMessagesIntoExchanges(
+      vapiDetails.artifact.messages
+    );
     const exchange = exchanges[exchangeIndex];
 
     if (!exchange) {
@@ -76,17 +100,18 @@ export async function POST(request: NextRequest) {
     await mkdir(workDir, { recursive: true });
 
     const paths = {
-      physicianAudio: join(workDir, 'audio_0.mp3'),
-      docAudio: join(workDir, 'audio_1.mp3'),
+      slicedAudio: join(workDir, 'audio.m4a'),
       chatImage: join(workDir, 'chat.png'),
       outputVideo: join(workDir, 'output.mp4'),
     };
 
-    // Generate TTS audio for both speakers
-    await Promise.all([
-      generateTTSAudio(exchange.physicianText, 'physician', paths.physicianAudio),
-      generateTTSAudio(exchange.docText, 'doc', paths.docAudio),
-    ]);
+    // Slice the recording to get just this exchange
+    await sliceRecording(
+      recordingUrl,
+      exchange.startSeconds,
+      exchange.endSeconds,
+      paths.slicedAudio
+    );
 
     // Generate chat bubble image
     const imageUrl = new URL('/api/generate-clip/image', request.url);
@@ -100,10 +125,10 @@ export async function POST(request: NextRequest) {
     const imageBuffer = await imageResponse.arrayBuffer();
     await writeFile(paths.chatImage, Buffer.from(imageBuffer));
 
-    // Generate video with FFmpeg
+    // Generate video with single audio track
     await generateVideo(
       paths.chatImage,
-      [paths.physicianAudio, paths.docAudio],
+      [paths.slicedAudio], // Now just one audio file
       paths.outputVideo
     );
 
@@ -122,7 +147,6 @@ export async function POST(request: NextRequest) {
       throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from('clips')
       .getPublicUrl(fileName);
@@ -135,7 +159,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    // Cleanup temp files
     if (workDir) {
       try {
         await rm(workDir, { recursive: true });
