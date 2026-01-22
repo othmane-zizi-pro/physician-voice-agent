@@ -442,8 +442,8 @@ export default function VoiceAgent() {
             What others are saying
           </p>
 
-          <div className="space-y-3">
-            {featuredQuotes.slice(0, 4).map((quote, index) => (
+          <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+            {featuredQuotes.map((quote) => (
               <div
                 key={quote.id}
                 className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
@@ -455,48 +455,59 @@ export default function VoiceAgent() {
                   <p className="text-gray-500 text-xs">— {quote.location}</p>
 
                   {/* Share button */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShareMenuOpen(
-                        shareMenuOpen === quote.id ? null : quote.id
-                      )}
-                      className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
-                      title="Share this quote"
-                    >
-                      <Share2 size={14} />
-                    </button>
-
-                    {/* Share menu dropdown - position to left of button to avoid clipping */}
-                    {shareMenuOpen === quote.id && (
-                      <div className="absolute right-8 top-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px]">
-                        <button
-                          onClick={() => shareToTwitter(quote)}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                        >
-                          <Twitter size={14} />
-                          Twitter/X
-                        </button>
-                        <button
-                          onClick={() => shareToLinkedIn(quote)}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                        >
-                          <Linkedin size={14} />
-                          LinkedIn
-                        </button>
-                        <button
-                          onClick={() => copyLink(quote)}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                        >
-                          <Link2 size={14} />
-                          {copiedId === quote.id ? "Copied!" : "Copy Link"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
+                    }}
+                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    title="Share this quote"
+                  >
+                    <Share2 size={14} />
+                  </button>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Share dropdown - rendered outside scroll container with fixed positioning */}
+      {shareMenuOpen && featuredQuotes.find(q => q.id === shareMenuOpen) && (
+        <div
+          className="fixed right-[320px] top-1/2 -translate-y-1/2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-[100] min-w-[140px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
+              if (quote) shareToTwitter(quote);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            <Twitter size={14} />
+            Twitter/X
+          </button>
+          <button
+            onClick={() => {
+              const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
+              if (quote) shareToLinkedIn(quote);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            <Linkedin size={14} />
+            LinkedIn
+          </button>
+          <button
+            onClick={() => {
+              const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
+              if (quote) copyLink(quote);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            <Link2 size={14} />
+            {copiedId === shareMenuOpen ? "Copied!" : "Copy Link"}
+          </button>
         </div>
       )}
 
