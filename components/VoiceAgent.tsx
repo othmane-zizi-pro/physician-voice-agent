@@ -441,8 +441,8 @@ export default function VoiceAgent() {
             What others are saying
           </p>
 
-          <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {featuredQuotes.map((quote, index) => (
+          <div className="space-y-3">
+            {featuredQuotes.slice(0, 4).map((quote, index) => (
               <div
                 key={quote.id}
                 className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
