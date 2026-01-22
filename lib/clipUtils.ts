@@ -17,6 +17,41 @@ export interface Exchange {
   docText: string;
 }
 
+// VAPI API types for fetching call details with timestamped transcripts
+export interface VapiMessage {
+  role: 'user' | 'bot' | 'assistant' | 'system';
+  message: string;
+  secondsFromStart: number;
+  endTime?: string;
+  duration?: number;
+}
+
+export interface VapiCallDetails {
+  id: string;
+  artifact?: {
+    messages?: VapiMessage[];
+    recordingUrl?: string;
+  };
+}
+
+/**
+ * Fetch call details from VAPI API including timestamped transcript.
+ */
+export async function fetchVapiCallDetails(vapiCallId: string): Promise<VapiCallDetails> {
+  const response = await fetch(`https://api.vapi.ai/call/${vapiCallId}`, {
+    headers: {
+      'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`VAPI API failed: ${response.status} ${errorText}`);
+  }
+
+  return response.json();
+}
+
 /**
  * Parses a transcript into exchanges.
  * Each exchange is a physician turn followed by Doc's response.
