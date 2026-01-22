@@ -434,6 +434,85 @@ export default function VoiceAgent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
       </div>
 
+      {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
+      {callStatus === "idle" && featuredQuotes.length > 0 && (
+        <div className="hidden lg:block fixed left-6 top-1/2 -translate-y-1/2 w-72 z-20">
+          <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide">
+            What others are saying
+          </p>
+
+          <div className="relative">
+            <div className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800 transition-all duration-500">
+              <p className="text-gray-300 text-sm italic leading-relaxed">
+                &ldquo;{featuredQuotes[currentQuoteIndex]?.quote}&rdquo;
+              </p>
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-gray-500 text-xs">— {featuredQuotes[currentQuoteIndex]?.location}</p>
+
+                {/* Share button */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShareMenuOpen(
+                      shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id
+                        ? null
+                        : featuredQuotes[currentQuoteIndex]?.id
+                    )}
+                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    title="Share this quote"
+                  >
+                    <Share2 size={14} />
+                  </button>
+
+                  {/* Share menu dropdown */}
+                  {shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id && (
+                    <div className="absolute left-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
+                      <button
+                        onClick={() => shareToTwitter(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Twitter size={14} />
+                        Twitter/X
+                      </button>
+                      <button
+                        onClick={() => shareToLinkedIn(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Linkedin size={14} />
+                        LinkedIn
+                      </button>
+                      <button
+                        onClick={() => copyLink(featuredQuotes[currentQuoteIndex])}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      >
+                        <Link2 size={14} />
+                        {copiedId === featuredQuotes[currentQuoteIndex]?.id ? "Copied!" : "Copy Link"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quote navigation dots */}
+            {featuredQuotes.length > 1 && (
+              <div className="flex justify-start gap-1.5 mt-3">
+                {featuredQuotes.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentQuoteIndex(index)}
+                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                      index === currentQuoteIndex
+                        ? "bg-meroka-primary w-3"
+                        : "bg-gray-600 hover:bg-gray-500"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Content container */}
       <div className="relative z-10 flex flex-col items-center">
         {/* Header */}
@@ -486,87 +565,6 @@ export default function VoiceAgent() {
           </div>
         )}
 
-      {/* Live Quote Feed - shown before the call */}
-      {callStatus === "idle" && featuredQuotes.length > 0 && (
-        <div className="w-full max-w-md mb-8">
-          <p className="text-gray-500 text-xs text-center mb-3 uppercase tracking-wide">
-            What other healthcare workers are saying
-          </p>
-
-          {/* Main rotating quote */}
-          <div className="relative">
-            <div
-              className="bg-gray-900/50 rounded-lg p-4 border border-gray-800 transition-all duration-500"
-            >
-              <p className="text-gray-300 text-base italic leading-relaxed pr-8">
-                &ldquo;{featuredQuotes[currentQuoteIndex]?.quote}&rdquo;
-              </p>
-              <div className="flex items-center justify-between mt-2">
-                <p className="text-gray-500 text-xs">— {featuredQuotes[currentQuoteIndex]?.location}</p>
-
-                {/* Share button */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShareMenuOpen(
-                      shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id
-                        ? null
-                        : featuredQuotes[currentQuoteIndex]?.id
-                    )}
-                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
-                    title="Share this quote"
-                  >
-                    <Share2 size={14} />
-                  </button>
-
-                  {/* Share menu dropdown */}
-                  {shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id && (
-                    <div className="absolute right-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
-                      <button
-                        onClick={() => shareToTwitter(featuredQuotes[currentQuoteIndex])}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                      >
-                        <Twitter size={14} />
-                        Twitter/X
-                      </button>
-                      <button
-                        onClick={() => shareToLinkedIn(featuredQuotes[currentQuoteIndex])}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                      >
-                        <Linkedin size={14} />
-                        LinkedIn
-                      </button>
-                      <button
-                        onClick={() => copyLink(featuredQuotes[currentQuoteIndex])}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
-                      >
-                        <Link2 size={14} />
-                        {copiedId === featuredQuotes[currentQuoteIndex]?.id ? "Copied!" : "Copy Link"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Quote navigation dots */}
-            {featuredQuotes.length > 1 && (
-              <div className="flex justify-center gap-1.5 mt-3">
-                {featuredQuotes.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentQuoteIndex(index)}
-                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                      index === currentQuoteIndex
-                        ? "bg-meroka-primary w-3"
-                        : "bg-gray-600 hover:bg-gray-500"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Rate limit indicator */}
       {callStatus === "idle" && !isRateLimited && usageData.usedSeconds > 0 && (
