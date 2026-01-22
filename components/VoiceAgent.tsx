@@ -582,49 +582,26 @@ export default function VoiceAgent() {
             <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
             <p className="text-gray-500 text-sm">by <span className="font-medium tracking-tight">Meroka</span></p>
           </div>
+
+          {/* Today's venting counter - right below Doc */}
+          {todayCount !== null && callStatus === "idle" && (
+            <div className="mb-4 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center justify-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <p className="text-meroka-cream text-sm">
+                <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
+              </p>
+            </div>
+          )}
+
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
             A sardonic AI companion for burnt-out healthcare workers.
             <br />
             <span className="text-gray-500">Vent about the system with someone who gets it.</span>
           </p>
         </div>
-
-        {/* Trust signals */}
-        <div className="flex items-center gap-4 mb-6 text-xs text-gray-500">
-          <span className="flex items-center gap-1">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Anonymous
-          </span>
-          <span className="text-gray-700">|</span>
-          <span className="flex items-center gap-1">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            No account needed
-          </span>
-          <span className="text-gray-700">|</span>
-          <span className="flex items-center gap-1">
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Free
-          </span>
-        </div>
-
-        {/* Today's venting counter */}
-        {todayCount !== null && callStatus === "idle" && (
-          <div className="mb-6 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            <p className="text-meroka-cream text-sm">
-              <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
-            </p>
-          </div>
-        )}
 
 
       {/* Rate limit indicator */}
@@ -762,6 +739,30 @@ export default function VoiceAgent() {
         {callStatus === "ending" && (
           <p className="text-gray-400">Ending call...</p>
         )}
+      </div>
+
+      {/* Trust signals */}
+      <div className="flex items-center gap-4 mb-6 text-xs text-gray-500">
+        <span className="flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Anonymous
+        </span>
+        <span className="text-gray-700">|</span>
+        <span className="flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          No account needed
+        </span>
+        <span className="text-gray-700">|</span>
+        <span className="flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Free
+        </span>
       </div>
 
       {/* Text confession input bar */}
