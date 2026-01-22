@@ -36,6 +36,9 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Phase 5: Bulk actions and modals
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<Set<string>>(new Set());
@@ -59,6 +62,17 @@ export default function AdminDashboard() {
     }
   }, [session]);
 
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh || !session) return;
+
+    const interval = setInterval(() => {
+      fetchData();
+    }, refreshInterval * 1000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, refreshInterval, session]);
+
   const fetchData = async () => {
     setLoading(true);
     const [callsRes, leadsRes, featuredRes, clicksRes, visitsRes] = await Promise.all([
@@ -74,7 +88,32 @@ export default function AdminDashboard() {
     if (featuredRes.data) setFeaturedQuotes(featuredRes.data);
     if (clicksRes.data) setLinkClicks(clicksRes.data);
     if (visitsRes.data) setPageVisits(visitsRes.data);
+    setLastRefresh(new Date());
     setLoading(false);
+  };
+
+  // Generate hourly traffic data for chart
+  const getHourlyTrafficData = () => {
+    const now = new Date();
+    const hours: { hour: string; count: number; label: string }[] = [];
+
+    // Generate last 24 hours
+    for (let i = 23; i >= 0; i--) {
+      const hourStart = new Date(now);
+      hourStart.setHours(now.getHours() - i, 0, 0, 0);
+      const hourEnd = new Date(hourStart);
+      hourEnd.setHours(hourStart.getHours() + 1);
+
+      const count = pageVisits.filter((v) => {
+        const visitDate = new Date(v.created_at);
+        return visitDate >= hourStart && visitDate < hourEnd;
+      }).length;
+
+      const label = hourStart.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
+      hours.push({ hour: hourStart.toISOString(), count, label });
+    }
+
+    return hours;
   };
 
   if (status === "loading" || loading) {
@@ -458,7 +497,7 @@ export default function AdminDashboard() {
                 onClick={() => setQuotesFilter("featured")}
                 className={`px-3 py-2 text-sm rounded-lg transition-colors ${
                   quotesFilter === "featured"
-                    ? "bg-green-600 text-white"
+                    ? "bg-amber-600 text-white"
                     : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
                 }`}
               >
@@ -535,7 +574,7 @@ export default function AdminDashboard() {
                           href={call.recording_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-green-400 hover:text-green-300"
+                          className="inline-flex items-center gap-1 text-meroka-primary hover:text-meroka-primary-hover"
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
@@ -621,8 +660,8 @@ export default function AdminDashboard() {
                       {lead.workplace_type ? (
                         <span className={`px-2 py-1 rounded text-xs ${
                           lead.workplace_type === "independent"
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "bg-purple-500/20 text-purple-400"
+                            ? "bg-meroka-primary/20 text-meroka-primary"
+                            : "bg-gray-500/20 text-gray-400"
                         }`}>
                           {lead.workplace_type === "independent" ? "Independent" : "Hospital"}
                         </span>
@@ -636,7 +675,7 @@ export default function AdminDashboard() {
                       {lead.role_type ? (
                         <span className={`px-2 py-1 rounded text-xs ${
                           lead.role_type === "owner"
-                            ? "bg-green-500/20 text-green-400"
+                            ? "bg-amber-500/20 text-amber-400"
                             : lead.role_type === "provider"
                             ? "bg-yellow-500/20 text-yellow-400"
                             : "bg-gray-500/20 text-gray-400"
@@ -649,7 +688,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       {lead.interested_in_collective ? (
-                        <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">
+                        <span className="bg-meroka-primary/20 text-meroka-primary text-xs px-2 py-1 rounded">
                           Yes
                         </span>
                       ) : (
@@ -659,10 +698,10 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 text-xs">
                       <div className="flex gap-2">
                         {lead.consent_share_quote && (
-                          <span className="text-green-400" title="Consented to share quote">Share</span>
+                          <span className="text-meroka-primary" title="Consented to share quote">Share</span>
                         )}
                         {lead.consent_store_chatlog && (
-                          <span className="text-blue-400" title="Consented to store chatlog">Store</span>
+                          <span className="text-amber-400" title="Consented to store chatlog">Store</span>
                         )}
                         {!lead.consent_share_quote && !lead.consent_store_chatlog && (
                           <span className="text-gray-500">-</span>
@@ -698,7 +737,7 @@ export default function AdminDashboard() {
                 setConfirmAction({ type: "bulk-feature", count: selectedNotFeaturedCount })
               }
               disabled={bulkProcessing}
-              className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-500 text-white rounded transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded transition-colors disabled:opacity-50"
             >
               Feature {selectedNotFeaturedCount}
             </button>
@@ -734,7 +773,7 @@ export default function AdminDashboard() {
                     type="checkbox"
                     checked={selectedQuoteIds.size === filteredQuoteCalls.length && filteredQuoteCalls.length > 0}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-green-500 focus:ring-green-500 focus:ring-offset-gray-900"
+                    className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary focus:ring-offset-gray-900"
                   />
                 </th>
                 <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
@@ -763,15 +802,15 @@ export default function AdminDashboard() {
                     <tr
                       key={call.id}
                       className={`border-b border-gray-800 hover:bg-gray-800/50 ${
-                        isFeatured ? "bg-green-900/10" : ""
-                      } ${isSelected ? "bg-blue-900/20" : ""}`}
+                        isFeatured ? "bg-amber-900/10" : ""
+                      } ${isSelected ? "bg-meroka-primary/10" : ""}`}
                     >
                       <td className="px-4 py-3">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleQuoteSelection(call.id)}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-green-500 focus:ring-green-500 focus:ring-offset-gray-900"
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary focus:ring-offset-gray-900"
                         />
                       </td>
                       <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
@@ -798,7 +837,7 @@ export default function AdminDashboard() {
                                 ? "bg-red-500/20 text-red-400"
                                 : call.frustration_score >= 4
                                 ? "bg-yellow-500/20 text-yellow-400"
-                                : "bg-green-500/20 text-green-400"
+                                : "bg-gray-500/20 text-gray-400"
                             }`}
                           >
                             {call.frustration_score}/10
@@ -809,7 +848,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {isFeatured ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path
                                 fillRule="evenodd"
@@ -882,33 +921,33 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Step 2: Healthcare */}
-                <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
-                  <p className="text-blue-400 text-xs uppercase tracking-wide mb-2">Step 2: Qualification</p>
+                <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
+                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Step 2: Qualification</p>
                   <p className="text-white text-sm font-medium">Do you work in American healthcare?</p>
 
                   <div className="flex gap-8 mt-4">
                     {/* Yes branch */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-green-400 text-sm">Yes</span>
+                        <div className="w-3 h-3 bg-meroka-primary rounded-full"></div>
+                        <span className="text-meroka-primary text-sm">Yes</span>
                       </div>
 
                       {/* Workplace type */}
                       <div className="bg-gray-800/50 rounded p-3 mb-2">
                         <p className="text-gray-300 text-sm">Which describes your workplace?</p>
                         <div className="flex gap-2 mt-2">
-                          <span className="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded">Independent</span>
-                          <span className="bg-purple-500/20 text-purple-400 text-xs px-2 py-1 rounded">Hospital</span>
+                          <span className="bg-meroka-primary/20 text-meroka-primary text-xs px-2 py-1 rounded">Independent</span>
+                          <span className="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded">Hospital</span>
                         </div>
                       </div>
 
                       {/* Role type (if independent) */}
-                      <div className="bg-gray-800/50 rounded p-3 ml-4 border-l-2 border-blue-500/30">
+                      <div className="bg-gray-800/50 rounded p-3 ml-4 border-l-2 border-meroka-primary/30">
                         <p className="text-gray-400 text-xs mb-1">If Independent:</p>
                         <p className="text-gray-300 text-sm">Which describes your role?</p>
                         <div className="flex gap-2 mt-2">
-                          <span className="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">Owner</span>
+                          <span className="bg-amber-500/20 text-amber-400 text-xs px-2 py-1 rounded">Owner</span>
                           <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded">Provider</span>
                           <span className="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded">Front Office</span>
                         </div>
@@ -934,10 +973,10 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Step 3: Collective */}
-                <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4">
-                  <p className="text-green-400 text-xs uppercase tracking-wide mb-2">Step 3: Interest</p>
-                  <div className="bg-green-800/20 rounded p-3 mb-3 border border-green-700/30">
-                    <p className="text-green-400 text-xs font-medium">About Meroka context shown</p>
+                <div className="bg-meroka-primary/10 border border-meroka-primary/30 rounded-lg p-4">
+                  <p className="text-meroka-primary text-xs uppercase tracking-wide mb-2">Step 3: Interest</p>
+                  <div className="bg-meroka-primary/10 rounded p-3 mb-3 border border-meroka-primary/20">
+                    <p className="text-meroka-primary text-xs font-medium">About Meroka context shown</p>
                     <p className="text-gray-400 text-xs mt-1">Explains collective for negotiating with payers</p>
                   </div>
                   <p className="text-white text-sm font-medium">Interested in learning more?</p>
@@ -945,11 +984,11 @@ export default function AdminDashboard() {
                   <div className="flex gap-8 mt-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-green-400 text-sm">Yes</span>
+                        <div className="w-3 h-3 bg-meroka-primary rounded-full"></div>
+                        <span className="text-meroka-primary text-sm">Yes</span>
                       </div>
-                      <div className="bg-green-800/30 rounded p-3 text-center">
-                        <p className="text-green-400 text-sm">Contact Form</p>
+                      <div className="bg-meroka-primary/20 rounded p-3 text-center">
+                        <p className="text-meroka-primary text-sm">Contact Form</p>
                         <p className="text-gray-400 text-xs mt-1">Name & Email</p>
                       </div>
                     </div>
@@ -971,15 +1010,15 @@ export default function AdminDashboard() {
                 <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Lead Classification</p>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <div className="w-3 h-3 bg-meroka-primary rounded"></div>
                     <span className="text-gray-400">High Value: Independent Owner + Interested</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                    <div className="w-3 h-3 bg-amber-500 rounded"></div>
                     <span className="text-gray-400">Medium: Provider/Front Office + Interested</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
                     <span className="text-gray-400">Hospital: Hospital worker + Interested</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1010,13 +1049,13 @@ export default function AdminDashboard() {
             </div>
             <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
               <p className="text-gray-400 text-sm">Twitter Clicks</p>
-              <p className="text-2xl font-bold text-cyan-400">
+              <p className="text-2xl font-bold text-gray-300">
                 {linkClicks.filter((c) => c.link_type === "twitter").length}
               </p>
             </div>
             <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
               <p className="text-gray-400 text-sm">LinkedIn Clicks</p>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-gray-300">
                 {linkClicks.filter((c) => c.link_type === "linkedin").length}
               </p>
             </div>
@@ -1053,9 +1092,9 @@ export default function AdminDashboard() {
                             click.link_type === "website"
                               ? "bg-meroka-primary/20 text-meroka-primary"
                               : click.link_type === "twitter"
-                              ? "bg-cyan-500/20 text-cyan-400"
+                              ? "bg-gray-600/30 text-gray-300"
                               : click.link_type === "linkedin"
-                              ? "bg-blue-500/20 text-blue-400"
+                              ? "bg-gray-500/30 text-gray-400"
                               : "bg-gray-500/20 text-gray-400"
                           }`}
                         >
@@ -1091,6 +1130,97 @@ export default function AdminDashboard() {
       {/* Page Visits Tab */}
       {activeTab === "visits" && (
         <div className="space-y-6 relative z-10">
+          {/* Refresh Controls */}
+          <div className="flex flex-wrap items-center gap-4 bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+            <button
+              onClick={() => fetchData()}
+              className="px-4 py-2 bg-meroka-primary hover:bg-meroka-primary-hover text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh Now
+            </button>
+
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoRefresh}
+                  onChange={(e) => setAutoRefresh(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary"
+                />
+                <span className="text-gray-300 text-sm">Auto-refresh</span>
+              </label>
+              {autoRefresh && (
+                <select
+                  value={refreshInterval}
+                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-gray-300 text-sm"
+                >
+                  <option value={10}>10s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>1m</option>
+                  <option value={300}>5m</option>
+                </select>
+              )}
+            </div>
+
+            <span className="text-gray-500 text-xs ml-auto">
+              Last updated: {lastRefresh.toLocaleTimeString()}
+              {autoRefresh && (
+                <span className="ml-2 inline-flex items-center gap-1">
+                  <span className="w-2 h-2 bg-meroka-primary rounded-full animate-pulse"></span>
+                  Live
+                </span>
+              )}
+            </span>
+          </div>
+
+          {/* Traffic Chart */}
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-gray-400 text-sm">Visits (Last 24 Hours)</p>
+              <p className="text-meroka-primary font-bold">
+                {getHourlyTrafficData().reduce((sum, h) => sum + h.count, 0)} total
+              </p>
+            </div>
+            <div className="h-40 flex items-end gap-1">
+              {(() => {
+                const data = getHourlyTrafficData();
+                const maxCount = Math.max(...data.map((d) => d.count), 1);
+                return data.map((hour, i) => (
+                  <div
+                    key={hour.hour}
+                    className="flex-1 flex flex-col items-center gap-1 group"
+                  >
+                    <div className="relative w-full flex flex-col items-center">
+                      <div
+                        className={`w-full rounded-t transition-all ${
+                          hour.count > 0
+                            ? "bg-meroka-primary hover:bg-meroka-primary-hover"
+                            : "bg-gray-700"
+                        }`}
+                        style={{
+                          height: `${Math.max((hour.count / maxCount) * 120, 4)}px`,
+                        }}
+                        title={`${hour.label}: ${hour.count} visits`}
+                      />
+                      {/* Tooltip on hover */}
+                      <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                        {hour.count} visits
+                      </div>
+                    </div>
+                    {/* Show label every 4 hours */}
+                    {i % 4 === 0 && (
+                      <span className="text-gray-500 text-xs mt-1">{hour.label}</span>
+                    )}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+
           {/* Visit Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
@@ -1105,13 +1235,13 @@ export default function AdminDashboard() {
             </div>
             <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
               <p className="text-gray-400 text-sm">From Referrers</p>
-              <p className="text-2xl font-bold text-cyan-400">
+              <p className="text-2xl font-bold text-amber-400">
                 {pageVisits.filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost")).length}
               </p>
             </div>
             <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
               <p className="text-gray-400 text-sm">With UTM</p>
-              <p className="text-2xl font-bold text-blue-400">
+              <p className="text-2xl font-bold text-yellow-400">
                 {pageVisits.filter((v) => v.utm_source).length}
               </p>
             </div>
@@ -1183,7 +1313,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-sm max-w-xs truncate" title={visit.referrer || ""}>
                         {visit.referrer ? (
-                          <span className="text-cyan-400">
+                          <span className="text-amber-400">
                             {(() => {
                               try {
                                 return new URL(visit.referrer).hostname;
@@ -1198,7 +1328,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {visit.utm_source ? (
-                          <span className="text-blue-400">
+                          <span className="text-yellow-400">
                             {visit.utm_source}
                             {visit.utm_medium && ` / ${visit.utm_medium}`}
                           </span>
