@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Main mountain peak -->
+  <path
+    d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z"
+    fill="currentColor"
+  />
+  <!-- Right secondary peak -->
+  <path
+    d="M65 28 L82 70 L68 70 Z"
+    fill="currentColor"
+  />
+  <!-- ECG line cutting through -->
+  <path
+    d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64"
+    stroke="currentColor"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>

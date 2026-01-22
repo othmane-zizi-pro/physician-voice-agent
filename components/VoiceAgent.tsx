@@ -439,7 +439,11 @@ export default function VoiceAgent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <img src="/apple-touch-icon.png" alt="Meroka" className="w-10 h-10 rounded-lg shadow-lg" />
+            <svg className="w-10 h-10 text-white" viewBox="0 0 100 100" fill="none">
+              <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
+              <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
+              <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
             <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
           </div>
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
@@ -753,7 +757,11 @@ export default function VoiceAgent() {
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 hover:text-gray-400 transition-colors"
           >
-            <img src="/apple-touch-icon.png" alt="Meroka" className="w-4 h-4 rounded" />
+            <svg className="w-4 h-4" viewBox="0 0 100 100" fill="none">
+              <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
+              <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
+              <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
             by Meroka
           </a>
         </div>
