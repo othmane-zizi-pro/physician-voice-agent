@@ -535,7 +535,11 @@ export default function VoiceAgent() {
 
         {/* Today's venting counter */}
         {todayCount !== null && callStatus === "idle" && (
-          <div className="mb-6 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full">
+          <div className="mb-6 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
             <p className="text-meroka-cream text-sm">
               <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
             </p>
