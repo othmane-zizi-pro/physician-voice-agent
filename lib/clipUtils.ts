@@ -17,6 +17,14 @@ export interface Exchange {
   docText: string;
 }
 
+export interface TimedExchange {
+  index: number;
+  physicianText: string;
+  docText: string;
+  startSeconds: number;  // When physician started speaking
+  endSeconds: number;    // When Doc finished responding
+}
+
 // VAPI API types for fetching call details with timestamped transcripts
 export interface VapiMessage {
   role: 'user' | 'bot' | 'assistant' | 'system';
@@ -101,6 +109,77 @@ export function parseTranscriptIntoExchanges(transcript: string): Exchange[] {
       index: exchangeIndex,
       physicianText: currentExchange.physicianLines.join(' '),
       docText: currentExchange.docLines.join(' '),
+    });
+  }
+
+  return exchanges;
+}
+
+/**
+ * Parse VAPI timestamped messages into exchanges with timing info.
+ * Each exchange is a user message followed by a bot response.
+ */
+export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedExchange[] {
+  const exchanges: TimedExchange[] = [];
+
+  // Filter to only user and bot messages (skip system messages)
+  const conversationMessages = messages.filter(
+    m => m.role === 'user' || m.role === 'bot' || m.role === 'assistant'
+  );
+
+  let currentExchange: {
+    physicianLines: string[];
+    docLines: string[];
+    startSeconds: number | null;
+    endSeconds: number | null;
+  } | null = null;
+
+  let exchangeIndex = 0;
+
+  for (const msg of conversationMessages) {
+    const isUser = msg.role === 'user';
+    const isBot = msg.role === 'bot' || msg.role === 'assistant';
+
+    if (isUser) {
+      // If we have a complete exchange (has doc response), save it
+      if (currentExchange && currentExchange.docLines.length > 0 && currentExchange.endSeconds !== null) {
+        exchanges.push({
+          index: exchangeIndex,
+          physicianText: currentExchange.physicianLines.join(' '),
+          docText: currentExchange.docLines.join(' '),
+          startSeconds: currentExchange.startSeconds!,
+          endSeconds: currentExchange.endSeconds,
+        });
+        exchangeIndex++;
+      }
+
+      // Start new exchange or add to existing user turn
+      if (!currentExchange || currentExchange.docLines.length > 0) {
+        currentExchange = {
+          physicianLines: [msg.message],
+          docLines: [],
+          startSeconds: msg.secondsFromStart,
+          endSeconds: null,
+        };
+      } else {
+        currentExchange.physicianLines.push(msg.message);
+      }
+    } else if (isBot && currentExchange) {
+      currentExchange.docLines.push(msg.message);
+      // Update end time to when this bot message ends
+      const msgEndSeconds = msg.secondsFromStart + (msg.duration || 0);
+      currentExchange.endSeconds = msgEndSeconds;
+    }
+  }
+
+  // Don't forget the last exchange
+  if (currentExchange && currentExchange.docLines.length > 0 && currentExchange.endSeconds !== null) {
+    exchanges.push({
+      index: exchangeIndex,
+      physicianText: currentExchange.physicianLines.join(' '),
+      docText: currentExchange.docLines.join(' '),
+      startSeconds: currentExchange.startSeconds!,
+      endSeconds: currentExchange.endSeconds,
     });
   }
 
