@@ -436,7 +436,7 @@ export default function VoiceAgent() {
 
       {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
       {callStatus === "idle" && featuredQuotes.length > 0 && (
-        <div className="hidden lg:block fixed left-6 top-1/2 -translate-y-1/2 w-72 z-20">
+        <div className="hidden lg:block fixed right-6 top-1/2 -translate-y-1/2 w-72 z-20">
           <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide">
             What others are saying
           </p>
@@ -465,7 +465,7 @@ export default function VoiceAgent() {
 
                   {/* Share menu dropdown */}
                   {shareMenuOpen === featuredQuotes[currentQuoteIndex]?.id && (
-                    <div className="absolute left-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
+                    <div className="absolute right-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
                       <button
                         onClick={() => shareToTwitter(featuredQuotes[currentQuoteIndex])}
                         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
