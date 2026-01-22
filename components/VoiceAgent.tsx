@@ -463,7 +463,10 @@ export default function VoiceAgent() {
       <div className="relative z-10 flex flex-col items-center">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-5xl font-bold mb-3 text-white tracking-tight">Doc</h1>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img src="/apple-touch-icon.png" alt="Meroka" className="w-10 h-10 rounded-lg shadow-lg" />
+            <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
+          </div>
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
             A sardonic AI companion for burnt-out healthcare workers.
             <br />
@@ -787,9 +790,21 @@ export default function VoiceAgent() {
       {/* Footer disclaimer */}
       <div className="fixed bottom-4 text-center text-gray-600 text-xs">
         <p>Not a real therapist. For entertainment and venting purposes only.</p>
-        <a href="/privacy" className="hover:text-gray-400 transition-colors underline mt-1 inline-block">
-          Privacy Policy
-        </a>
+        <div className="flex items-center justify-center gap-3 mt-2">
+          <a href="/privacy" className="hover:text-gray-400 transition-colors underline">
+            Privacy Policy
+          </a>
+          <span className="text-gray-700">|</span>
+          <a
+            href="https://www.meroka.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:text-gray-400 transition-colors"
+          >
+            <img src="/apple-touch-icon.png" alt="Meroka" className="w-4 h-4 rounded" />
+            by Meroka
+          </a>
+        </div>
       </div>
 
       {/* Post-call form */}

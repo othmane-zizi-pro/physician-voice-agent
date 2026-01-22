@@ -20,8 +20,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        geist: ["Geist", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "system-ui", "sans-serif"],
-        "geist-mono": ["Geist Mono", "monospace"],
+        sans: ["var(--font-geist-sans)", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
       },
     },
   },
