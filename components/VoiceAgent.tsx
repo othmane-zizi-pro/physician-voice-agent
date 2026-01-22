@@ -98,6 +98,9 @@ export default function VoiceAgent() {
   const [isSubmittingConfession, setIsSubmittingConfession] = useState(false);
   const [confessionError, setConfessionError] = useState<string | null>(null);
 
+  // Track if user already completed form this session (to avoid asking twice)
+  const hasCompletedFormRef = useRef(false);
+
 
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -287,8 +290,10 @@ export default function VoiceAgent() {
       const transcriptText = fullTranscriptRef.current.join("\n");
       setLastTranscript(transcriptText);
 
-      // Always show the form after a call ends
-      setShowPostCallForm(true);
+      // Show the form after a call ends (only if not already completed this session)
+      if (!hasCompletedFormRef.current) {
+        setShowPostCallForm(true);
+      }
 
       // Save call to database
       const callId = await saveCallToDatabase();
@@ -460,10 +465,12 @@ export default function VoiceAgent() {
         return;
       }
 
-      // Success - show post-call form
+      // Success - show post-call form (only if not already completed this session)
       setLastCallId(data.callId);
       setLastTranscript(confessionText.trim());
-      setShowPostCallForm(true);
+      if (!hasCompletedFormRef.current) {
+        setShowPostCallForm(true);
+      }
       setConfessionText("");
     } catch (error) {
       console.error("Failed to submit confession:", error);
@@ -914,6 +921,7 @@ export default function VoiceAgent() {
             setLastCallId(null);
             setTranscript([]);
             setLastTranscript("");
+            hasCompletedFormRef.current = true;
           }}
         />
       )}
