@@ -362,10 +362,12 @@ export default function VoiceAgent() {
             provider: "openai",
             model: "gpt-4o",
             temperature: 0.9,
-            systemPrompt: PHYSICIAN_THERAPIST_PERSONA,
+            messages: [
+              { role: "system", content: PHYSICIAN_THERAPIST_PERSONA }
+            ],
           },
           firstMessage: "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.",
-        });
+        } as any);
       } else {
         call = await vapiRef.current.start(VAPI_ASSISTANT_CONFIG as any);
       }
