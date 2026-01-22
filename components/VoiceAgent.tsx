@@ -580,7 +580,13 @@ export default function VoiceAgent() {
               <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
             <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
-            <p className="text-gray-500 text-sm">by <span className="font-medium tracking-tight">Meroka</span></p>
+            <p className="text-gray-500 text-sm">by <a
+              href="https://www.meroka.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
+              className="font-medium tracking-tight hover:text-gray-400 transition-colors"
+            >Meroka</a></p>
           </div>
 
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
