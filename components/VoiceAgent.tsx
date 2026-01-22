@@ -467,7 +467,7 @@ export default function VoiceAgent() {
 
                     {/* Share menu dropdown */}
                     {shareMenuOpen === quote.id && (
-                      <div className="absolute right-0 top-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-20 min-w-[140px]">
+                      <div className="absolute right-0 bottom-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px]">
                         <button
                           onClick={() => shareToTwitter(quote)}
                           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
