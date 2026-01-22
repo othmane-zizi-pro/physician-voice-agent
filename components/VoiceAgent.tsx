@@ -583,25 +583,25 @@ export default function VoiceAgent() {
             <p className="text-gray-500 text-sm">by <span className="font-medium tracking-tight">Meroka</span></p>
           </div>
 
-          {/* Today's venting counter - right below Doc */}
-          {todayCount !== null && callStatus === "idle" && (
-            <div className="mb-4 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center justify-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <p className="text-meroka-cream text-sm">
-                <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
-              </p>
-            </div>
-          )}
-
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
             A sardonic AI companion for burnt-out healthcare workers.
             <br />
             <span className="text-gray-500">Vent about the system with someone who gets it.</span>
           </p>
         </div>
+
+        {/* Today's venting counter - below tagline */}
+        {todayCount !== null && callStatus === "idle" && (
+          <div className="mb-4 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center justify-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <p className="text-meroka-cream text-sm">
+              <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
+            </p>
+          </div>
+        )}
 
 
       {/* Rate limit indicator */}
