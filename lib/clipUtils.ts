@@ -1,5 +1,10 @@
 // lib/clipUtils.ts
 
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
 export interface AudioSegment {
   speaker: 'physician' | 'doc';
   text: string;
@@ -101,4 +106,41 @@ export async function generateTTSAudio(
   const audioBuffer = await response.arrayBuffer();
   const fs = await import('fs/promises');
   await fs.writeFile(outputPath, Buffer.from(audioBuffer));
+}
+
+/**
+ * Combine a static image with audio segments into an MP4 video.
+ * Requires FFmpeg installed locally (brew install ffmpeg).
+ */
+export async function generateVideo(
+  imagePath: string,
+  audioSegments: string[],
+  outputPath: string
+): Promise<void> {
+  // Build FFmpeg input arguments for audio files
+  const audioInputs = audioSegments.map(seg => `-i "${seg}"`).join(' ');
+
+  // Build concat filter for N audio files
+  // [1:a] is first audio (index 0 is the image), [2:a] is second, etc.
+  const filterInputs = audioSegments.map((_, i) => `[${i + 1}:a]`).join('');
+  const concatFilter = `${filterInputs}concat=n=${audioSegments.length}:v=0:a=1[audio]`;
+
+  const command = [
+    'ffmpeg -y',
+    `-loop 1 -i "${imagePath}"`,
+    audioInputs,
+    `-filter_complex "${concatFilter}"`,
+    '-map 0:v -map "[audio]"',
+    '-c:v libx264 -tune stillimage -pix_fmt yuv420p',
+    '-c:a aac -b:a 192k',
+    '-shortest',
+    `"${outputPath}"`,
+  ].join(' ');
+
+  try {
+    await execAsync(command);
+  } catch (error) {
+    const err = error as { stderr?: string; message?: string };
+    throw new Error(`FFmpeg failed: ${err.stderr || err.message}`);
+  }
 }
