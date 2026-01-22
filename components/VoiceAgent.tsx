@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Vapi from "@vapi-ai/web";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, User, LogOut, History } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
+import { useAuth } from "./auth/AuthProvider";
+import AuthModal from "./auth/AuthModal";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
@@ -101,6 +103,11 @@ export default function VoiceAgent() {
   // Track if user already completed form this session (to avoid asking twice)
   const hasCompletedFormRef = useRef(false);
 
+  // Auth state
+  const { user, isLoading: isAuthLoading, logout } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const vapiRef = useRef<Vapi | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -486,6 +493,83 @@ export default function VoiceAgent() {
       <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+      </div>
+
+      {/* User menu - top right */}
+      <div className="fixed top-4 right-4 z-30">
+        {!isAuthLoading && (
+          user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-full hover:bg-gray-700/80 transition-colors"
+              >
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name || "User"}
+                    className="w-6 h-6 rounded-full"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-meroka-primary flex items-center justify-center">
+                    <User size={14} className="text-white" />
+                  </div>
+                )}
+                <span className="text-gray-300 text-sm hidden sm:inline">
+                  {user.name || user.email.split("@")[0]}
+                </span>
+              </button>
+
+              {/* Dropdown menu */}
+              {showUserMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
+                    <div className="px-3 py-2 border-b border-gray-700">
+                      <p className="text-sm text-white font-medium truncate">
+                        {user.name || "User"}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        // TODO: Navigate to history page (Phase 3)
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                    >
+                      <History size={16} />
+                      My conversations
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        logout();
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      Sign out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setAuthModalMode("login");
+                setShowAuthModal(true);
+              }}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Sign in
+            </button>
+          )
+        )}
       </div>
 
       {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
@@ -932,6 +1016,13 @@ export default function VoiceAgent() {
           }}
         />
       )}
+
+      {/* Auth modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authModalMode}
+      />
     </div>
   );
 }

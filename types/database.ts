@@ -12,6 +12,7 @@ export interface Database {
       calls: {
         Row: {
           id: string;
+          user_id: string | null;
           vapi_call_id: string | null;
           transcript: string | null;
           quotable_quote: string | null;
@@ -30,6 +31,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          user_id?: string | null;
           vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
@@ -48,6 +50,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          user_id?: string | null;
           vapi_call_id?: string | null;
           transcript?: string | null;
           quotable_quote?: string | null;
@@ -64,7 +67,14 @@ export interface Database {
           created_at?: string;
           session_type?: "voice" | "text";
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "calls_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       leads: {
         Row: {
@@ -256,6 +266,75 @@ export interface Database {
         };
         Relationships: [];
       };
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          avatar_url: string | null;
+          auth_provider: "google" | "email";
+          password_hash: string | null;
+          email_verified: boolean;
+          verification_token: string | null;
+          verification_token_expires: string | null;
+          reset_token: string | null;
+          reset_token_expires: string | null;
+          role_type: "physician" | "nurse" | "admin_staff" | "other" | null;
+          workplace_type: "independent" | "hospital" | "other" | null;
+          city: string | null;
+          region: string | null;
+          country: string | null;
+          ai_memory_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+          last_login_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          name?: string | null;
+          avatar_url?: string | null;
+          auth_provider: "google" | "email";
+          password_hash?: string | null;
+          email_verified?: boolean;
+          verification_token?: string | null;
+          verification_token_expires?: string | null;
+          reset_token?: string | null;
+          reset_token_expires?: string | null;
+          role_type?: "physician" | "nurse" | "admin_staff" | "other" | null;
+          workplace_type?: "independent" | "hospital" | "other" | null;
+          city?: string | null;
+          region?: string | null;
+          country?: string | null;
+          ai_memory_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          last_login_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string | null;
+          avatar_url?: string | null;
+          auth_provider?: "google" | "email";
+          password_hash?: string | null;
+          email_verified?: boolean;
+          verification_token?: string | null;
+          verification_token_expires?: string | null;
+          reset_token?: string | null;
+          reset_token_expires?: string | null;
+          role_type?: "physician" | "nurse" | "admin_staff" | "other" | null;
+          workplace_type?: "independent" | "hospital" | "other" | null;
+          city?: string | null;
+          region?: string | null;
+          country?: string | null;
+          ai_memory_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          last_login_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -283,3 +362,6 @@ export type LinkClick = Database["public"]["Tables"]["link_clicks"]["Row"];
 export type LinkClickInsert = Database["public"]["Tables"]["link_clicks"]["Insert"];
 export type PageVisit = Database["public"]["Tables"]["page_visits"]["Row"];
 export type PageVisitInsert = Database["public"]["Tables"]["page_visits"]["Insert"];
+export type User = Database["public"]["Tables"]["users"]["Row"];
+export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
+export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];

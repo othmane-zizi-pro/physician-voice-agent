@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import PageTracker from "@/components/PageTracker";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,10 +33,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="antialiased min-h-screen font-sans">
-        <Suspense fallback={null}>
-          <PageTracker />
-        </Suspense>
-        {children}
+        <AuthProvider>
+          <Suspense fallback={null}>
+            <PageTracker />
+          </Suspense>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
