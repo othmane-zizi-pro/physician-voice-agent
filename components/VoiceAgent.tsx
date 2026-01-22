@@ -523,7 +523,10 @@ export default function VoiceAgent() {
               <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
               <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
-            <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
+            <div>
+              <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
+              <p className="text-gray-500 text-sm">by Meroka</p>
+            </div>
           </div>
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
             A sardonic AI companion for burnt-out healthcare workers.
@@ -760,7 +763,7 @@ export default function VoiceAgent() {
               <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
               <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
-            by Meroka
+            Meroka
           </a>
         </div>
       </div>
