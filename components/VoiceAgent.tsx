@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Vapi from "@vapi-ai/web";
 import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
@@ -78,6 +79,7 @@ export default function VoiceAgent() {
 
   // Live feed state
   const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const [shareMenuPos, setShareMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Stats state
@@ -458,6 +460,8 @@ export default function VoiceAgent() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setShareMenuPos({ x: rect.left - 150, y: rect.top });
                       setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
                     }}
                     className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
@@ -472,10 +476,11 @@ export default function VoiceAgent() {
         </div>
       )}
 
-      {/* Share dropdown - rendered outside scroll container with fixed positioning */}
-      {shareMenuOpen && featuredQuotes.find(q => q.id === shareMenuOpen) && (
+      {/* Share dropdown - rendered via portal at body level */}
+      {shareMenuOpen && shareMenuPos && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed right-[320px] top-1/2 -translate-y-1/2 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-[100] min-w-[140px]"
+          className="fixed bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-[9999] min-w-[140px]"
+          style={{ left: shareMenuPos.x, top: shareMenuPos.y }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -508,7 +513,8 @@ export default function VoiceAgent() {
             <Link2 size={14} />
             {copiedId === shareMenuOpen ? "Copied!" : "Copy Link"}
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Content container */}
