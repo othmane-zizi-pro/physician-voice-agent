@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Twitter, Linkedin, Link2, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { trackClick } from "@/lib/trackClick";
 
 type FormStep =
   | "consent"
@@ -617,6 +618,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://www.meroka.com/"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackClick("website", "https://www.meroka.com/")}
                 className="text-gray-400 hover:text-white transition-colors"
                 title="Meroka Website"
               >
@@ -628,6 +630,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://x.com/MerokaInc"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackClick("twitter", "https://x.com/MerokaInc")}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -638,6 +641,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 href="https://www.linkedin.com/company/merokainc"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => trackClick("linkedin", "https://www.linkedin.com/company/merokainc")}
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

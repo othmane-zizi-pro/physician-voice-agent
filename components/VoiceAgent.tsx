@@ -5,6 +5,7 @@ import Vapi from "@vapi-ai/web";
 import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock } from "lucide-react";
 import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
+import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -744,6 +745,7 @@ export default function VoiceAgent() {
             href="https://www.meroka.com/"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackClick("website", "https://www.meroka.com/")}
             className="flex items-center gap-1.5 hover:text-gray-400 transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 100 100" fill="none">
