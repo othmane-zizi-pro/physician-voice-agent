@@ -442,7 +442,7 @@ export default function VoiceAgent() {
           </p>
 
           <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-            {featuredQuotes.map((quote) => (
+            {featuredQuotes.map((quote, index) => (
               <div
                 key={quote.id}
                 className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
@@ -465,9 +465,11 @@ export default function VoiceAgent() {
                       <Share2 size={14} />
                     </button>
 
-                    {/* Share menu dropdown */}
+                    {/* Share menu dropdown - show below for first quote, above for others */}
                     {shareMenuOpen === quote.id && (
-                      <div className="absolute right-0 bottom-8 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px]">
+                      <div className={`absolute right-0 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-50 min-w-[140px] ${
+                        index === 0 ? "top-8" : "bottom-8"
+                      }`}>
                         <button
                           onClick={() => shareToTwitter(quote)}
                           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
