@@ -928,7 +928,7 @@ export default function VoiceAgent() {
 
       {/* Text confession input bar */}
       {callStatus === "idle" && !isRateLimited && (
-        <div className="w-full max-w-lg mb-8">
+        <div className="w-full max-w-lg mb-8 relative z-10">
           <div className="relative flex items-center bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-full px-4 py-2 focus-within:border-gray-600 focus-within:bg-gray-800/80 transition-all">
             <input
               type="text"
@@ -947,7 +947,8 @@ export default function VoiceAgent() {
             />
 
             <button
-              onClick={submitConfession}
+              type="button"
+              onClick={() => submitConfession()}
               disabled={confessionText.trim().length < 10 || isSubmittingConfession}
               className={`ml-2 p-2 rounded-full transition-all ${
                 confessionText.trim().length >= 10 && !isSubmittingConfession
