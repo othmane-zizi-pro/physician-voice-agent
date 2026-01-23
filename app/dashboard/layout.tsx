@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { Home, MessageSquare, Settings, LogOut } from "lucide-react";
 
@@ -11,12 +11,14 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isLoading, logout } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const isLoading = status === "loading";
+  const user = session?.user;
 
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push("/?login=true");
+      router.push("/admin/login");
     }
   }, [user, isLoading, router]);
 
@@ -69,20 +71,17 @@ export default function DashboardLayout({
             {/* User menu */}
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="w-6 h-6 rounded-full" />
+                {user.image ? (
+                  <img src={user.image} alt="" className="w-6 h-6 rounded-full" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-meroka-primary flex items-center justify-center text-white text-xs font-medium">
-                    {(user.name || user.email)[0].toUpperCase()}
+                    {(user.name || user.email || "U")[0].toUpperCase()}
                   </div>
                 )}
-                <span className="text-sm text-gray-300">{user.name || user.email.split("@")[0]}</span>
+                <span className="text-sm text-gray-300">{user.name || user.email?.split("@")[0]}</span>
               </div>
               <button
-                onClick={() => {
-                  logout();
-                  router.push("/");
-                }}
+                onClick={() => signOut({ callbackUrl: "/" })}
                 className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
                 title="Sign out"
               >
