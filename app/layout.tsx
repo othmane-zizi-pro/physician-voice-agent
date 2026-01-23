@@ -8,20 +8,20 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Doc | Voice Therapy for Physicians",
-  description: "A sardonic AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
+  description: "An AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
   icons: {
     icon: "/favicon.png",
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
     title: "Doc | Voice Therapy for Physicians",
-    description: "A sardonic AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
+    description: "An AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Doc | Voice Therapy for Physicians",
-    description: "A sardonic AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
+    description: "An AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
   },
 };
 

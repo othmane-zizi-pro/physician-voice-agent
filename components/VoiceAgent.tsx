@@ -346,6 +346,18 @@ export default function VoiceAgent() {
     };
   }, []);
 
+  // Close share menu on scroll
+  useEffect(() => {
+    if (!shareMenuOpen) return;
+
+    const handleScroll = () => {
+      setShareMenuOpen(null);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [shareMenuOpen]);
+
   const startCall = useCallback(async () => {
     // Check rate limit before starting
     const usage = getUsageData();
@@ -745,7 +757,7 @@ export default function VoiceAgent() {
           </div>
 
           <p className="text-gray-400 text-lg max-w-md leading-relaxed">
-            A sardonic AI companion for burnt-out healthcare workers.
+            An AI companion for burnt-out healthcare workers.
             <br />
             <span className="text-gray-500">Vent about the system with someone who gets it.</span>
           </p>
@@ -940,7 +952,7 @@ export default function VoiceAgent() {
                   submitConfession();
                 }
               }}
-              placeholder="Or type what's frustrating you..."
+              placeholder="I haven't had a real lunch break in three years..."
               className="flex-1 bg-transparent text-gray-200 placeholder-gray-500 text-sm focus:outline-none"
               maxLength={2000}
               disabled={isSubmittingConfession}
