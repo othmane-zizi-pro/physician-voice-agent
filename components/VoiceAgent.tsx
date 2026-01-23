@@ -580,8 +580,7 @@ export default function VoiceAgent() {
 
       {/* User menu - top right */}
       <div className="fixed top-4 right-4 z-30">
-        {!isAuthLoading && (
-          user ? (
+        {!isAuthLoading && user && (
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -641,17 +640,6 @@ export default function VoiceAgent() {
                 </>
               )}
             </div>
-          ) : (
-            <button
-              onClick={() => {
-                setAuthModalMode("login");
-                setShowAuthModal(true);
-              }}
-              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
-            >
-              Sign in
-            </button>
-          )
         )}
       </div>
 
