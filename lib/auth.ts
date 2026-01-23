@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify, JWTPayload } from "jose";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
 import type { User } from "@/types/database";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -73,11 +74,33 @@ export async function clearSessionCookie(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
-// Get current session from cookie
+// Get current session from cookie (checks both custom auth and NextAuth)
 export async function getSession(): Promise<SessionPayload | null> {
+  // First check custom auth cookie
   const token = await getSessionCookie();
-  if (!token) return null;
-  return verifySessionToken(token);
+  if (token) {
+    const session = await verifySessionToken(token);
+    if (session) return session;
+  }
+
+  // Fall back to NextAuth session (for admin/dashboard users)
+  try {
+    const nextAuthSession = await getServerSession();
+    if (nextAuthSession?.user?.email) {
+      // Return a compatible session payload
+      // Note: userId will be the email for NextAuth users (admin/dashboard only)
+      return {
+        userId: nextAuthSession.user.email, // Use email as identifier
+        email: nextAuthSession.user.email,
+        name: nextAuthSession.user.name || null,
+        avatarUrl: nextAuthSession.user.image || null,
+      };
+    }
+  } catch {
+    // NextAuth not available or error - ignore
+  }
+
+  return null;
 }
 
 // Generate random token for email verification / password reset

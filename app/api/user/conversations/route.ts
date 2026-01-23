@@ -8,6 +8,11 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Check if userId looks like a UUID (custom auth) vs email (NextAuth admin)
+function isUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
@@ -25,13 +30,20 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build query
+    // Check if this is a NextAuth admin (email as userId) or regular user (UUID)
+    const isAdmin = !isUUID(session.userId);
+
+    // Build query - admins see all conversations, users see only their own
     let query = supabase
       .from("calls")
       .select("id, transcript, quotable_quote, frustration_score, recording_url, duration_seconds, session_type, created_at, city, region, country")
-      .eq("user_id", session.userId)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
+
+    // Only filter by user_id for non-admin users
+    if (!isAdmin) {
+      query = query.eq("user_id", session.userId);
+    }
 
     // Filter by session type if specified
     if (type === "voice" || type === "text") {
@@ -51,8 +63,12 @@ export async function GET(request: NextRequest) {
     // Get total count for pagination
     let countQuery = supabase
       .from("calls")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", session.userId);
+      .select("id", { count: "exact", head: true });
+
+    // Only filter by user_id for non-admin users
+    if (!isAdmin) {
+      countQuery = countQuery.eq("user_id", session.userId);
+    }
 
     if (type === "voice" || type === "text") {
       countQuery = countQuery.eq("session_type", type);
