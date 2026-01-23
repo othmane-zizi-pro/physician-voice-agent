@@ -191,18 +191,21 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
     if (physicianLines.length > 0 && docLines.length > 0 && startSeconds !== null) {
       let endSeconds: number;
 
-      if (maxBotEndSeconds !== null) {
-        // Use the maximum end time from all bot messages
-        endSeconds = maxBotEndSeconds;
-      } else if (exchangeIdx < exchangeBoundaries.length - 1) {
-        // Fallback: use next exchange's start time
+      // VAPI's duration field is inaccurate for bot messages (typically ~5s too short)
+      // because it reflects when text generation finished, not when TTS audio finished.
+      // So we prefer using the next message's start time as a more reliable end point.
+
+      if (exchangeIdx < exchangeBoundaries.length - 1) {
+        // Use next exchange's start time (most reliable)
         const nextExchangeStartIdx = exchangeBoundaries[exchangeIdx + 1].startIdx;
         endSeconds = conversationMessages[nextExchangeStartIdx].secondsFromStart;
+      } else if (maxBotEndSeconds !== null) {
+        // Last exchange: use duration as fallback, but add extra buffer for TTS lag
+        endSeconds = maxBotEndSeconds + 5; // Add 5s to account for TTS lag
       } else {
         // Last resort: estimate from text length
         const allDocText = docLines.join(' ');
         const estimatedDuration = Math.max(3, allDocText.length / 15);
-        // Find the last bot message's start time for the estimate
         let lastBotStart = 0;
         for (let i = endIdx; i >= startIdx; i--) {
           const msg = conversationMessages[i];
@@ -211,10 +214,10 @@ export function parseVapiMessagesIntoExchanges(messages: VapiMessage[]): TimedEx
             break;
           }
         }
-        endSeconds = lastBotStart + estimatedDuration;
+        endSeconds = lastBotStart + estimatedDuration + 5;
       }
 
-      // Add small buffer (0.5s) to avoid cutting off the end
+      // Small buffer to be safe
       endSeconds += 0.5;
 
       exchanges.push({
