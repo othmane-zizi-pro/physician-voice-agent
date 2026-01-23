@@ -336,3 +336,182 @@ export async function sliceRecording(
     throw new Error(`FFmpeg slice failed: ${err.stderr || err.message}`);
   }
 }
+
+// ============================================================================
+// LIVEKIT TRANSCRIPT FUNCTIONS
+// ============================================================================
+
+export interface LiveKitTranscriptEntry {
+  speaker: 'user' | 'agent';
+  text: string;
+  startSeconds: number;
+  endSeconds: number;
+}
+
+/**
+ * Parse LiveKit transcript entries (stored in transcript_object) into exchanges.
+ * Uses the timestamps captured by the agent during the call.
+ */
+export function parseLiveKitIntoExchanges(entries: LiveKitTranscriptEntry[]): TimedExchange[] {
+  const exchanges: TimedExchange[] = [];
+  let currentExchange: {
+    userTexts: string[];
+    agentTexts: string[];
+    startTime: number | null;
+    endTime: number | null;
+  } | null = null;
+  let exchangeIndex = 0;
+
+  for (const entry of entries) {
+    if (entry.speaker === 'user') {
+      // If we have a complete exchange (has agent response), save it
+      if (currentExchange && currentExchange.agentTexts.length > 0) {
+        exchanges.push({
+          index: exchangeIndex++,
+          physicianText: currentExchange.userTexts.join(' '),
+          docText: currentExchange.agentTexts.join(' '),
+          startSeconds: Math.max(0, (currentExchange.startTime ?? 0) - 0.3),
+          endSeconds: (currentExchange.endTime ?? 0) + 0.3,
+        });
+      }
+
+      // Start new exchange or add to existing user turn
+      if (!currentExchange || currentExchange.agentTexts.length > 0) {
+        currentExchange = {
+          userTexts: [entry.text],
+          agentTexts: [],
+          startTime: entry.startSeconds,
+          endTime: entry.endSeconds,
+        };
+      } else {
+        currentExchange.userTexts.push(entry.text);
+        currentExchange.endTime = entry.endSeconds;
+      }
+    } else if (entry.speaker === 'agent' && currentExchange) {
+      currentExchange.agentTexts.push(entry.text);
+      currentExchange.endTime = entry.endSeconds;
+    }
+  }
+
+  // Don't forget the last exchange
+  if (currentExchange && currentExchange.agentTexts.length > 0) {
+    exchanges.push({
+      index: exchangeIndex,
+      physicianText: currentExchange.userTexts.join(' '),
+      docText: currentExchange.agentTexts.join(' '),
+      startSeconds: Math.max(0, (currentExchange.startTime ?? 0) - 0.3),
+      endSeconds: (currentExchange.endTime ?? 0) + 0.3,
+    });
+  }
+
+  return exchanges;
+}
+
+// ============================================================================
+// RETELL API TYPES AND FUNCTIONS
+// ============================================================================
+
+export interface RetellWord {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface RetellUtterance {
+  role: 'agent' | 'user';
+  content: string;
+  words: RetellWord[];
+}
+
+export interface RetellCallDetails {
+  call_id: string;
+  call_status: string;
+  transcript: string;
+  transcript_object: RetellUtterance[];
+  recording_url: string;
+  recording_multi_channel_url?: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  duration_ms: number;
+}
+
+/**
+ * Fetch call details from Retell API including word-level timestamps.
+ */
+export async function fetchRetellCallDetails(callId: string): Promise<RetellCallDetails> {
+  const response = await fetch(`https://api.retellai.com/v2/get-call/${callId}`, {
+    headers: {
+      'Authorization': `Bearer ${process.env.RETELL_API_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Retell API failed: ${response.status} ${errorText}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Parse Retell transcript_object into exchanges with precise timestamps.
+ * Uses word-level timing for accurate clip boundaries.
+ */
+export function parseRetellIntoExchanges(utterances: RetellUtterance[]): TimedExchange[] {
+  const exchanges: TimedExchange[] = [];
+  let currentExchange: {
+    userTexts: string[];
+    agentTexts: string[];
+    startTime: number | null;
+    endTime: number | null;
+  } | null = null;
+  let exchangeIndex = 0;
+
+  for (const utterance of utterances) {
+    // Get precise timing from words array
+    const startTime = utterance.words?.[0]?.start ?? 0;
+    const endTime = utterance.words?.[utterance.words.length - 1]?.end ?? startTime;
+
+    if (utterance.role === 'user') {
+      // If we have a complete exchange (has agent response), save it
+      if (currentExchange && currentExchange.agentTexts.length > 0) {
+        exchanges.push({
+          index: exchangeIndex++,
+          physicianText: currentExchange.userTexts.join(' '),
+          docText: currentExchange.agentTexts.join(' '),
+          startSeconds: Math.max(0, (currentExchange.startTime ?? 0) - 0.3), // Small buffer
+          endSeconds: (currentExchange.endTime ?? 0) + 0.3,
+        });
+      }
+
+      // Start new exchange or add to existing user turn
+      if (!currentExchange || currentExchange.agentTexts.length > 0) {
+        currentExchange = {
+          userTexts: [utterance.content],
+          agentTexts: [],
+          startTime,
+          endTime,
+        };
+      } else {
+        currentExchange.userTexts.push(utterance.content);
+        currentExchange.endTime = endTime;
+      }
+    } else if (utterance.role === 'agent' && currentExchange) {
+      currentExchange.agentTexts.push(utterance.content);
+      currentExchange.endTime = endTime;
+    }
+  }
+
+  // Don't forget the last exchange
+  if (currentExchange && currentExchange.agentTexts.length > 0) {
+    exchanges.push({
+      index: exchangeIndex,
+      physicianText: currentExchange.userTexts.join(' '),
+      docText: currentExchange.agentTexts.join(' '),
+      startSeconds: Math.max(0, (currentExchange.startTime ?? 0) - 0.3),
+      endSeconds: (currentExchange.endTime ?? 0) + 0.3,
+    });
+  }
+
+  return exchanges;
+}

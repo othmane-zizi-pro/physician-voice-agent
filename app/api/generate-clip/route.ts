@@ -8,8 +8,7 @@ import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import type { Database } from '@/types/database';
 import { getSession } from '@/lib/auth';
 import {
-  fetchVapiCallDetails,
-  parseVapiMessagesIntoExchanges,
+  parseLiveKitIntoExchanges,
   sliceRecording,
   generateVideo,
 } from '@/lib/clipUtils';
@@ -37,10 +36,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the call from our database to get vapi_call_id and verify ownership
+    // Fetch the call from our database
     const { data: call, error: callError } = await supabase
       .from('calls')
-      .select('vapi_call_id, user_id, recording_url')
+      .select('user_id, recording_url, transcript_object, livekit_room_name')
       .eq('id', callId)
       .single();
 
@@ -52,45 +51,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (!call.vapi_call_id) {
+    // Check for timestamped transcript
+    if (!call.transcript_object || !Array.isArray(call.transcript_object) || call.transcript_object.length === 0) {
       return NextResponse.json(
-        { error: 'Call has no VAPI ID (text-only session?)' },
+        { error: 'No timestamped transcript available for this call' },
         { status: 400 }
       );
     }
 
-    // Fetch timestamped transcript from VAPI
-    const vapiDetails = await fetchVapiCallDetails(call.vapi_call_id);
-
-    if (
-      !vapiDetails.artifact?.messages ||
-      vapiDetails.artifact.messages.length === 0
-    ) {
+    // Check for recording
+    if (!call.recording_url) {
       return NextResponse.json(
-        { error: 'No transcript available from VAPI' },
+        { error: 'No recording available for this call. LiveKit Cloud recording may need to be enabled.' },
         { status: 400 }
       );
     }
 
-    // Get recording URL - prefer from VAPI response, fallback to our stored URL
-    const recordingUrl =
-      vapiDetails.artifact?.recordingUrl || call.recording_url;
-    if (!recordingUrl) {
-      return NextResponse.json(
-        { error: 'No recording available for this call' },
-        { status: 400 }
-      );
-    }
-
-    // Parse into timed exchanges
-    const exchanges = parseVapiMessagesIntoExchanges(
-      vapiDetails.artifact.messages
-    );
+    // Parse transcript into timed exchanges
+    const exchanges = parseLiveKitIntoExchanges(call.transcript_object);
     const exchange = exchanges[exchangeIndex];
 
     if (!exchange) {
       return NextResponse.json(
-        { error: `Exchange ${exchangeIndex} not found` },
+        { error: `Exchange ${exchangeIndex} not found. Available: 0-${exchanges.length - 1}` },
         { status: 400 }
       );
     }
@@ -107,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Slice the recording to get just this exchange
     await sliceRecording(
-      recordingUrl,
+      call.recording_url,
       exchange.startSeconds,
       exchange.endSeconds,
       paths.slicedAudio
@@ -128,7 +111,7 @@ export async function POST(request: NextRequest) {
     // Generate video with single audio track
     await generateVideo(
       paths.chatImage,
-      [paths.slicedAudio], // Now just one audio file
+      [paths.slicedAudio],
       paths.outputVideo
     );
 

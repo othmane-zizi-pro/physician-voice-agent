@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import Vapi from "@vapi-ai/web";
+import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrack, RemoteTrackPublication } from "livekit-client";
 import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, User, LogOut, History } from "lucide-react";
-import { VAPI_ASSISTANT_CONFIG, PHYSICIAN_THERAPIST_PERSONA } from "@/lib/persona";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
 import { useAuth } from "./auth/AuthProvider";
 import AuthModal from "./auth/AuthModal";
+import type { TranscriptEntry } from "@/types/database";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
@@ -111,12 +111,15 @@ export default function VoiceAgent() {
   const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const vapiRef = useRef<Vapi | null>(null);
+  const roomRef = useRef<Room | null>(null);
   const ipAddressRef = useRef<string | null>(null);
   const callStartTimeRef = useRef<number | null>(null);
   const fullTranscriptRef = useRef<string[]>([]);
-  const vapiCallIdRef = useRef<string | null>(null);
+  const livekitRoomNameRef = useRef<string | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timestamped transcript entries for video clip feature
+  const timestampedTranscriptRef = useRef<TranscriptEntry[]>([]);
 
   // Fetch IP address, featured quotes, and check rate limit on mount
   useEffect(() => {
@@ -186,8 +189,8 @@ export default function VoiceAgent() {
           if (totalUsed >= RATE_LIMIT_SECONDS) {
             // Show time limit message and auto-end call
             setShowTimeLimitMessage(true);
-            if (vapiRef.current) {
-              vapiRef.current.stop();
+            if (roomRef.current) {
+              roomRef.current.disconnect();
             }
           }
 
@@ -220,13 +223,19 @@ export default function VoiceAgent() {
 
     if (!transcriptText) return null;
 
+    // Get timestamped transcript for video clip feature
+    const transcriptObject = timestampedTranscriptRef.current.length > 0
+      ? timestampedTranscriptRef.current
+      : null;
+
     const { data, error } = await supabase
       .from("calls")
       .insert({
         transcript: transcriptText,
+        transcript_object: transcriptObject,
         duration_seconds: durationSeconds,
         ip_address: ipAddressRef.current,
-        vapi_call_id: vapiCallIdRef.current,
+        livekit_room_name: livekitRoomNameRef.current,
         user_id: user?.id || null, // Link to user if logged in
       })
       .select("id")
@@ -240,129 +249,104 @@ export default function VoiceAgent() {
     return data.id;
   }, [user]);
 
-  useEffect(() => {
-    const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
-    if (!publicKey) {
-      console.error("Missing NEXT_PUBLIC_VAPI_PUBLIC_KEY");
-      return;
+  // Handle call end logic
+  const handleCallEnd = useCallback(async () => {
+    setCallStatus("idle");
+    setCurrentSpeaker(null);
+
+    // Finalize rate limit tracking
+    const callDuration = callStartTimeRef.current
+      ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
+      : 0;
+
+    // Sync to backend
+    if (callDuration > 0) {
+      fetch("/api/rate-limit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds: callDuration }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setUsageData((prev) => ({
+            usedSeconds: data.usedSeconds || prev.usedSeconds + callDuration,
+            windowStart: prev.windowStart,
+          }));
+          setIsRateLimited(data.isLimited || false);
+        })
+        .catch(console.error);
     }
 
-    const vapi = new Vapi(publicKey);
-    vapiRef.current = vapi;
-
-    vapi.on("call-start", () => {
-      setCallStatus("active");
-      setTranscript([]);
-      fullTranscriptRef.current = [];
-      callStartTimeRef.current = Date.now();
+    // Also update localStorage
+    setUsageData((prev) => {
+      const newData = {
+        usedSeconds: prev.usedSeconds + callDuration,
+        windowStart: prev.windowStart,
+      };
+      saveUsageData(newData);
+      setIsRateLimited(newData.usedSeconds >= RATE_LIMIT_SECONDS);
+      return newData;
     });
+    setCurrentCallSeconds(0);
 
-    vapi.on("call-end", async () => {
-      setCallStatus("idle");
-      setCurrentSpeaker(null);
+    // Save transcript for post-call form
+    const transcriptText = fullTranscriptRef.current.join("\n");
+    setLastTranscript(transcriptText);
 
-      // Finalize rate limit tracking
-      const callDuration = callStartTimeRef.current
-        ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
-        : 0;
+    // Show the form after a call ends (only if not already completed this session)
+    if (!hasCompletedFormRef.current) {
+      setShowPostCallForm(true);
+    }
 
-      // Sync to backend
-      if (callDuration > 0) {
-        fetch("/api/rate-limit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ seconds: callDuration }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            setUsageData((prev) => ({
-              usedSeconds: data.usedSeconds || prev.usedSeconds + callDuration,
-              windowStart: prev.windowStart,
-            }));
-            setIsRateLimited(data.isLimited || false);
-          })
-          .catch(console.error);
-      }
+    // Save call to database
+    const callId = await saveCallToDatabase();
+    if (callId) {
+      setLastCallId(callId);
 
-      // Also update localStorage
-      setUsageData((prev) => {
-        const newData = {
-          usedSeconds: prev.usedSeconds + callDuration,
-          windowStart: prev.windowStart,
-        };
-        saveUsageData(newData);
-        setIsRateLimited(newData.usedSeconds >= RATE_LIMIT_SECONDS);
-        return newData;
-      });
-      setCurrentCallSeconds(0);
-
-      // Save transcript for post-call form
+      // Extract quotable quote in background
       const transcriptText = fullTranscriptRef.current.join("\n");
-      setLastTranscript(transcriptText);
+      fetch("/api/extract-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId, transcript: transcriptText }),
+      }).catch(console.error);
 
-      // Show the form after a call ends (only if not already completed this session)
-      if (!hasCompletedFormRef.current) {
-        setShowPostCallForm(true);
-      }
-
-      // Save call to database
-      const callId = await saveCallToDatabase();
-      if (callId) {
-        setLastCallId(callId);
-
-        // Extract quotable quote in background
-        const transcriptText = fullTranscriptRef.current.join("\n");
-        fetch("/api/extract-quote", {
+      // Geolocate IP in background
+      if (ipAddressRef.current) {
+        fetch("/api/geolocate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ callId, transcript: transcriptText }),
+          body: JSON.stringify({ callId, ipAddress: ipAddressRef.current }),
         }).catch(console.error);
-
-        // Geolocate IP in background
-        if (ipAddressRef.current) {
-          fetch("/api/geolocate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ callId, ipAddress: ipAddressRef.current }),
-          }).catch(console.error);
-        }
-      } else {
-        console.warn("Call not saved to database - transcript may be empty or save failed");
       }
-    });
 
-    vapi.on("speech-start", () => {
-      setCurrentSpeaker("assistant");
-    });
-
-    vapi.on("speech-end", () => {
-      setCurrentSpeaker(null);
-    });
-
-    vapi.on("message", (message) => {
-      if (message.type === "transcript") {
-        if (message.transcriptType === "final") {
-          const speaker = message.role === "user" ? "You" : "Doc";
-          const line = `${speaker}: ${message.transcript}`;
-          fullTranscriptRef.current.push(line);
-          setTranscript((prev) => [...prev.slice(-6), line]);
-        }
+      // Generate AI summary for logged-in users (in background)
+      if (user?.id) {
+        fetch("/api/generate-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            callId,
+            userId: user.id,
+            transcript: transcriptText,
+          }),
+        }).catch(console.error);
       }
-    });
+    } else {
+      console.warn("Call not saved to database - transcript may be empty or save failed");
+    }
+  }, [saveCallToDatabase, user?.id]);
 
-    vapi.on("error", (error) => {
-      console.error("Vapi error:", error);
-      setCallStatus("idle");
-    });
-
+  // Cleanup room on unmount
+  useEffect(() => {
     return () => {
-      vapi.stop();
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+      }
     };
-  }, [saveCallToDatabase]);
+  }, []);
 
   const startCall = useCallback(async () => {
-    if (!vapiRef.current) return;
-
     // Check rate limit before starting
     const usage = getUsageData();
     if (usage.usedSeconds >= RATE_LIMIT_SECONDS) {
@@ -374,36 +358,120 @@ export default function VoiceAgent() {
     setCallStatus("connecting");
 
     try {
-      // Use assistant ID if configured, otherwise use inline config
-      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-      console.log("Starting call with assistant ID:", assistantId || "using inline config");
+      // Get LiveKit token from backend
+      const response = await fetch('/api/livekit/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: user?.id || `anon-${Date.now()}`,
+          userName: user?.name || 'User',
+        }),
+      });
 
-      let call;
-      if (assistantId) {
-        // Use assistant ID but override with our persona
-        call = await vapiRef.current.start(assistantId, {
-          model: {
-            provider: "openai",
-            model: "gpt-4o",
-            temperature: 0.9,
-            messages: [
-              { role: "system", content: PHYSICIAN_THERAPIST_PERSONA }
-            ],
-          },
-          firstMessage: "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.",
-        } as any);
-      } else {
-        call = await vapiRef.current.start(VAPI_ASSISTANT_CONFIG as any);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get token');
       }
-      // Capture call ID from start response
-      if (call?.id) {
-        vapiCallIdRef.current = call.id;
+
+      const { token, roomName, url } = await response.json();
+
+      if (!token || !url) {
+        throw new Error('No token or URL received');
       }
+
+      livekitRoomNameRef.current = roomName;
+
+      // Create and connect to LiveKit room
+      const room = new Room();
+      roomRef.current = room;
+
+      // Set up event listeners
+      room.on(RoomEvent.Connected, () => {
+        console.log("Connected to LiveKit room:", roomName);
+        setCallStatus("active");
+        setTranscript([]);
+        fullTranscriptRef.current = [];
+        timestampedTranscriptRef.current = []; // Reset timestamped transcript
+        callStartTimeRef.current = Date.now();
+      });
+
+      room.on(RoomEvent.Disconnected, () => {
+        console.log("Disconnected from LiveKit room");
+        handleCallEnd();
+      });
+
+      room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
+        if (track.kind === Track.Kind.Audio) {
+          // Attach audio track to play agent's voice
+          const audioElement = track.attach();
+          audioElement.id = 'agent-audio';
+          document.body.appendChild(audioElement);
+          setCurrentSpeaker("assistant");
+        }
+      });
+
+      room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+        if (track.kind === Track.Kind.Audio) {
+          track.detach().forEach((el) => el.remove());
+          setCurrentSpeaker(null);
+        }
+      });
+
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: RemoteParticipant) => {
+        // Handle transcript data from agent
+        try {
+          const data = JSON.parse(new TextDecoder().decode(payload));
+
+          if (data.type === 'transcript' && data.text) {
+            // Store timestamped entry for video clip feature
+            const entry: TranscriptEntry = {
+              speaker: data.speaker as 'user' | 'agent',
+              text: data.text,
+              startSeconds: data.startSeconds ?? 0,
+              endSeconds: data.endSeconds ?? 0,
+            };
+            timestampedTranscriptRef.current.push(entry);
+
+            // Update display transcript
+            const speaker = data.speaker === 'agent' ? 'Doc' : 'You';
+            const formattedLine = `${speaker}: ${data.text}`;
+            if (!fullTranscriptRef.current.includes(formattedLine)) {
+              fullTranscriptRef.current.push(formattedLine);
+              setTranscript((prev) => [...prev.slice(-6), formattedLine]);
+            }
+          } else if (data.type === 'transcript_complete' && data.entries) {
+            // Final transcript from agent on disconnect - use this if we missed any
+            console.log("Received complete transcript with", data.entries.length, "entries");
+            if (timestampedTranscriptRef.current.length < data.entries.length) {
+              timestampedTranscriptRef.current = data.entries;
+            }
+          }
+        } catch (e) {
+          // Ignore non-JSON data
+        }
+      });
+
+      room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+        console.log("Agent connected:", participant.identity);
+      });
+
+      // Connect to the room
+      await room.connect(url, token);
+
+      // Enable microphone
+      await room.localParticipant.setMicrophoneEnabled(true);
+
+      console.log("LiveKit call started:", roomName);
     } catch (error) {
       console.error("Failed to start call:", error);
       setCallStatus("idle");
+      if (roomRef.current) {
+        roomRef.current.disconnect();
+        roomRef.current = null;
+      }
     }
-  }, []);
+  }, [user, handleCallEnd]);
 
   // Share functions
   const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
@@ -436,15 +504,15 @@ export default function VoiceAgent() {
   }, []);
 
   const endCall = useCallback(() => {
-    if (!vapiRef.current) return;
+    if (!roomRef.current) return;
     setCallStatus("ending");
-    vapiRef.current.stop();
+    roomRef.current.disconnect();
   }, []);
 
-  const toggleMute = useCallback(() => {
-    if (!vapiRef.current) return;
+  const toggleMute = useCallback(async () => {
+    if (!roomRef.current) return;
     const newMuteState = !isMuted;
-    vapiRef.current.setMuted(newMuteState);
+    await roomRef.current.localParticipant.setMicrophoneEnabled(!newMuteState);
     setIsMuted(newMuteState);
   }, [isMuted]);
 

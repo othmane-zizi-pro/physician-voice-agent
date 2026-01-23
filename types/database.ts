@@ -6,6 +6,14 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+// Timestamped transcript entry for video clip feature
+export interface TranscriptEntry {
+  speaker: "user" | "agent";
+  text: string;
+  startSeconds: number;
+  endSeconds: number;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -14,7 +22,10 @@ export interface Database {
           id: string;
           user_id: string | null;
           vapi_call_id: string | null;
+          retell_call_id: string | null;
+          livekit_room_name: string | null;
           transcript: string | null;
+          transcript_object: TranscriptEntry[] | null;
           quotable_quote: string | null;
           frustration_score: number | null;
           recording_url: string | null;
@@ -33,7 +44,10 @@ export interface Database {
           id?: string;
           user_id?: string | null;
           vapi_call_id?: string | null;
+          retell_call_id?: string | null;
+          livekit_room_name?: string | null;
           transcript?: string | null;
+          transcript_object?: TranscriptEntry[] | null;
           quotable_quote?: string | null;
           frustration_score?: number | null;
           recording_url?: string | null;
@@ -52,7 +66,10 @@ export interface Database {
           id?: string;
           user_id?: string | null;
           vapi_call_id?: string | null;
+          retell_call_id?: string | null;
+          livekit_room_name?: string | null;
           transcript?: string | null;
+          transcript_object?: TranscriptEntry[] | null;
           quotable_quote?: string | null;
           frustration_score?: number | null;
           recording_url?: string | null;
@@ -335,6 +352,49 @@ export interface Database {
         };
         Relationships: [];
       };
+      conversation_summaries: {
+        Row: {
+          id: string;
+          user_id: string;
+          call_id: string;
+          summary: string;
+          key_topics: string[] | null;
+          emotional_state: "frustrated" | "venting" | "seeking_advice" | "reflective" | "hopeful" | "overwhelmed" | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          call_id: string;
+          summary: string;
+          key_topics?: string[] | null;
+          emotional_state?: "frustrated" | "venting" | "seeking_advice" | "reflective" | "hopeful" | "overwhelmed" | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          call_id?: string;
+          summary?: string;
+          key_topics?: string[] | null;
+          emotional_state?: "frustrated" | "venting" | "seeking_advice" | "reflective" | "hopeful" | "overwhelmed" | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "conversation_summaries_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "conversation_summaries_call_id_fkey";
+            columns: ["call_id"];
+            referencedRelation: "calls";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -365,3 +425,5 @@ export type PageVisitInsert = Database["public"]["Tables"]["page_visits"]["Inser
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
+export type ConversationSummary = Database["public"]["Tables"]["conversation_summaries"]["Row"];
+export type ConversationSummaryInsert = Database["public"]["Tables"]["conversation_summaries"]["Insert"];
