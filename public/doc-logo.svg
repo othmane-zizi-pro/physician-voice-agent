@@ -1,16 +1,21 @@
 <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Ear pieces (U shape top) -->
-    <path d="M150 100 V 150 C 150 220 350 220 350 150 V 100" stroke="#0E1219" stroke-width="30" stroke-linecap="round"/>
-    <circle cx="150" cy="90" r="20" fill="#0E1219"/>
-    <circle cx="350" cy="90" r="20" fill="#0E1219"/>
+    <!-- Main Shape: A smooth, continuous rounded square/circle hybrid (Superellipse) -->
+    <!-- Represents stability and softness -->
+    <rect x="50" y="50" width="400" height="400" rx="120" fill="#0E1219"/>
+    
+    <!-- Negative Space: The "Voice/Medical" Fusion -->
+    <!-- A medical cross that also looks like sound bars or a spark -->
+    
+    <!-- Vertical Bar -->
+    <rect x="215" y="125" width="70" height="250" rx="35" fill="white"/>
+    
+    <!-- Horizontal Bar -->
+    <rect x="125" y="215" width="250" height="70" rx="35" fill="white"/>
+    
+    <!-- Center Polish: A small circle in the middle to make it look like a "node" or "connection" point -->
+    <circle cx="250" cy="250" r="15" fill="#0E1219"/>
 
-    <!-- Tubing flowing down in a loop -->
-    <path d="M250 220 V 260 C 250 350 150 350 150 420 C 150 480 300 480 350 400" stroke="#0E1219" stroke-width="30" stroke-linecap="round" fill="none"/>
-
-    <!-- Bell at end -->
-    <g transform="translate(350, 400)">
-        <circle cx="0" cy="0" r="40" fill="#0E1219"/>
-        <circle cx="0" cy="0" r="25" fill="white"/>
-        <circle cx="0" cy="0" r="12" fill="#0E1219"/>
-    </g>
+    <!-- A subtle "Chat Tail" implication to link it to voice/communication, 
+         making the whole outer shape feel like a speech bubble -->
+    <path d="M 380 400 L 450 450 L 380 350" fill="#0E1219" stroke="#0E1219" stroke-width="20" stroke-linejoin="round"/>
 </svg>
