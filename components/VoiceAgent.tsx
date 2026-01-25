@@ -684,43 +684,45 @@ export default function VoiceAgent() {
             <svg
               className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900"
               style={{
-                animation: 'clippy 4s ease-in-out infinite',
+                animation: 'stethoscopeIntro 2s ease-out forwards',
                 transformOrigin: 'center bottom',
               }}
-              viewBox="0 0 24 24"
+              viewBox="0 0 64 64"
               fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
             >
               <style>{`
-                @keyframes clippy {
-                  0%, 100% { transform: translateY(-50%) rotate(0deg) scale(1); }
-                  10% { transform: translateY(-50%) rotate(-8deg) scale(1.02); }
-                  20% { transform: translateY(-50%) rotate(6deg) scale(0.98); }
-                  30% { transform: translateY(-50%) rotate(-4deg) scale(1.01); }
-                  40% { transform: translateY(-50%) rotate(2deg) scale(1); }
-                  50% { transform: translateY(-50%) rotate(0deg) scale(1.03); }
-                  55% { transform: translateY(-52%) rotate(0deg) scale(1.03); }
-                  60% { transform: translateY(-50%) rotate(0deg) scale(1); }
-                  70% { transform: translateY(-50%) rotate(5deg) scale(0.99); }
-                  80% { transform: translateY(-50%) rotate(-3deg) scale(1.01); }
-                  90% { transform: translateY(-50%) rotate(1deg) scale(1); }
+                @keyframes stethoscopeIntro {
+                  0% { transform: translateY(-50%) rotate(-12deg) scale(0.9); opacity: 0; }
+                  20% { transform: translateY(-50%) rotate(8deg) scale(1.05); opacity: 1; }
+                  40% { transform: translateY(-50%) rotate(-5deg) scale(0.98); }
+                  60% { transform: translateY(-52%) rotate(3deg) scale(1.02); }
+                  80% { transform: translateY(-50%) rotate(-1deg) scale(1); }
+                  100% { transform: translateY(-50%) rotate(0deg) scale(1); }
                 }
               `}</style>
-              {/* Earpieces */}
-              <path d="M4 4v4a4 4 0 0 0 4 4h0" />
-              <path d="M20 4v4a4 4 0 0 1-4 4h0" />
-              {/* Tubing coming together */}
-              <path d="M8 12v2a4 4 0 0 0 4 4h0a4 4 0 0 0 4-4v-2" />
-              {/* Chest piece tube */}
-              <path d="M12 18v3" />
-              {/* Chest piece (diaphragm) */}
-              <circle cx="12" cy="22" r="1.5" fill="currentColor" />
+              {/* Y-shaped tubing */}
+              <path
+                d="M20 8 Q20 20 28 28 Q32 32 32 40"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                fill="none"
+              />
+              <path
+                d="M44 8 Q44 20 36 28 Q32 32 32 40"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                fill="none"
+              />
               {/* Ear tips */}
-              <circle cx="4" cy="3" r="1" fill="currentColor" />
-              <circle cx="20" cy="3" r="1" fill="currentColor" />
+              <circle cx="20" cy="6" r="3" fill="currentColor" />
+              <circle cx="44" cy="6" r="3" fill="currentColor" />
+              {/* Chest piece */}
+              <circle cx="32" cy="52" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
+              <circle cx="32" cy="52" r="4" fill="currentColor" />
+              {/* Connection to chest piece */}
+              <line x1="32" y1="40" x2="32" y2="42" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
             <h1 className="text-5xl font-bold text-brand-navy-900 tracking-tight">Doc</h1>
             <p className="text-brand-navy-600 text-sm">by <a
