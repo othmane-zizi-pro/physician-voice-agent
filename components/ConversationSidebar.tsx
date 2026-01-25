@@ -409,17 +409,9 @@ ${conv.transcript}
         `}
       >
         {/* Header - pl-14 to make room for the toggle button */}
-        <div className="flex items-center justify-between pl-14 pr-4 h-14 border-b border-brand-neutral-100">
-          <div className="flex items-center gap-2">
-            <History size={18} className="text-brand-navy-600" />
-            <span className="font-medium text-brand-navy-900">History</span>
-          </div>
-          <button
-            onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-brand-neutral-100 transition-colors"
-          >
-            <X size={18} className="text-brand-navy-600" />
-          </button>
+        <div className="flex items-center pl-14 pr-4 h-14 border-b border-brand-neutral-100">
+          <History size={18} className="text-brand-navy-600" />
+          <span className="font-medium text-brand-navy-900 ml-2">History</span>
         </div>
 
         {/* Search bar */}
