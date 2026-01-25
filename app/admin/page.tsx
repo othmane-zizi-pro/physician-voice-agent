@@ -182,12 +182,6 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, session]);
 
-  // Fetch users when tab becomes active or filters change
-  useEffect(() => {
-    if (activeTab === "users" && session) {
-      fetchUsers();
-    }
-  }, [activeTab, userSearchQuery, userRoleFilter, userWorkplaceFilter, session]);
 
   const fetchData = async () => {
     setLoading(true);
