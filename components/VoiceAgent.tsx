@@ -713,12 +713,13 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-20 top-1/2 -translate-y-1/2 w-16 h-16 text-brand-navy-900"
-                            initial={{ scale: 0, rotate: -45 }}
+                            className="absolute -left-20 top-1/2 -translate-y-1/2 w-28 h-28"
+                            initial={{ scale: 0, rotate: -15, opacity: 0 }}
                             animate={{
                                 scale: 1,
                                 rotate: 0,
-                                y: ["-50%", "-65%", "-50%", "-55%", "-50%"]
+                                opacity: 1,
+                                y: ["-50%", "-60%", "-50%", "-55%", "-50%"]
                             }}
                             transition={{
                                 duration: 2,
@@ -726,50 +727,18 @@ export default function VoiceAgent() {
                                 ease: "easeOut"
                             }}
                         >
-                            <svg viewBox="0 0 64 64" fill="none" className="w-full h-full drop-shadow-md">
-                                {/* Character Stethoscope */}
-                                <motion.g
-                                    animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
-                                    transition={{ delay: 2, duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                                >
-                                    {/* Head/Ear pieces */}
-                                    <path
-                                        d="M20 12 Q20 2 32 2 Q44 2 44 12"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                        strokeLinecap="round"
-                                        fill="none"
-                                    />
-                                    <circle cx="20" cy="12" r="3" fill="currentColor" />
-                                    <circle cx="44" cy="12" r="3" fill="currentColor" />
-
-                                    {/* Body/Tubing */}
-                                    <path
-                                        d="M20 12 L20 24 Q20 36 32 36 Q44 36 44 24 L44 12" // U-shape
-                                        stroke="currentColor"
-                                        strokeWidth="0" // Hidden guide
-                                        fill="none"
-                                    />
-                                    <path
-                                        d="M20 12 V20 Q20 34 32 34 Q44 34 44 20 V12"
-                                        stroke="currentColor"
-                                        strokeWidth="3.5"
-                                        strokeLinecap="round"
-                                        fill="none"
-                                    />
-
-                                    {/* Stem */}
-                                    <line x1="32" y1="34" x2="32" y2="48" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
-
-                                    {/* Chest piece (The 'foot') */}
-                                    <circle cx="32" cy="54" r="9" stroke="currentColor" strokeWidth="3.5" fill="white" />
-                                    <circle cx="32" cy="54" r="4" fill="currentColor" />
-
-                                    {/* Eyes (to make it alive!) */}
-                                    <circle cx="27" cy="20" r="1.5" fill="brand-navy-900" />
-                                    <circle cx="37" cy="20" r="1.5" fill="brand-navy-900" />
-                                </motion.g>
-                            </svg>
+                            {/* Floating animation for the image */}
+                            <motion.div
+                                animate={{ y: [-5, 5, -5], rotate: [0, 2, -2, 0] }}
+                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                className="w-full h-full"
+                            >
+                                <img
+                                    src="/doc-avatar.png"
+                                    alt="Doc Avatar"
+                                    className="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-300"
+                                />
+                            </motion.div>
                         </motion.div>
                         <h1 className="text-6xl font-bold text-brand-navy-900 tracking-tighter drop-shadow-sm">Doc</h1>
                         <p className="text-brand-navy-500 text-sm font-medium tracking-wide">by <a

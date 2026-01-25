@@ -9,6 +9,13 @@ import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User } from "@/ty
 import FeaturedQuotesManager from "@/components/FeaturedQuotesManager";
 import QuotePreviewModal from "@/components/QuotePreviewModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { motion, AnimatePresence } from "framer-motion";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ssr: false,
@@ -47,6 +54,22 @@ interface UserDetail extends User {
   last_conversation_at: string | null;
 }
 
+const formatDuration = (seconds: number | null) => {
+  if (!seconds) return "-";
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+const formatDate = (date: string) => {
+  return new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -76,7 +99,7 @@ export default function AdminDashboard() {
   const [userWorkplaceFilter, setUserWorkplaceFilter] = useState<string>("all");
   const [userSearchQuery, setUserSearchQuery] = useState("");
 
-  // Phase 5: Bulk actions and modals
+  // Bulk actions and modals
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
@@ -209,27 +232,10 @@ export default function AdminDashboard() {
     return hours;
   };
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
-        </div>
-        <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return null;
-  }
-
   // Stats
   const totalCalls = calls.length;
   const voiceCalls = calls.filter((c) => c.session_type !== "text").length;
   const textConfessions = calls.filter((c) => c.session_type === "text").length;
-  const totalLeads = leads.length;
   const physicianOwners = leads.filter((l) => l.is_physician_owner).length;
   const interestedLeads = leads.filter((l) => l.interested_in_collective).length;
   const totalDuration = calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0);
@@ -275,6 +281,14 @@ export default function AdminDashboard() {
 
     return matchesSearch && matchesFilter;
   });
+
+  // Get counts for bulk actions
+  const selectedNotFeaturedCount = Array.from(selectedQuoteIds).filter(
+    (id) => !featuredCallIds.has(id)
+  ).length;
+  const selectedFeaturedCount = Array.from(selectedQuoteIds).filter((id) =>
+    featuredCallIds.has(id)
+  ).length;
 
   // Add quote to featured list
   const addToFeatured = async (call: Call) => {
@@ -426,159 +440,161 @@ export default function AdminDashboard() {
     setConfirmAction(null);
   };
 
-  // Get counts for bulk actions
-  const selectedNotFeaturedCount = Array.from(selectedQuoteIds).filter(
-    (id) => !featuredCallIds.has(id)
-  ).length;
-  const selectedFeaturedCount = Array.from(selectedQuoteIds).filter((id) =>
-    featuredCallIds.has(id)
-  ).length;
-
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return "-";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="min-h-screen p-8 relative overflow-hidden">
-      {/* Animated gradient background - Meroka dark slate */}
-      <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
-      </div>
+      {/* Background is handled by layout.tsx */}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-gray-400">Welcome, {session.user?.name}</p>
+          <h1 className="text-2xl font-bold text-brand-navy-900">Admin Dashboard</h1>
+          <p className="text-brand-navy-600">Welcome, {session?.user?.name}</p>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/admin/login" })}
-          className="px-4 py-2 bg-gray-800/80 backdrop-blur-sm hover:bg-gray-700 text-white rounded-lg transition-colors border border-gray-700"
+          className="px-4 py-2 bg-white/50 backdrop-blur-sm hover:bg-white text-brand-navy-700 rounded-lg transition-colors border border-brand-neutral-200 shadow-sm"
         >
           Sign Out
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 relative z-10">
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Total Sessions</p>
-          <p className="text-2xl font-bold text-white">{totalCalls}</p>
-          <p className="text-xs text-gray-500 mt-1">
-            {voiceCalls} voice · {textConfessions} text
-          </p>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 relative z-10">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
+          >
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Total Sessions</p>
+            <p className="text-3xl font-bold text-brand-navy-900 mt-1">{totalCalls}</p>
+            <div className="flex gap-2 mt-2">
+              <span className="text-[10px] bg-brand-ice px-2 py-0.5 rounded-full text-brand-navy-600 font-bold">{voiceCalls} Voice</span>
+              <span className="text-[10px] bg-amber-100 px-2 py-0.5 rounded-full text-amber-700 font-bold">{textConfessions} Text</span>
+            </div>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
+          >
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Avg Duration</p>
+            <p className="text-3xl font-bold text-brand-navy-900 mt-1">{formatDuration(avgDuration)}</p>
+            <p className="text-xs text-brand-navy-400 mt-1 font-medium">voice calls only</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
+          >
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Confessions</p>
+            <p className="text-3xl font-bold text-brand-brown mt-1">{textConfessions}</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
+          >
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Physicians</p>
+            <p className="text-3xl font-bold text-brand-navy-900 mt-1">{physicianOwners}</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
+          >
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Leads</p>
+            <p className="text-3xl font-bold text-emerald-600 mt-1">{interestedLeads}</p>
+          </motion.div>
         </div>
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Avg Duration</p>
-          <p className="text-2xl font-bold text-white">{formatDuration(avgDuration)}</p>
-          <p className="text-xs text-gray-500 mt-1">voice calls only</p>
-        </div>
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Text Confessions</p>
-          <p className="text-2xl font-bold text-amber-400">{textConfessions}</p>
-        </div>
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Physician Owners</p>
-          <p className="text-2xl font-bold text-white">{physicianOwners}</p>
-        </div>
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-          <p className="text-gray-400 text-sm">Interested in Collective</p>
-          <p className="text-2xl font-bold text-meroka-primary">{interestedLeads}</p>
-        </div>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap gap-2 mb-6 relative z-10">
+      <div className="flex flex-wrap gap-2 mb-6 relative z-10 p-1 bg-white/30 backdrop-blur-md rounded-xl border border-white/40 w-fit shadow-sm">
         <button
           onClick={() => setActiveTab("calls")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "calls"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Calls ({calls.length})
         </button>
         <button
           onClick={() => setActiveTab("leads")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "leads"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Leads ({leads.length})
         </button>
         <button
           onClick={() => setActiveTab("quotes")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "quotes"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Quotes ({calls.filter(c => c.quotable_quote).length})
         </button>
         <button
           onClick={() => setActiveTab("map")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "map"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Map
         </button>
         <button
           onClick={() => setActiveTab("form-flow")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "form-flow"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Form Flow
         </button>
         <button
           onClick={() => setActiveTab("clicks")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "clicks"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Clicks ({linkClicks.length})
         </button>
         <button
           onClick={() => setActiveTab("visits")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "visits"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Traffic ({pageVisits.length})
         </button>
         <button
           onClick={() => setActiveTab("users")}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
             activeTab === "users"
-              ? "bg-meroka-primary text-white"
-              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-          }`}
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
         >
           Users {userStats ? `(${userStats.totalUsers})` : ""}
         </button>
@@ -593,90 +609,47 @@ export default function AdminDashboard() {
               activeTab === "calls"
                 ? "Search transcripts, quotes, IPs..."
                 : activeTab === "quotes"
-                ? "Search quotes, locations..."
-                : "Search names, emails..."
+                  ? "Search quotes, locations..."
+                  : "Search names, emails..."
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full max-w-md px-4 py-2 bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
+            className="w-full max-w-md px-4 py-2.5 bg-white/50 backdrop-blur-sm border border-brand-neutral-200 rounded-xl text-brand-navy-900 placeholder-brand-navy-400 focus:outline-none focus:border-brand-brown focus:ring-2 focus:ring-brand-brown/20 shadow-sm transition-all"
           />
           {activeTab === "calls" && (
             <div className="flex gap-2">
               <button
                 onClick={() => setSessionTypeFilter("all")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border",
                   sessionTypeFilter === "all"
-                    ? "bg-meroka-primary text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
+                    ? "bg-brand-navy-900 text-white border-brand-navy-900 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
               >
                 All ({totalCalls})
               </button>
               <button
                 onClick={() => setSessionTypeFilter("voice")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border",
                   sessionTypeFilter === "voice"
-                    ? "bg-meroka-primary text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
+                    ? "bg-brand-navy-900 text-white border-brand-navy-900 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
               >
                 Voice ({voiceCalls})
               </button>
               <button
                 onClick={() => setSessionTypeFilter("text")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border",
                   sessionTypeFilter === "text"
-                    ? "bg-amber-600 text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
+                    ? "bg-amber-600 text-white border-amber-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
               >
                 Text ({textConfessions})
-              </button>
-            </div>
-          )}
-          {activeTab === "quotes" && (
-            <div className="flex flex-wrap gap-2 items-center">
-              <button
-                onClick={() => setQuotesFilter("all")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                  quotesFilter === "all"
-                    ? "bg-meroka-primary text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setQuotesFilter("featured")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                  quotesFilter === "featured"
-                    ? "bg-amber-600 text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
-              >
-                Featured ({featuredQuotes.length})
-              </button>
-              <button
-                onClick={() => setQuotesFilter("not-featured")}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                  quotesFilter === "not-featured"
-                    ? "bg-orange-600 text-white"
-                    : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
-                }`}
-              >
-                Not Featured
-              </button>
-
-              {/* Preview Button */}
-              <button
-                onClick={() => setShowPreview(true)}
-                className="px-3 py-2 text-sm rounded-lg bg-meroka-primary hover:bg-meroka-primary-hover text-white transition-colors flex items-center gap-1"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                Preview
               </button>
             </div>
           )}
@@ -685,100 +658,105 @@ export default function AdminDashboard() {
 
       {/* Calls Table */}
       {activeTab === "calls" && (
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl overflow-hidden relative z-10 shadow-glass border border-white/40"
+        >
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Type</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Duration</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Recording</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Content</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Quote</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
+              <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Type</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Duration</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Recording</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Content</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Quote</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">IP</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredCalls.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center text-gray-500 py-8">
-                    No sessions found
+                  <td colSpan={8} className="text-center text-brand-navy-400 py-12">
+                    <p className="font-medium">No sessions found</p>
                   </td>
                 </tr>
               ) : (
                 filteredCalls.map((call) => (
-                  <tr key={call.id} className={`border-b border-gray-800 hover:bg-gray-800/50 ${call.session_type === "text" ? "bg-amber-900/5" : ""}`}>
-                    <td className="px-4 py-3 text-gray-300 text-sm">
+                  <tr key={call.id} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm">
                       <div className="flex items-center gap-2">
                         {formatDate(call.created_at)}
                         {call.is_sample && (
-                          <span className="bg-orange-500/20 text-orange-400 text-xs px-1.5 py-0.5 rounded">
+                          <span className="bg-orange-100 text-orange-600 border border-orange-200 text-[10px] px-1.5 py-0.5 rounded font-medium">
                             Sample
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    <td className="px-6 py-4 text-sm">
+                      <span className={cn(
+                        "px-2.5 py-1 rounded-full text-xs font-bold shadow-sm",
                         call.session_type === "text"
-                          ? "bg-amber-500/20 text-amber-400"
-                          : "bg-gray-600/30 text-gray-400"
-                      }`}>
+                          ? "bg-amber-100 text-amber-700 border border-amber-200"
+                          : "bg-brand-ice text-brand-navy-600 border border-brand-navy-200"
+                      )}>
                         {call.session_type === "text" ? "Text" : "Voice"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-300 text-sm">
+                    <td className="px-6 py-4 text-brand-navy-700 text-sm font-medium">
                       {call.session_type === "text" ? (
-                        <span className="text-gray-500">-</span>
+                        <span className="text-brand-navy-300">-</span>
                       ) : (
                         formatDuration(call.duration_seconds)
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm">
+                    <td className="px-6 py-4 text-sm">
                       {call.session_type === "text" ? (
-                        <span className="text-gray-500 text-xs">N/A</span>
+                        <span className="text-brand-navy-300 text-xs">N/A</span>
                       ) : call.recording_url ? (
                         <a
                           href={call.recording_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-meroka-primary hover:text-meroka-primary-hover"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors shadow-sm text-xs font-medium"
                         >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
                           <span>Play</span>
                         </a>
                       ) : (
-                        <span className="text-gray-500">-</span>
+                        <span className="text-brand-navy-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm max-w-xs">
+                    <td className="px-6 py-4 text-sm max-w-xs">
                       {call.transcript ? (
-                        <span className={`line-clamp-2 text-xs ${call.session_type === "text" ? "text-amber-300/80" : "text-gray-300"}`}>
+                        <span className={cn("line-clamp-2 text-xs leading-relaxed", call.session_type === "text" ? "text-amber-800 font-medium" : "text-brand-navy-600")}>
                           {call.transcript.slice(0, 100)}{call.transcript.length > 100 ? "..." : ""}
                         </span>
                       ) : (
-                        <span className="text-gray-500">-</span>
+                        <span className="text-brand-navy-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm max-w-xs">
+                    <td className="px-6 py-4 text-sm max-w-xs">
                       {call.quotable_quote ? (
-                        <span className="text-meroka-primary italic line-clamp-2">
+                        <span className="text-brand-navy-800 italic line-clamp-2 font-medium bg-brand-neutral-100/50 p-1.5 rounded-lg border border-brand-neutral-200/50">
                           &ldquo;{call.quotable_quote}&rdquo;
                         </span>
                       ) : (
-                        <span className="text-gray-500">-</span>
+                        <span className="text-brand-navy-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-sm font-mono">
+                    <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
                       {call.ip_address || "-"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-6 py-4">
                       <button
                         onClick={() => setSelectedCall(call)}
-                        className="text-meroka-primary hover:text-meroka-primary-hover text-sm"
+                        className="text-brand-brown hover:text-brand-brown-dark text-sm font-medium hover:underline"
                       >
                         View
                       </button>
@@ -788,1229 +766,361 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
-        </div>
+        </motion.div>
       )}
 
       {/* Leads Table */}
       {activeTab === "leads" && (
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden overflow-x-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-2xl overflow-hidden relative z-10 shadow-glass border border-white/40"
+        >
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Name</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Email</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Workplace</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Role</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Interested</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Consent</th>
+              <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Name</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Email</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Physician Owner</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Collective</th>
               </tr>
             </thead>
             <tbody>
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-gray-500 py-8">
-                    No leads found
+                  <td colSpan={5} className="text-center text-brand-navy-400 py-12">
+                    <p className="font-medium">No leads found</p>
                   </td>
                 </tr>
               ) : (
                 filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                      {formatDate(lead.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-white text-sm">
-                      {lead.name || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 text-sm">
-                      {lead.email || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {lead.workplace_type ? (
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          lead.workplace_type === "independent"
-                            ? "bg-meroka-primary/20 text-meroka-primary"
-                            : "bg-gray-500/20 text-gray-400"
-                        }`}>
-                          {lead.workplace_type === "independent" ? "Independent" : "Hospital"}
-                        </span>
-                      ) : lead.works_in_healthcare === false ? (
-                        <span className="text-gray-500 text-xs">Not healthcare</span>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {lead.role_type ? (
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          lead.role_type === "owner"
-                            ? "bg-amber-500/20 text-amber-400"
-                            : lead.role_type === "provider"
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-gray-500/20 text-gray-400"
-                        }`}>
-                          {lead.role_type === "owner" ? "Owner" : lead.role_type === "provider" ? "Provider" : "Front Office"}
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {lead.interested_in_collective ? (
-                        <span className="bg-meroka-primary/20 text-meroka-primary text-xs px-2 py-1 rounded">
+                  <tr key={lead.id} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm">{formatDate(lead.created_at)}</td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm font-medium">{lead.name || "-"}</td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm">{lead.email || "-"}</td>
+                    <td className="px-6 py-4 text-sm">
+                      {lead.is_physician_owner ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
                           Yes
                         </span>
                       ) : (
-                        <span className="text-gray-500 text-sm">No</span>
+                        <span className="text-brand-navy-300">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      <div className="flex gap-2">
-                        {lead.consent_share_quote && (
-                          <span className="text-meroka-primary" title="Consented to share quote">Share</span>
-                        )}
-                        {lead.consent_store_chatlog && (
-                          <span className="text-amber-400" title="Consented to store chatlog">Store</span>
-                        )}
-                        {!lead.consent_share_quote && !lead.consent_store_chatlog && (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 text-sm">
+                      {lead.interested_in_collective ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-brown/10 text-brand-brown border border-brand-brown/20">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-brand-navy-300">-</span>
+                      )}
                     </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
-        </div>
+        </motion.div>
       )}
 
-      {/* Quotes Tab */}
-      {activeTab === "quotes" && quotesFilter === "featured" && (
-        <FeaturedQuotesManager
-          quotes={featuredQuotes}
-          onReorder={handleReorderFeatured}
-          onRemove={handleRemoveFeaturedById}
-        />
-      )}
+      {/* Featured Quotes */}
+      {activeTab === "quotes" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Featured List */}
+            <FeaturedQuotesManager
+              quotes={featuredQuotes}
+              onReorder={handleReorderFeatured}
+              onRemove={handleRemoveFeaturedById}
+            />
 
-      {/* Bulk Action Toolbar */}
-      {activeTab === "quotes" && quotesFilter !== "featured" && selectedQuoteIds.size > 0 && (
-        <div className="mb-4 p-3 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-xl flex items-center gap-4 relative z-10">
-          <span className="text-gray-300 text-sm">
-            {selectedQuoteIds.size} selected
-          </span>
-          {selectedNotFeaturedCount > 0 && (
-            <button
-              onClick={() =>
-                setConfirmAction({ type: "bulk-feature", count: selectedNotFeaturedCount })
-              }
-              disabled={bulkProcessing}
-              className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded transition-colors disabled:opacity-50"
-            >
-              Feature {selectedNotFeaturedCount}
-            </button>
-          )}
-          {selectedFeaturedCount > 0 && (
-            <button
-              onClick={() =>
-                setConfirmAction({ type: "bulk-remove", count: selectedFeaturedCount })
-              }
-              disabled={bulkProcessing}
-              className="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-500 text-white rounded transition-colors disabled:opacity-50"
-            >
-              Remove {selectedFeaturedCount}
-            </button>
-          )}
-          <button
-            onClick={() => setSelectedQuoteIds(new Set())}
-            className="text-gray-400 hover:text-white text-sm ml-auto"
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
+            {/* Quote Candidates */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-brand-navy-900">Add Quotes</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setQuotesFilter("all")}
+                    className={cn(
+                      "px-3 py-1.5 text-xs rounded-lg border transition-all",
+                      quotesFilter === "all"
+                        ? "bg-brand-navy-900 text-white border-brand-navy-900"
+                        : "bg-white text-brand-navy-600 border-brand-neutral-200"
+                    )}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setQuotesFilter("not-featured")}
+                    className={cn(
+                      "px-3 py-1.5 text-xs rounded-lg border transition-all",
+                      quotesFilter === "not-featured"
+                        ? "bg-brand-navy-900 text-white border-brand-navy-900"
+                        : "bg-white text-brand-navy-600 border-brand-neutral-200"
+                    )}
+                  >
+                    Unfeatured
+                  </button>
+                </div>
+              </div>
 
-      {/* Quotes Table (All or Not Featured) */}
-      {activeTab === "quotes" && quotesFilter !== "featured" && (
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden relative z-10">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-800">
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3 w-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedQuoteIds.size === filteredQuoteCalls.length && filteredQuoteCalls.length > 0}
-                    onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary focus:ring-offset-gray-900"
-                  />
-                </th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Quote</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Location</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Frustration</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Status</th>
-                <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredQuoteCalls.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center text-gray-500 py-8">
-                    No quotes found
-                  </td>
-                </tr>
-              ) : (
-                filteredQuoteCalls.map((call) => {
-                  const isFeatured = featuredCallIds.has(call.id);
-                  const featuredQuote = featuredQuotes.find((fq) => fq.call_id === call.id);
-                  const isLoading = addingToFeatured === call.id;
-                  const isSelected = selectedQuoteIds.has(call.id);
-
-                  return (
-                    <tr
-                      key={call.id}
-                      className={`border-b border-gray-800 hover:bg-gray-800/50 ${
-                        isFeatured ? "bg-amber-900/10" : ""
-                      } ${isSelected ? "bg-meroka-primary/10" : ""}`}
+              {/* Bulk Actions Bar */}
+              {selectedQuoteIds.size > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-brand-brown/10 border border-brand-brown/20 rounded-xl flex items-center justify-between"
+                >
+                  <span className="text-sm font-medium text-brand-brown">
+                    {selectedQuoteIds.size} selected
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmAction({ type: "bulk-feature", count: selectedNotFeaturedCount })}
+                      disabled={selectedNotFeaturedCount === 0}
+                      className="px-3 py-1.5 text-xs font-bold bg-brand-brown text-white rounded-lg shadow-sm hover:bg-brand-brown-dark disabled:opacity-50"
                     >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleQuoteSelection(call.id)}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary focus:ring-offset-gray-900"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                        {formatDate(call.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-sm max-w-md">
-                        <span className="text-meroka-primary italic">
-                          &ldquo;{call.quotable_quote}&rdquo;
-                        </span>
-                        {call.quotable_quote && call.quotable_quote.length > 200 && (
-                          <span className="ml-2 text-yellow-500 text-xs" title="Quote may be too long for display">
-                            (long)
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                        {[call.city, call.region].filter(Boolean).join(", ") || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {call.frustration_score !== null ? (
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              call.frustration_score >= 7
-                                ? "bg-red-500/20 text-red-400"
-                                : call.frustration_score >= 4
-                                ? "bg-yellow-500/20 text-yellow-400"
-                                : "bg-gray-500/20 text-gray-400"
-                            }`}
-                          >
-                            {call.frustration_score}/10
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {isFeatured ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Featured #{featuredQuote?.display_order}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 text-xs">Not featured</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {isFeatured ? (
-                          <button
-                            onClick={() => removeFromFeatured(call.id)}
-                            disabled={isLoading}
-                            className="text-red-400 hover:text-red-300 text-sm disabled:opacity-50"
-                          >
-                            {isLoading ? "..." : "Remove"}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => addToFeatured(call)}
-                            disabled={isLoading}
-                            className="text-meroka-primary hover:text-meroka-primary-hover text-sm disabled:opacity-50"
-                          >
-                            {isLoading ? "..." : "Feature"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                      Feature ({selectedNotFeaturedCount})
+                    </button>
+                    <button
+                      onClick={() => setConfirmAction({ type: "bulk-remove", count: selectedFeaturedCount })}
+                      disabled={selectedFeaturedCount === 0}
+                      className="px-3 py-1.5 text-xs font-bold bg-red-100 text-red-700 border border-red-200 rounded-lg shadow-sm hover:bg-red-200 disabled:opacity-50"
+                    >
+                      Remove ({selectedFeaturedCount})
+                    </button>
+                  </div>
+                </motion.div>
               )}
-            </tbody>
-          </table>
+
+              <div className="glass rounded-xl p-4 shadow-glass border border-white/40 max-h-[600px] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-brand-neutral-100">
+                  <p className="text-xs font-bold text-brand-navy-500 uppercase tracking-wider">
+                    {filteredQuoteCalls.length} candidates
+                  </p>
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-xs text-brand-brown font-medium hover:underline"
+                  >
+                    {selectedQuoteIds.size === filteredQuoteCalls.length ? "Deselect All" : "Select All"}
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {filteredQuoteCalls.map((call) => {
+                    const isFeatured = featuredCallIds.has(call.id);
+                    const isSelected = selectedQuoteIds.has(call.id);
+
+                    return (
+                      <div
+                        key={call.id}
+                        className={cn(
+                          "p-4 rounded-xl border transition-all cursor-pointer relative group",
+                          isFeatured
+                            ? "bg-emerald-50/50 border-emerald-200"
+                            : isSelected
+                              ? "bg-brand-brown/5 border-brand-brown/30"
+                              : "bg-white/40 border-white/60 hover:border-brand-brown/30 hover:bg-white/60"
+                        )}
+                        onClick={() => toggleQuoteSelection(call.id)}
+                      >
+                        {/* Selection Checkbox */}
+                        <div className="absolute top-4 right-4">
+                          <div className={cn(
+                            "w-5 h-5 rounded-md border flex items-center justify-center transition-colors",
+                            isSelected
+                              ? "bg-brand-brown border-brand-brown text-white"
+                              : "border-brand-neutral-300 bg-white"
+                          )}>
+                            {isSelected && (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="text-brand-navy-900 italic pr-8 line-clamp-3">
+                          &ldquo;{call.quotable_quote}&rdquo;
+                        </p>
+                        <div className="flex items-center gap-2 mt-3 text-xs">
+                          <span className="font-bold text-brand-navy-600">
+                            {call.city || "Unknown"}, {call.region || ""}
+                          </span>
+                          <span className="text-brand-navy-400">•</span>
+                          <span className="text-brand-navy-500">{formatDate(call.created_at)}</span>
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          {!isFeatured && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToFeatured(call);
+                              }}
+                              disabled={!!addingToFeatured}
+                              className="text-xs px-3 py-1.5 bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors shadow-sm font-medium z-10 relative"
+                            >
+                              {addingToFeatured === call.id ? "Adding..." : "Feature This"}
+                            </button>
+                          )}
+                          {isFeatured && (
+                            <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md font-bold flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              Featured
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Map */}
       {activeTab === "map" && <CallsMap calls={calls} />}
 
-      {/* Form Flow */}
       {activeTab === "form-flow" && (
-        <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 relative z-10">
-          <h3 className="text-lg font-semibold text-white mb-6">Post-Call Form Decision Tree</h3>
-          <div className="overflow-x-auto">
-            <div className="min-w-[700px]">
-              {/* New Flow Visualization */}
-              <div className="space-y-4">
-                {/* Step 1: Consent */}
-                <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
-                  <p className="text-yellow-400 text-xs uppercase tracking-wide mb-2">Step 1: Consent</p>
-                  <div className="flex gap-4">
-                    <div className="flex-1 bg-gray-800/50 rounded p-3">
-                      <p className="text-white text-sm">May we share highlights anonymously?</p>
-                      <p className="text-gray-500 text-xs mt-1">Yes / No</p>
-                    </div>
-                    <div className="flex-1 bg-gray-800/50 rounded p-3">
-                      <p className="text-white text-sm">Can we store this conversation?</p>
-                      <p className="text-gray-500 text-xs mt-1">Yes / No</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <div className="w-px h-6 bg-gray-600"></div>
-                </div>
-
-                {/* Step 2: Healthcare */}
-                <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
-                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Step 2: Qualification</p>
-                  <p className="text-white text-sm font-medium">Do you work in American healthcare?</p>
-
-                  <div className="flex gap-8 mt-4">
-                    {/* Yes branch */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-meroka-primary rounded-full"></div>
-                        <span className="text-meroka-primary text-sm">Yes</span>
-                      </div>
-
-                      {/* Workplace type */}
-                      <div className="bg-gray-800/50 rounded p-3 mb-2">
-                        <p className="text-gray-300 text-sm">Which describes your workplace?</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="bg-meroka-primary/20 text-meroka-primary text-xs px-2 py-1 rounded">Independent</span>
-                          <span className="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded">Hospital</span>
-                        </div>
-                      </div>
-
-                      {/* Role type (if independent) */}
-                      <div className="bg-gray-800/50 rounded p-3 ml-4 border-l-2 border-meroka-primary/30">
-                        <p className="text-gray-400 text-xs mb-1">If Independent:</p>
-                        <p className="text-gray-300 text-sm">Which describes your role?</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="bg-amber-500/20 text-amber-400 text-xs px-2 py-1 rounded">Owner</span>
-                          <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-1 rounded">Provider</span>
-                          <span className="bg-gray-500/20 text-gray-400 text-xs px-2 py-1 rounded">Front Office</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* No branch */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                        <span className="text-gray-400 text-sm">No</span>
-                      </div>
-                      <div className="bg-gray-800 rounded p-3 text-center">
-                        <p className="text-gray-300 text-sm">Thank You</p>
-                        <p className="text-gray-500 text-xs mt-1">End of flow</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
-                  <div className="w-px h-6 bg-gray-600"></div>
-                </div>
-
-                {/* Step 3: Collective */}
-                <div className="bg-meroka-primary/10 border border-meroka-primary/30 rounded-lg p-4">
-                  <p className="text-meroka-primary text-xs uppercase tracking-wide mb-2">Step 3: Interest</p>
-                  <div className="bg-meroka-primary/10 rounded p-3 mb-3 border border-meroka-primary/20">
-                    <p className="text-meroka-primary text-xs font-medium">About Meroka context shown</p>
-                    <p className="text-gray-400 text-xs mt-1">Explains collective for negotiating with payers</p>
-                  </div>
-                  <p className="text-white text-sm font-medium">Interested in learning more?</p>
-
-                  <div className="flex gap-8 mt-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-meroka-primary rounded-full"></div>
-                        <span className="text-meroka-primary text-sm">Yes</span>
-                      </div>
-                      <div className="bg-meroka-primary/20 rounded p-3 text-center">
-                        <p className="text-meroka-primary text-sm">Contact Form</p>
-                        <p className="text-gray-400 text-xs mt-1">Name & Email</p>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                        <span className="text-gray-400 text-sm">Not now</span>
-                      </div>
-                      <div className="bg-gray-800 rounded p-3 text-center">
-                        <p className="text-gray-300 text-sm">Thank You</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Legend */}
-              <div className="mt-8 pt-6 border-t border-gray-800">
-                <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Lead Classification</p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-meroka-primary rounded"></div>
-                    <span className="text-gray-400">High Value: Independent Owner + Interested</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-amber-500 rounded"></div>
-                    <span className="text-gray-400">Medium: Provider/Front Office + Interested</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                    <span className="text-gray-400">Hospital: Hospital worker + Interested</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-gray-500 rounded"></div>
-                    <span className="text-gray-400">Low: Not interested / Not healthcare</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="bg-white/50 backdrop-blur-sm p-8 rounded-2xl border border-brand-neutral-200 text-center">
+          <p className="text-brand-navy-500">Form flow visualization coming soon</p>
         </div>
       )}
 
-      {/* Link Clicks Tab */}
       {activeTab === "clicks" && (
-        <div className="space-y-6 relative z-10">
-          {/* Click Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">Total Clicks</p>
-              <p className="text-2xl font-bold text-white">{linkClicks.length}</p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">Website Clicks</p>
-              <p className="text-2xl font-bold text-meroka-primary">
-                {linkClicks.filter((c) => c.link_type === "website").length}
-              </p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">Twitter Clicks</p>
-              <p className="text-2xl font-bold text-gray-300">
-                {linkClicks.filter((c) => c.link_type === "twitter").length}
-              </p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">LinkedIn Clicks</p>
-              <p className="text-2xl font-bold text-gray-300">
-                {linkClicks.filter((c) => c.link_type === "linkedin").length}
-              </p>
-            </div>
-          </div>
-
-          {/* Clicks Table */}
-          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Type</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">URL</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP Address</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">User Agent</th>
+        <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Link ID</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Target URL</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">IP</th>
+                <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">User Agent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linkClicks.map((click) => (
+                <tr key={click.id} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                  <td className="px-6 py-4 text-brand-navy-900 text-sm whitespace-nowrap">
+                    {formatDate(click.created_at)}
+                  </td>
+                  <td className="px-6 py-4 text-brand-brown font-mono text-xs">
+                    {click.link_type}
+                  </td>
+                  <td className="px-6 py-4 text-brand-navy-600 text-sm max-w-xs truncate">
+                    {click.link_url}
+                  </td>
+                  <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
+                    {click.ip_address || "-"}
+                  </td>
+                  <td className="px-6 py-4 text-brand-navy-400 text-xs max-w-xs truncate">
+                    {click.user_agent || "-"}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {linkClicks.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center text-gray-500 py-8">
-                      No clicks tracked yet
-                    </td>
-                  </tr>
-                ) : (
-                  linkClicks.map((click) => (
-                    <tr key={click.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                        {formatDate(click.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                            click.link_type === "website"
-                              ? "bg-meroka-primary/20 text-meroka-primary"
-                              : click.link_type === "twitter"
-                              ? "bg-gray-600/30 text-gray-300"
-                              : click.link_type === "linkedin"
-                              ? "bg-gray-500/30 text-gray-400"
-                              : "bg-gray-500/20 text-gray-400"
-                          }`}
-                        >
-                          {click.link_type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <a
-                          href={click.link_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-300 hover:text-white truncate block max-w-xs"
-                          title={click.link_url}
-                        >
-                          {click.link_url}
-                        </a>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-sm font-mono">
-                        {click.ip_address || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate" title={click.user_agent || ""}>
-                        {click.user_agent ? click.user_agent.slice(0, 50) + (click.user_agent.length > 50 ? "..." : "") : "-"}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Page Visits Tab */}
       {activeTab === "visits" && (
-        <div className="space-y-6 relative z-10">
-          {/* Refresh Controls */}
-          <div className="flex flex-wrap items-center gap-4 bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-            <button
-              onClick={() => fetchData()}
-              className="px-4 py-2 bg-meroka-primary hover:bg-meroka-primary-hover text-white rounded-lg transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh Now
-            </button>
-
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoRefresh}
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-meroka-primary focus:ring-meroka-primary"
-                />
-                <span className="text-gray-300 text-sm">Auto-refresh</span>
-              </label>
-              {autoRefresh && (
-                <select
-                  value={refreshInterval}
-                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                  className="px-2 py-1 bg-gray-800 border border-gray-700 rounded text-gray-300 text-sm"
-                >
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                  <option value={60}>1m</option>
-                  <option value={300}>5m</option>
-                </select>
-              )}
-            </div>
-
-            <span className="text-gray-500 text-xs ml-auto">
-              Last updated: {lastRefresh.toLocaleTimeString()}
-              {autoRefresh && (
-                <span className="ml-2 inline-flex items-center gap-1">
-                  <span className="w-2 h-2 bg-meroka-primary rounded-full animate-pulse"></span>
-                  Live
-                </span>
-              )}
-            </span>
-          </div>
-
-          {/* Traffic Chart */}
-          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-400 text-sm">Visits (Last 24 Hours)</p>
-              <p className="text-meroka-primary font-bold">
-                {getHourlyTrafficData().reduce((sum, h) => sum + h.count, 0)} total
-              </p>
-            </div>
-            <div className="h-40 flex items-end gap-1">
-              {(() => {
-                const data = getHourlyTrafficData();
-                const maxCount = Math.max(...data.map((d) => d.count), 1);
-                return data.map((hour, i) => (
+        <div className="space-y-6">
+          {/* Traffic Chart Placeholder - You might want to use a charting library like Recharts here */}
+          <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+            <h3 className="text-lg font-bold text-brand-navy-900 mb-4">Traffic (Last 24 Hours)</h3>
+            <div className="h-64 flex items-end gap-1 border-b border-brand-neutral-200 pb-2">
+              {getHourlyTrafficData().map((data) => (
+                <div key={data.hour} className="flex-1 flex flex-col items-center group relative">
                   <div
-                    key={hour.hour}
-                    className="flex-1 flex flex-col items-center gap-1 group"
-                  >
-                    <div className="relative w-full flex flex-col items-center">
-                      <div
-                        className={`w-full rounded-t transition-all ${
-                          hour.count > 0
-                            ? "bg-meroka-primary hover:bg-meroka-primary-hover"
-                            : "bg-gray-700"
-                        }`}
-                        style={{
-                          height: `${Math.max((hour.count / maxCount) * 120, 4)}px`,
-                        }}
-                        title={`${hour.label}: ${hour.count} visits`}
-                      />
-                      {/* Tooltip on hover */}
-                      <div className="absolute bottom-full mb-2 hidden group-hover:block bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                        {hour.count} visits
-                      </div>
-                    </div>
-                    {/* Show label every 4 hours */}
-                    {i % 4 === 0 && (
-                      <span className="text-gray-500 text-xs mt-1">{hour.label}</span>
-                    )}
+                    className="w-full bg-brand-brown/80 rounded-t-sm hover:bg-brand-brown transition-all min-h-[4px]"
+                    style={{
+                      height: `${Math.max((data.count / (Math.max(...getHourlyTrafficData().map(d => d.count)) || 1)) * 100, 2)}%`
+                    }}
+                  />
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-brand-navy-900 text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap z-50">
+                    {data.label}: {data.count} views
                   </div>
-                ));
-              })()}
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-brand-navy-400">
+              <span>24h ago</span>
+              <span>Now</span>
             </div>
           </div>
 
-          {/* Visit Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">Total Visits</p>
-              <p className="text-2xl font-bold text-white">{pageVisits.length}</p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">Unique IPs</p>
-              <p className="text-2xl font-bold text-meroka-primary">
-                {new Set(pageVisits.map((v) => v.ip_address).filter(Boolean)).size}
-              </p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">From Referrers</p>
-              <p className="text-2xl font-bold text-amber-400">
-                {pageVisits.filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost")).length}
-              </p>
-            </div>
-            <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-              <p className="text-gray-400 text-sm">With UTM</p>
-              <p className="text-2xl font-bold text-yellow-400">
-                {pageVisits.filter((v) => v.utm_source).length}
-              </p>
-            </div>
-          </div>
-
-          {/* Top Referrers */}
-          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-            <p className="text-gray-400 text-sm mb-3">Top Traffic Sources</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(
-                pageVisits
-                  .filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost"))
-                  .reduce((acc, v) => {
-                    try {
-                      const domain = new URL(v.referrer!).hostname;
-                      acc[domain] = (acc[domain] || 0) + 1;
-                    } catch {
-                      acc[v.referrer!] = (acc[v.referrer!] || 0) + 1;
-                    }
-                    return acc;
-                  }, {} as Record<string, number>)
-              )
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10)
-                .map(([domain, count]) => (
-                  <span
-                    key={domain}
-                    className="px-3 py-1 bg-gray-800 rounded-full text-sm text-gray-300"
-                  >
-                    {domain} <span className="text-meroka-primary font-medium">({count})</span>
-                  </span>
-                ))}
-              {pageVisits.filter((v) => v.referrer && !v.referrer.includes("merokacollective") && !v.referrer.includes("localhost")).length === 0 && (
-                <span className="text-gray-500 text-sm">No external referrers yet</span>
-              )}
-            </div>
-          </div>
-
-          {/* Visits Table */}
-          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
+          <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Date</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Page</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">IP Address</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Referrer</th>
-                  <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">UTM</th>
+                <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Page</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Referrer</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">IP</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Device</th>
                 </tr>
               </thead>
               <tbody>
-                {pageVisits.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center text-gray-500 py-8">
-                      No visits tracked yet
+                {pageVisits.map((visit) => (
+                  <tr key={visit.id} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm whitespace-nowrap">
+                      {formatDate(visit.created_at)}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm font-medium">
+                      {visit.page_path}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-500 text-sm max-w-xs truncate">
+                      {visit.referrer || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
+                      {visit.ip_address || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-500 text-xs">
+                      {visit.user_agent?.includes("Mobile") ? "Mobile" : "Desktop"}
                     </td>
                   </tr>
-                ) : (
-                  pageVisits.slice(0, 200).map((visit) => (
-                    <tr key={visit.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                      <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                        {formatDate(visit.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="text-gray-300">{visit.page_path}</span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-sm font-mono">
-                        {visit.ip_address || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm max-w-xs truncate" title={visit.referrer || ""}>
-                        {visit.referrer ? (
-                          <span className="text-amber-400">
-                            {(() => {
-                              try {
-                                return new URL(visit.referrer).hostname;
-                              } catch {
-                                return visit.referrer.slice(0, 30);
-                              }
-                            })()}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">Direct</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {visit.utm_source ? (
-                          <span className="text-yellow-400">
-                            {visit.utm_source}
-                            {visit.utm_medium && ` / ${visit.utm_medium}`}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Users Tab */}
-      {activeTab === "users" && (
-        <div className="space-y-6 relative z-10">
-          {/* User Stats */}
-          {userStats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">Total Users</p>
-                <p className="text-2xl font-bold text-white">{userStats.totalUsers}</p>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">New Today</p>
-                <p className="text-2xl font-bold text-meroka-primary">{userStats.newToday}</p>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">New This Week</p>
-                <p className="text-2xl font-bold text-amber-400">{userStats.newThisWeek}</p>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">Active (7d)</p>
-                <p className="text-2xl font-bold text-green-400">{userStats.activeUsers}</p>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">AI Memory On</p>
-                <p className="text-2xl font-bold text-purple-400">{userStats.aiMemoryEnabled}</p>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm">Verified</p>
-                <p className="text-2xl font-bold text-gray-300">{userStats.verifiedUsers}</p>
-              </div>
-            </div>
-          )}
+      {/* Quote Preview Modal - Linked to showPreview state */}
+      <AnimatePresence>
+        {showPreview && (
+          <QuotePreviewModal
+            onClose={() => setShowPreview(false)}
+            quotes={featuredQuotes}
+          />
+        )}
+      </AnimatePresence>
 
-          {/* Auth Provider & Role Breakdown */}
-          {userStats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm mb-3">Auth Provider</p>
-                <div className="flex gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-red-500 rounded"></div>
-                    <span className="text-gray-300 text-sm">Google: {userStats.authBreakdown.google}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                    <span className="text-gray-300 text-sm">Email: {userStats.authBreakdown.email}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm mb-3">Role Types</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(userStats.roleBreakdown).map(([role, count]) => (
-                    <span key={role} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
-                      {role}: {count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
-                <p className="text-gray-400 text-sm mb-3">Workplace Types</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(userStats.workplaceBreakdown).map(([type, count]) => (
-                    <span key={type} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
-                      {type}: {count}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* User Search and Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-            <input
-              type="text"
-              placeholder="Search users by email or name..."
-              value={userSearchQuery}
-              onChange={(e) => setUserSearchQuery(e.target.value)}
-              className="w-full max-w-md px-4 py-2 bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
-            />
-            <select
-              value={userRoleFilter}
-              onChange={(e) => setUserRoleFilter(e.target.value)}
-              className="px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-gray-300 text-sm"
-            >
-              <option value="all">All Roles</option>
-              <option value="physician">Physician</option>
-              <option value="nurse">Nurse</option>
-              <option value="admin_staff">Admin Staff</option>
-              <option value="other">Other</option>
-            </select>
-            <select
-              value={userWorkplaceFilter}
-              onChange={(e) => setUserWorkplaceFilter(e.target.value)}
-              className="px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-gray-300 text-sm"
-            >
-              <option value="all">All Workplaces</option>
-              <option value="independent">Independent</option>
-              <option value="hospital">Hospital</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          {/* Users Table */}
-          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
-            {usersLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">User</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Role</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Workplace</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Auth</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Conversations</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">AI Memory</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Joined</th>
-                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="text-center text-gray-500 py-8">
-                        No users found
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            {user.avatar_url ? (
-                              <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-meroka-primary flex items-center justify-center text-white text-sm font-medium">
-                                {(user.name || user.email)[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-white text-sm font-medium">{user.name || "-"}</p>
-                              <p className="text-gray-500 text-xs">{user.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {user.role_type ? (
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              user.role_type === "physician"
-                                ? "bg-meroka-primary/20 text-meroka-primary"
-                                : user.role_type === "nurse"
-                                ? "bg-amber-500/20 text-amber-400"
-                                : "bg-gray-500/20 text-gray-400"
-                            }`}>
-                              {user.role_type}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {user.workplace_type ? (
-                            <span className={`px-2 py-1 rounded text-xs ${
-                              user.workplace_type === "independent"
-                                ? "bg-green-500/20 text-green-400"
-                                : "bg-gray-500/20 text-gray-400"
-                            }`}>
-                              {user.workplace_type}
-                            </span>
-                          ) : (
-                            <span className="text-gray-500">-</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            user.auth_provider === "google"
-                              ? "bg-red-500/20 text-red-400"
-                              : "bg-blue-500/20 text-blue-400"
-                          }`}>
-                            {user.auth_provider}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-white text-sm font-medium">
-                          {user.conversation_count}
-                        </td>
-                        <td className="px-4 py-3">
-                          {user.ai_memory_enabled ? (
-                            <span className="text-green-400 text-xs">On</span>
-                          ) : (
-                            <span className="text-gray-500 text-xs">Off</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-gray-400 text-sm whitespace-nowrap">
-                          {formatDate(user.created_at)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => fetchUserDetail(user.id)}
-                            className="text-meroka-primary hover:text-meroka-primary-hover text-sm"
-                          >
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* User Detail Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                {selectedUser.avatar_url ? (
-                  <img src={selectedUser.avatar_url} alt="" className="w-16 h-16 rounded-full" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-meroka-primary flex items-center justify-center text-white text-2xl font-medium">
-                    {(selectedUser.name || selectedUser.email)[0].toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-xl font-semibold text-white">{selectedUser.name || "No name"}</h2>
-                  <p className="text-gray-400">{selectedUser.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setSelectedUser(null);
-                  setUserConversations([]);
-                }}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* User Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <p className="text-gray-400 text-sm">Conversations</p>
-                <p className="text-xl font-bold text-white">{selectedUser.conversation_count}</p>
-              </div>
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <p className="text-gray-400 text-sm">Summaries</p>
-                <p className="text-xl font-bold text-purple-400">{selectedUser.summary_count}</p>
-              </div>
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <p className="text-gray-400 text-sm">Avg Frustration</p>
-                <p className="text-xl font-bold text-amber-400">
-                  {selectedUser.avg_frustration_score !== null ? `${selectedUser.avg_frustration_score}/10` : "-"}
-                </p>
-              </div>
-              <div className="bg-gray-800/50 rounded-xl p-4">
-                <p className="text-gray-400 text-sm">Last Active</p>
-                <p className="text-lg font-medium text-gray-300">
-                  {selectedUser.last_conversation_at ? formatDate(selectedUser.last_conversation_at) : "Never"}
-                </p>
-              </div>
-            </div>
-
-            {/* User Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
-              <div>
-                <span className="text-gray-400">Role:</span>{" "}
-                <span className="text-white">{selectedUser.role_type || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400">Workplace:</span>{" "}
-                <span className="text-white">{selectedUser.workplace_type || "-"}</span>
-              </div>
-              <div>
-                <span className="text-gray-400">Auth:</span>{" "}
-                <span className="text-white">{selectedUser.auth_provider}</span>
-              </div>
-              <div>
-                <span className="text-gray-400">AI Memory:</span>{" "}
-                <span className={selectedUser.ai_memory_enabled ? "text-green-400" : "text-gray-500"}>
-                  {selectedUser.ai_memory_enabled ? "Enabled" : "Disabled"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Verified:</span>{" "}
-                <span className={selectedUser.email_verified ? "text-green-400" : "text-yellow-400"}>
-                  {selectedUser.email_verified ? "Yes" : "No"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Location:</span>{" "}
-                <span className="text-white">
-                  {[selectedUser.city, selectedUser.region, selectedUser.country].filter(Boolean).join(", ") || "-"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Joined:</span>{" "}
-                <span className="text-white">{formatDate(selectedUser.created_at)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400">Last Login:</span>{" "}
-                <span className="text-white">
-                  {selectedUser.last_login_at ? formatDate(selectedUser.last_login_at) : "-"}
-                </span>
-              </div>
-            </div>
-
-            {/* User Conversations */}
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-4">Conversation History</h3>
-              {userConversations.length === 0 ? (
-                <p className="text-gray-500 text-sm">No conversations yet</p>
-              ) : (
-                <div className="space-y-3 max-h-80 overflow-y-auto">
-                  {userConversations.map((conv) => (
-                    <div
-                      key={conv.id}
-                      className={`p-4 rounded-xl border ${
-                        conv.session_type === "text"
-                          ? "bg-amber-900/10 border-amber-700/30"
-                          : "bg-gray-800/50 border-gray-700"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            conv.session_type === "text"
-                              ? "bg-amber-500/20 text-amber-400"
-                              : "bg-gray-600/30 text-gray-400"
-                          }`}>
-                            {conv.session_type === "text" ? "Text" : "Voice"}
-                          </span>
-                          <span className="text-gray-400 text-xs">{formatDate(conv.created_at)}</span>
-                          {conv.duration_seconds && (
-                            <span className="text-gray-500 text-xs">
-                              {formatDuration(conv.duration_seconds)}
-                            </span>
-                          )}
-                        </div>
-                        {conv.frustration_score !== null && (
-                          <span className={`px-2 py-0.5 rounded text-xs ${
-                            conv.frustration_score >= 7
-                              ? "bg-red-500/20 text-red-400"
-                              : conv.frustration_score >= 4
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-gray-500/20 text-gray-400"
-                          }`}>
-                            Frustration: {conv.frustration_score}/10
-                          </span>
-                        )}
-                      </div>
-                      {conv.quotable_quote && (
-                        <p className="text-meroka-primary italic text-sm mb-2">
-                          &ldquo;{conv.quotable_quote}&rdquo;
-                        </p>
-                      )}
-                      {conv.transcript && (
-                        <p className="text-gray-400 text-xs line-clamp-2">
-                          {conv.transcript.slice(0, 200)}{conv.transcript.length > 200 ? "..." : ""}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Call Detail Modal */}
-      {selectedCall && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-white">
-                  {selectedCall.session_type === "text" ? "Text Confession" : "Call Details"}
-                </h2>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  selectedCall.session_type === "text"
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "bg-gray-600/30 text-gray-400"
-                }`}>
-                  {selectedCall.session_type === "text" ? "Text" : "Voice"}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedCall(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-4 text-sm">
-                <div>
-                  <span className="text-gray-400">Date:</span>{" "}
-                  <span className="text-white">{formatDate(selectedCall.created_at)}</span>
-                </div>
-                {selectedCall.session_type !== "text" && (
-                  <div>
-                    <span className="text-gray-400">Duration:</span>{" "}
-                    <span className="text-white">{formatDuration(selectedCall.duration_seconds)}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="text-gray-400">IP:</span>{" "}
-                  <span className="text-white font-mono">{selectedCall.ip_address || "-"}</span>
-                </div>
-                {selectedCall.city && (
-                  <div>
-                    <span className="text-gray-400">Location:</span>{" "}
-                    <span className="text-white">{[selectedCall.city, selectedCall.region].filter(Boolean).join(", ")}</span>
-                  </div>
-                )}
-              </div>
-
-              {selectedCall.quotable_quote && (
-                <div className="bg-meroka-primary/20 border border-meroka-primary/50 rounded-xl p-4">
-                  <p className="text-meroka-primary text-sm font-medium mb-1">Quotable Quote</p>
-                  <p className="text-white italic">&ldquo;{selectedCall.quotable_quote}&rdquo;</p>
-                </div>
-              )}
-
-              <div>
-                <p className="text-gray-400 text-sm font-medium mb-2">
-                  {selectedCall.session_type === "text" ? "Confession" : "Transcript"}
-                </p>
-                <div className={`rounded-xl p-4 max-h-64 overflow-y-auto border ${
-                  selectedCall.session_type === "text"
-                    ? "bg-amber-900/20 border-amber-700/30"
-                    : "bg-gray-800/80 border-gray-700"
-                }`}>
-                  {selectedCall.transcript ? (
-                    <pre className={`text-sm whitespace-pre-wrap font-sans ${
-                      selectedCall.session_type === "text" ? "text-amber-200/90" : "text-gray-300"
-                    }`}>
-                      {selectedCall.transcript}
-                    </pre>
-                  ) : (
-                    <p className="text-gray-500 text-sm">
-                      {selectedCall.session_type === "text" ? "No confession text" : "No transcript available"}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {selectedCall.session_type !== "text" && selectedCall.recording_url && (
-                <div>
-                  <p className="text-gray-400 text-sm font-medium mb-2">Recording</p>
-                  <audio controls className="w-full" src={selectedCall.recording_url}>
-                    Your browser does not support the audio element.
-                  </audio>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {showPreview && (
-        <QuotePreviewModal
-          quotes={featuredQuotes}
-          onClose={() => setShowPreview(false)}
-        />
-      )}
-
-      {/* Confirmation Dialog */}
+      {/* Confirm Dialog */}
       {confirmAction && (
         <ConfirmDialog
           title={
-            confirmAction.type === "remove"
-              ? "Remove from Featured"
-              : confirmAction.type === "bulk-feature"
-              ? `Feature ${confirmAction.count} Quotes`
-              : `Remove ${confirmAction.count} Quotes`
+            confirmAction.type === "bulk-feature"
+              ? "Feature Quotes"
+              : confirmAction.type === "bulk-remove"
+                ? "Remove Quotes"
+                : "Remove Featured Quote"
           }
           message={
-            confirmAction.type === "remove"
-              ? "Are you sure you want to remove this quote from the featured list?"
-              : confirmAction.type === "bulk-feature"
-              ? `This will add ${confirmAction.count} quotes to the featured list.`
-              : `This will remove ${confirmAction.count} quotes from the featured list.`
+            confirmAction.type === "bulk-feature"
+              ? `Are you sure you want to feature ${confirmAction.count} selected quotes?`
+              : confirmAction.type === "bulk-remove"
+                ? `Are you sure you want to remove ${confirmAction.count} quotes from featured?`
+                : "Are you sure you want to remove this quote from the featured list?"
           }
           confirmLabel={
             confirmAction.type === "bulk-feature" ? "Feature" : "Remove"

@@ -42,9 +42,9 @@ export default function CallsMap({ calls }: CallsMapProps) {
   const center: [number, number] =
     locatedCalls.length > 0
       ? [
-          locatedCalls.reduce((sum, c) => sum + (c.latitude || 0), 0) / locatedCalls.length,
-          locatedCalls.reduce((sum, c) => sum + (c.longitude || 0), 0) / locatedCalls.length,
-        ]
+        locatedCalls.reduce((sum, c) => sum + (c.latitude || 0), 0) / locatedCalls.length,
+        locatedCalls.reduce((sum, c) => sum + (c.longitude || 0), 0) / locatedCalls.length,
+      ]
       : [39.8283, -98.5795]; // US center
 
   const formatDate = (date: string) => {
@@ -78,8 +78,8 @@ export default function CallsMap({ calls }: CallsMapProps) {
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+    <div className="glass rounded-xl overflow-hidden shadow-glass border border-white/40">
+      <div className="p-4 border-b border-brand-neutral-200/50 bg-brand-neutral-50/50 flex items-center justify-between">
         <p className="text-gray-400 text-sm">
           {locatedCalls.length} call{locatedCalls.length !== 1 ? "s" : ""} on map
         </p>

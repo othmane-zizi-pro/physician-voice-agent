@@ -48,13 +48,12 @@ function SortableQuote({ quote, index, onRemove, isRemoving }: SortableQuoteProp
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${
-        isDragging
-          ? "opacity-50 bg-gray-700 border-gray-600"
+      className={`flex items-center gap-4 p-4 rounded-lg border transition-all ${isDragging
+          ? "opacity-50 glass-dark border-brand-neutral-300"
           : isTopSeven
-          ? "bg-green-900/20 border-green-700/50"
-          : "bg-gray-800/50 border-gray-700"
-      }`}
+            ? "glass bg-emerald-50/50 border-emerald-500/30"
+            : "glass border-white/40"
+        }`}
     >
       {/* Drag Handle */}
       <button
@@ -70,21 +69,20 @@ function SortableQuote({ quote, index, onRemove, isRemoving }: SortableQuoteProp
 
       {/* Order Number */}
       <div
-        className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold ${
-          isTopSeven
-            ? "bg-green-600 text-white"
-            : "bg-gray-700 text-gray-400"
-        }`}
+        className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold shadow-sm ${isTopSeven
+            ? "bg-emerald-500 text-white"
+            : "bg-brand-neutral-200 text-brand-navy-500"
+          }`}
       >
         {index + 1}
       </div>
 
       {/* Quote Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-white italic truncate">
+        <p className="text-brand-navy-900 italic truncate">
           &ldquo;{quote.quote}&rdquo;
         </p>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-brand-navy-500 text-sm mt-1">
           {quote.location || "Unknown location"}
         </p>
       </div>
@@ -202,7 +200,7 @@ export default function FeaturedQuotesManager({
       </div>
 
       {/* Sortable List */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+      <div className="glass rounded-xl p-4 shadow-glass border border-white/40">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
