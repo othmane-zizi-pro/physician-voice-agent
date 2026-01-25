@@ -33,13 +33,17 @@ export async function POST(request: NextRequest) {
   try {
     const { url } = await request.json();
 
+    console.log('Presign URL request:', { url });
+
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
     const key = extractS3Key(url);
+    console.log('Extracted S3 key:', { url, key });
+
     if (!key) {
-      return NextResponse.json({ error: 'Invalid S3 URL format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid S3 URL format', receivedUrl: url }, { status: 400 });
     }
 
     const command = new GetObjectCommand({
