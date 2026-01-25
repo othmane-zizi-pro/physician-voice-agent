@@ -234,7 +234,8 @@ export default function VoiceAgent() {
 
         const transcriptText = fullTranscriptRef.current.join("\n");
 
-        if (!transcriptText) return null;
+        // Still save the call even if transcript is empty, so recording URL can be linked later
+        if (!transcriptText && !livekitRoomNameRef.current) return null;
 
         // Get timestamped transcript for video clip feature
         const transcriptObject = timestampedTranscriptRef.current.length > 0
