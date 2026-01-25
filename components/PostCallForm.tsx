@@ -161,10 +161,10 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       }
     };
 
-    // Poll a few times to wait for data to be saved
+    // Poll until recording is available (can take 30+ seconds after call ends)
     fetchCallData();
-    const interval = setInterval(fetchCallData, 2000);
-    const timeout = setTimeout(() => clearInterval(interval), 15000);
+    const interval = setInterval(fetchCallData, 3000);
+    const timeout = setTimeout(() => clearInterval(interval), 60000);
 
     return () => {
       clearInterval(interval);
@@ -513,7 +513,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                   </div>
                 )}
 
-                {exchanges.length > 0 ? (
+                {exchanges.length > 0 && recordingUrl ? (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {exchanges.map((exchange) => (
                       <button
@@ -531,6 +531,12 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                         </div>
                       </button>
                     ))}
+                  </div>
+                ) : exchanges.length > 0 && !recordingUrl ? (
+                  <div className="text-center py-8">
+                    <Loader2 size={24} className="text-meroka-primary animate-spin mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">Processing recording...</p>
+                    <p className="text-gray-500 text-xs mt-1">This usually takes 10-20 seconds</p>
                   </div>
                 ) : (
                   <div className="text-center py-8">

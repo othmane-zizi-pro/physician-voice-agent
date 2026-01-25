@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Video clip generator with FFmpeg for physician-voice-agent
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+  SupabaseServiceKey:
+    Type: String
+    Description: Supabase service role key (for storage uploads)
+    NoEcho: true
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - production
+
+Globals:
+  Function:
+    Timeout: 180  # 3 minutes for video processing
+    MemorySize: 1024  # Need decent memory for FFmpeg
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+
+Resources:
+  ClipGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub physician-clip-generator-${Environment}
+      Handler: handler.handler
+      CodeUri: .
+      Description: Generates video clips from call recordings using FFmpeg
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+      Layers:
+        # Custom FFmpeg layer (created from static binary)
+        - arn:aws:lambda:us-east-1:168504280929:layer:ffmpeg-custom:1
+      Events:
+        GenerateClip:
+          Type: Api
+          Properties:
+            Path: /generate-clip
+            Method: post
+            RestApiId: !Ref ClipApi
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: get
+            RestApiId: !Ref ClipApi
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  ClipApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub physician-clip-api-${Environment}
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'POST,GET,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub https://${ClipApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}
+
+  GenerateClipUrl:
+    Description: URL for generating clips
+    Value: !Sub https://${ClipApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/generate-clip
+
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ClipGeneratorFunction.Arn

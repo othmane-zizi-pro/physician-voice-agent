@@ -1,0 +1,24 @@
+# SAM configuration file for clip-generator Lambda
+# Usage: sam deploy --guided (first time) or sam deploy (subsequent)
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "physician-clip-generator"
+resolve_s3 = true
+s3_prefix = "physician-clip-generator"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+
+[default.build.parameters]
+parallel = true
+
+[production.deploy.parameters]
+stack_name = "physician-clip-generator-prod"
+resolve_s3 = true
+s3_prefix = "physician-clip-generator-prod"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+parameter_overrides = "Environment=production"

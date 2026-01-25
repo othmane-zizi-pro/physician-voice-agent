@@ -1,28 +1,21 @@
 // app/api/generate-clip/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
-import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import type { Database } from '@/types/database';
 import { getSession } from '@/lib/auth';
-import {
-  parseLiveKitIntoExchanges,
-  sliceRecording,
-  generateVideo,
-} from '@/lib/clipUtils';
+import { parseLiveKitIntoExchanges } from '@/lib/clipUtils';
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Lambda endpoint for FFmpeg processing (deployed via SAM)
+const LAMBDA_ENDPOINT = process.env.CLIP_LAMBDA_URL;
+
 export async function POST(request: NextRequest) {
   // Allow anonymous users to create clips (removed auth requirement)
   const session = await getSession();
-
-  let workDir: string | null = null;
 
   try {
     const { callId, exchangeIndex } = await request.json();
@@ -85,25 +78,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create work directory
-    workDir = join(tmpdir(), `clip-${randomUUID()}`);
-    await mkdir(workDir, { recursive: true });
-
-    const paths = {
-      slicedAudio: join(workDir, 'audio.m4a'),
-      chatImage: join(workDir, 'chat.png'),
-      outputVideo: join(workDir, 'output.mp4'),
-    };
-
-    // Slice the recording to get just this exchange
-    await sliceRecording(
-      call.recording_url,
-      exchange.startSeconds,
-      exchange.endSeconds,
-      paths.slicedAudio
-    );
-
-    // Generate chat bubble image
+    // Generate chat bubble image locally (doesn't need FFmpeg)
     const imageUrl = new URL('/api/generate-clip/image', request.url);
     imageUrl.searchParams.set('physicianText', exchange.physicianText);
     imageUrl.searchParams.set('docText', exchange.docText);
@@ -113,48 +88,57 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to generate chat image');
     }
     const imageBuffer = await imageResponse.arrayBuffer();
-    await writeFile(paths.chatImage, Buffer.from(imageBuffer));
+    const chatImageBase64 = Buffer.from(imageBuffer).toString('base64');
 
-    // Generate video with single audio track
-    await generateVideo(
-      paths.chatImage,
-      [paths.slicedAudio],
-      paths.outputVideo
-    );
-
-    // Upload to Supabase Storage
-    const videoBuffer = await readFile(paths.outputVideo);
-    const fileName = `${callId}_${exchangeIndex}_${Date.now()}.mp4`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('clips')
-      .upload(fileName, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
+    // Check if Lambda is configured
+    if (!LAMBDA_ENDPOINT) {
+      return NextResponse.json(
+        { error: 'Clip generation not configured. Set CLIP_LAMBDA_URL environment variable.' },
+        { status: 503 }
+      );
     }
 
-    const { data: urlData } = supabase.storage
-      .from('clips')
-      .getPublicUrl(fileName);
+    // Call Lambda for FFmpeg processing
+    console.log('Calling Lambda for clip generation:', {
+      callId,
+      exchangeIndex,
+      startSeconds: exchange.startSeconds,
+      endSeconds: exchange.endSeconds
+    });
 
-    return NextResponse.json({ clipUrl: urlData.publicUrl });
+    const lambdaResponse = await fetch(LAMBDA_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recording_url: call.recording_url,
+        start_seconds: exchange.startSeconds,
+        end_seconds: exchange.endSeconds,
+        chat_image_base64: chatImageBase64,
+        call_id: callId,
+        exchange_index: exchangeIndex,
+      }),
+    });
+
+    if (!lambdaResponse.ok) {
+      const errorBody = await lambdaResponse.text();
+      console.error('Lambda error:', lambdaResponse.status, errorBody);
+      throw new Error(`Lambda processing failed: ${lambdaResponse.status}`);
+    }
+
+    const lambdaResult = await lambdaResponse.json();
+
+    if (lambdaResult.error) {
+      throw new Error(lambdaResult.error);
+    }
+
+    return NextResponse.json({ clipUrl: lambdaResult.clipUrl });
   } catch (error) {
     console.error('Generate clip error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate clip' },
       { status: 500 }
     );
-  } finally {
-    if (workDir) {
-      try {
-        await rm(workDir, { recursive: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
   }
 }
