@@ -14,9 +14,13 @@ const BUCKET = process.env.AWS_S3_BUCKET || 'voice-exp-recordings';
 
 // Extract S3 key from various URL formats
 function extractS3Key(url: string): string | null {
-  // Format: https://bucket.s3.region.amazonaws.com/key
-  const s3UrlMatch = url.match(/https:\/\/[^/]+\.s3\.[^/]+\.amazonaws\.com\/(.+)/);
-  if (s3UrlMatch) return decodeURIComponent(s3UrlMatch[1]);
+  // Format: https://bucket.s3.region.amazonaws.com/key (with region)
+  const s3RegionalMatch = url.match(/https:\/\/[^/]+\.s3\.[^/]+\.amazonaws\.com\/(.+)/);
+  if (s3RegionalMatch) return decodeURIComponent(s3RegionalMatch[1]);
+
+  // Format: https://bucket.s3.amazonaws.com/key (without region)
+  const s3GlobalMatch = url.match(/https:\/\/[^/]+\.s3\.amazonaws\.com\/(.+)/);
+  if (s3GlobalMatch) return decodeURIComponent(s3GlobalMatch[1]);
 
   // Format: https://s3.region.amazonaws.com/bucket/key
   const s3PathMatch = url.match(/https:\/\/s3\.[^/]+\.amazonaws\.com\/[^/]+\/(.+)/);
