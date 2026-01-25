@@ -130,6 +130,7 @@ export default function VoiceAgent() {
     const fullTranscriptRef = useRef<string[]>([]);
     const livekitRoomNameRef = useRef<string | null>(null);
     const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const callIdRef = useRef<string | null>(null); // Store call ID created at start
 
     // Timestamped transcript entries for video clip feature
     const timestampedTranscriptRef = useRef<TranscriptEntry[]>([]);
@@ -226,42 +227,61 @@ export default function VoiceAgent() {
         };
     }, [callStatus, usageData, showLowTimeWarning]);
 
-    // Save call to database
-    const saveCallToDatabase = useCallback(async () => {
+    // Create call record when call starts (so webhook can find it)
+    const createCallRecord = useCallback(async (roomName: string) => {
+        const { data, error } = await supabase
+            .from("calls")
+            .insert({
+                livekit_room_name: roomName,
+                user_id: userId || null,
+                ip_address: ipAddressRef.current,
+            })
+            .select("id")
+            .single();
+
+        if (error) {
+            console.error("Failed to create call record:", error);
+            return null;
+        }
+
+        console.log("Call record created with id:", data.id);
+        return data.id;
+    }, [userId]);
+
+    // Update call record when call ends with transcript and duration
+    const updateCallRecord = useCallback(async () => {
+        if (!callIdRef.current) {
+            console.warn("No call ID to update");
+            return null;
+        }
+
         const durationSeconds = callStartTimeRef.current
             ? Math.round((Date.now() - callStartTimeRef.current) / 1000)
             : null;
 
         const transcriptText = fullTranscriptRef.current.join("\n");
 
-        // Still save the call even if transcript is empty, so recording URL can be linked later
-        if (!transcriptText && !livekitRoomNameRef.current) return null;
-
         // Get timestamped transcript for video clip feature
         const transcriptObject = timestampedTranscriptRef.current.length > 0
             ? timestampedTranscriptRef.current
             : null;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from("calls")
-            .insert({
+            .update({
                 transcript: transcriptText,
                 transcript_object: transcriptObject,
                 duration_seconds: durationSeconds,
-                ip_address: ipAddressRef.current,
-                livekit_room_name: livekitRoomNameRef.current,
-                user_id: userId || null, // Link to user if logged in
             })
-            .select("id")
-            .single();
+            .eq("id", callIdRef.current);
 
         if (error) {
-            console.error("Failed to save call:", error);
+            console.error("Failed to update call:", error);
             return null;
         }
 
-        return data.id;
-    }, [user]);
+        return callIdRef.current;
+    }, []);
 
     // Handle call end logic
     const handleCallEnd = useCallback(async () => {
@@ -312,8 +332,8 @@ export default function VoiceAgent() {
             setShowPostCallForm(true);
         }
 
-        // Save call to database
-        const callId = await saveCallToDatabase();
+        // Update call record with transcript and duration
+        const callId = await updateCallRecord();
         if (callId) {
             setLastCallId(callId);
 
@@ -347,9 +367,12 @@ export default function VoiceAgent() {
                 }).catch(console.error);
             }
         } else {
-            console.warn("Call not saved to database - transcript may be empty or save failed");
+            console.warn("Call update failed - call record may not exist");
         }
-    }, [saveCallToDatabase, userId]);
+
+        // Reset call ID ref
+        callIdRef.current = null;
+    }, [updateCallRecord, userId]);
 
     // Cleanup room on unmount
     useEffect(() => {
@@ -407,6 +430,12 @@ export default function VoiceAgent() {
             }
 
             livekitRoomNameRef.current = roomName;
+
+            // Create call record immediately so webhook can find it
+            const callId = await createCallRecord(roomName);
+            if (callId) {
+                callIdRef.current = callId;
+            }
 
             // Create and connect to LiveKit room
             const room = new Room();
@@ -497,7 +526,7 @@ export default function VoiceAgent() {
                 roomRef.current = null;
             }
         }
-    }, [user, handleCallEnd]);
+    }, [user, userId, handleCallEnd, createCallRecord]);
 
     // Share functions
     const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
