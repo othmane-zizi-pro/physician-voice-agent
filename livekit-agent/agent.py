@@ -2,11 +2,18 @@ import json
 import logging
 import os
 import time
+import asyncio
 from dotenv import load_dotenv
 
 from livekit import agents, rtc, api
 from livekit.agents import AgentSession, Agent, RoomInputOptions, RoomOutputOptions
 from livekit.plugins import deepgram, openai, silero, elevenlabs
+
+# S3 configuration for recordings
+S3_BUCKET = os.getenv("AWS_S3_BUCKET", "voice-exp-recordings")
+S3_REGION = os.getenv("AWS_REGION", "us-east-1")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 load_dotenv()
 
@@ -15,6 +22,48 @@ logger = logging.getLogger("doc-agent")
 # Track session start time for relative timestamps
 session_start_time: float = 0
 transcript_entries: list = []
+
+
+async def start_room_recording(room_name: str) -> str | None:
+    """Start recording the room to S3. Returns egress ID if successful."""
+    if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET]):
+        logger.warning("S3 credentials not configured, skipping recording")
+        return None
+
+    try:
+        livekit_url = os.getenv("LIVEKIT_URL", "").replace("wss://", "https://")
+        livekit_api = api.LiveKitAPI(
+            url=livekit_url,
+            api_key=os.getenv("LIVEKIT_API_KEY"),
+            api_secret=os.getenv("LIVEKIT_API_SECRET"),
+        )
+
+        # Configure S3 output
+        s3_output = api.S3Upload(
+            bucket=S3_BUCKET,
+            region=S3_REGION,
+            access_key=AWS_ACCESS_KEY_ID,
+            secret=AWS_SECRET_ACCESS_KEY,
+        )
+
+        # Start room composite egress (records entire room)
+        egress_request = api.RoomCompositeEgressRequest(
+            room_name=room_name,
+            file=api.EncodedFileOutput(
+                file_type=api.EncodedFileType.MP4,
+                filepath=f"recordings/{room_name}.mp4",
+                s3=s3_output,
+            ),
+            audio_only=True,  # We only need audio for this use case
+        )
+
+        egress_info = await livekit_api.egress.start_room_composite_egress(egress_request)
+        logger.info(f"Started recording for room {room_name}, egress_id: {egress_info.egress_id}")
+        return egress_info.egress_id
+
+    except Exception as e:
+        logger.error(f"Failed to start recording: {e}")
+        return None
 
 # Doc's persona - the sardonic physician companion
 DOC_PERSONA = """You are "Doc," a voice-based AI companion for burnt-out physicians. You're like that sardonic colleague everyone loves grabbing drinks with after a brutal shift—the one who actually gets it.
@@ -86,6 +135,11 @@ async def entrypoint(ctx: agents.JobContext):
     logger.info(f"Connecting to room: {ctx.room.name}")
 
     await ctx.connect()
+
+    # Start recording the room to S3
+    egress_id = await start_room_recording(ctx.room.name)
+    if egress_id:
+        logger.info(f"Recording started with egress_id: {egress_id}")
 
     # Initialize session timing
     session_start_time = time.time()
@@ -187,7 +241,7 @@ async def entrypoint(ctx: agents.JobContext):
 
     # When session ends, send final transcript summary
     @ctx.room.on("disconnected")
-    async def on_room_disconnected():
+    def on_room_disconnected():
         logger.info(f"Room disconnected. Total transcript entries: {len(transcript_entries)}")
         # Send final transcript as room metadata or final data message
         final_data = {
@@ -195,13 +249,17 @@ async def entrypoint(ctx: agents.JobContext):
             "entries": transcript_entries,
             "totalDuration": time.time() - session_start_time,
         }
-        try:
-            await ctx.room.local_participant.publish_data(
-                json.dumps(final_data).encode(),
-                reliable=True
-            )
-        except Exception as e:
-            logger.warning(f"Could not send final transcript: {e}")
+
+        async def send_final_transcript():
+            try:
+                await ctx.room.local_participant.publish_data(
+                    json.dumps(final_data).encode(),
+                    reliable=True
+                )
+            except Exception as e:
+                logger.warning(f"Could not send final transcript: {e}")
+
+        asyncio.create_task(send_final_transcript())
 
 
 if __name__ == "__main__":

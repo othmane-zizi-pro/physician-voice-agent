@@ -19,6 +19,13 @@ import {
   ArrowLeft,
   Link2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface Conversation {
   id: string;
@@ -336,27 +343,28 @@ ${conv.transcript}
     <button
       key={conv.id}
       onClick={() => setSelectedConversation(conv)}
-      className="w-full text-left px-4 py-2.5 hover:bg-brand-neutral-50/80 transition-all duration-150 group"
+      className="w-full text-left px-4 py-3 hover:bg-brand-neutral-100/50 transition-all duration-200 group border-b border-brand-neutral-100/50 last:border-0"
     >
       <div className="flex items-center gap-3">
         <div
-          className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+          className={cn(
+            "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors",
             conv.session_type === "voice"
-              ? "bg-brand-ice/60 text-brand-navy-600"
-              : "bg-emerald-50 text-emerald-600"
-          }`}
+              ? "bg-brand-ice text-brand-navy-600 group-hover:bg-brand-ice-dark"
+              : "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
+          )}
         >
           {conv.session_type === "voice" ? (
-            <Phone size={13} />
+            <Phone size={14} strokeWidth={2.5} />
           ) : (
-            <MessageSquare size={13} />
+            <MessageSquare size={14} strokeWidth={2.5} />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] text-brand-navy-800 truncate leading-snug">
+          <p className="text-[13px] font-medium text-brand-navy-900 truncate leading-snug">
             {getPreview(conv)}
           </p>
-          <p className="text-[11px] text-brand-navy-400 mt-0.5">
+          <p className="text-[11px] text-brand-navy-400 mt-1 font-medium">
             {formatTime(conv.created_at)}
             {conv.session_type === "voice" && conv.duration_seconds && (
               <span className="ml-1.5">· {formatDuration(conv.duration_seconds)}</span>
@@ -365,7 +373,7 @@ ${conv.transcript}
         </div>
         <ChevronRight
           size={14}
-          className="flex-shrink-0 text-brand-navy-200 group-hover:text-brand-navy-400 transition-colors"
+          className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-500 transition-colors opacity-0 group-hover:opacity-100"
         />
       </div>
     </button>
@@ -374,127 +382,142 @@ ${conv.transcript}
   return (
     <>
       {/* Toggle button - only visible when sidebar is closed */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed top-4 left-4 z-40 p-2.5 rounded-xl bg-white/90 backdrop-blur-sm border border-brand-neutral-100/80 hover:bg-white hover:border-brand-neutral-200 hover:shadow-md transition-all duration-200 shadow-sm"
-          aria-label="Open conversation history"
-        >
-          <Menu size={18} className="text-brand-navy-700" />
-        </button>
-      )}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => setIsOpen(true)}
+            className="fixed top-5 left-5 z-40 p-2.5 rounded-full glass hover:bg-white hover:shadow-glass-hover transition-all duration-300 shadow-glass"
+            aria-label="Open conversation history"
+          >
+            <Menu size={20} className="text-brand-navy-700" strokeWidth={2} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-brand-navy-900/20 backdrop-blur-[2px] z-30 lg:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-brand-navy-900/40 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
-      <div
-        className={`
-          fixed top-0 left-0 h-full w-72 bg-white/95 backdrop-blur-md border-r border-brand-neutral-100/80 z-40
-          transform transition-transform duration-300 ease-out shadow-xl
-          ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+      <motion.div
+        initial={false}
+        animate={{ x: isOpen ? 0 : "-100%" }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed top-0 left-0 h-full w-80 glass border-r border-white/50 z-40 shadow-2xl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 h-14 border-b border-brand-neutral-100/60">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-brand-neutral-50">
-              <History size={16} className="text-brand-navy-600" />
+        <div className="flex items-center justify-between px-5 h-16 border-b border-brand-neutral-200/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-brand-neutral-100 text-brand-navy-700">
+              <History size={18} />
             </div>
-            <span className="font-semibold text-brand-navy-900 text-[15px]">History</span>
+            <span className="font-bold text-brand-navy-900 text-base tracking-tight">History</span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 rounded-lg hover:bg-brand-neutral-100/80 transition-colors"
+            className="p-2 rounded-full hover:bg-brand-neutral-100 transition-colors"
             aria-label="Close sidebar"
           >
-            <X size={18} className="text-brand-navy-500" />
+            <X size={20} className="text-brand-navy-500" />
           </button>
         </div>
 
         {/* Search bar */}
-        <div className="px-3 py-3">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-navy-300" />
+        <div className="px-4 py-4">
+          <div className="relative group">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-navy-400 group-focus-within:text-brand-brown transition-colors" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className="w-full pl-9 pr-8 py-2 text-[13px] bg-brand-neutral-50/80 border border-brand-neutral-100/60 rounded-xl focus:outline-none focus:border-brand-navy-200 focus:bg-white focus:ring-2 focus:ring-brand-navy-100/50 transition-all duration-150 placeholder:text-brand-navy-300"
+              placeholder="Search conversations..."
+              className="w-full pl-10 pr-9 py-2.5 text-sm bg-white/50 border border-brand-neutral-200 rounded-xl focus:outline-none focus:bg-white focus:border-brand-brown/30 focus:shadow-sm transition-all duration-200 placeholder:text-brand-navy-300"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-brand-neutral-200/80 rounded-md transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-brand-neutral-200 rounded-full transition-colors"
               >
-                <X size={13} className="text-brand-navy-500" />
+                <X size={14} className="text-brand-navy-500" />
               </button>
             )}
           </div>
         </div>
 
         {/* Content */}
-        <div className="h-[calc(100%-7rem)] overflow-y-auto">
+        <div className="h-[calc(100%-8.5rem)] overflow-y-auto scrollbar-thin px-2">
           {isLoading ? (
             // Skeleton loaders
-            <div className="py-2">
+            <div className="py-2 space-y-2">
               <div className="px-4 py-2">
-                <div className="h-3 bg-brand-neutral-100 rounded w-16 animate-pulse" />
+                <div className="h-3 bg-brand-neutral-200 rounded w-20 animate-pulse" />
               </div>
               {[...Array(5)].map((_, i) => (
                 <ConversationSkeleton key={i} />
               ))}
             </div>
           ) : error ? (
-            <div className="text-center py-8 px-4">
-              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-              <p className="text-red-500 text-sm mb-3">{error}</p>
+            <div className="text-center py-12 px-6">
+              <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <p className="text-red-600 text-sm font-medium mb-2">{error}</p>
               <button
                 onClick={fetchConversations}
-                className="text-sm text-brand-brown hover:underline"
+                className="text-xs text-brand-brown font-semibold hover:underline"
               >
                 Try again
               </button>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="text-center py-12 px-4">
+            <div className="text-center py-16 px-6">
               {searchQuery ? (
                 <>
-                  <Search className="w-10 h-10 text-brand-navy-300 mx-auto mb-3" />
-                  <p className="text-brand-navy-600 text-sm">No results found</p>
-                  <p className="text-brand-navy-300 text-xs mt-1">
+                  <div className="bg-brand-neutral-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-brand-navy-300" />
+                  </div>
+                  <p className="text-brand-navy-700 text-sm font-medium">No results found</p>
+                  <p className="text-brand-navy-400 text-xs mt-1">
                     Try a different search term
                   </p>
                 </>
               ) : (
                 <>
-                  <MessageSquare className="w-10 h-10 text-brand-navy-300 mx-auto mb-3" />
-                  <p className="text-brand-navy-600 text-sm">No conversations yet</p>
-                  <p className="text-brand-navy-300 text-xs mt-1">
+                  <div className="bg-brand-neutral-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="w-8 h-8 text-brand-navy-300" />
+                  </div>
+                  <p className="text-brand-navy-700 text-sm font-medium">No conversations yet</p>
+                  <p className="text-brand-navy-400 text-xs mt-1">
                     Start venting to see your history
                   </p>
                 </>
               )}
             </div>
           ) : (
-            <div className="pt-1 pb-4">
+            <div className="pb-4 space-y-6">
               {/* Render groups in order */}
               {groupOrder.map((groupKey) => {
                 const convs = groupedConversations[groupKey];
                 if (!convs || convs.length === 0) return null;
 
                 return (
-                  <div key={groupKey} className="mb-1">
-                    <p className="px-4 py-2 text-[11px] font-medium text-brand-navy-400 uppercase tracking-wider">
+                  <div key={groupKey}>
+                    <p className="px-4 py-2 text-[10px] font-bold text-brand-navy-400 uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-brand-neutral-100/50">
                       {groupKey}
                     </p>
-                    <div>
+                    <div className="mt-1">
                       {convs.map(renderConversationItem)}
                     </div>
                   </div>
@@ -509,11 +532,11 @@ ${conv.transcript}
                   if (!convs || convs.length === 0) return null;
 
                   return (
-                    <div key={groupKey} className="mb-1">
-                      <p className="px-4 py-2 text-[11px] font-medium text-brand-navy-400 uppercase tracking-wider">
+                    <div key={groupKey}>
+                      <p className="px-4 py-2 text-[10px] font-bold text-brand-navy-400 uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-brand-neutral-100/50">
                         {groupKey}
                       </p>
-                      <div>
+                      <div className="mt-1">
                         {convs.map(renderConversationItem)}
                       </div>
                     </div>
@@ -522,256 +545,326 @@ ${conv.transcript}
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Conversation detail modal */}
-      {selectedConversation && (
-        <div
-          className="fixed inset-0 bg-brand-navy-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          onClick={() => {
-            setSelectedConversation(null);
-            setDeleteConfirm(null);
-          }}
-        >
-          <div
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+      <AnimatePresence>
+        {selectedConversation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-brand-navy-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => {
+              setSelectedConversation(null);
+              setDeleteConfirm(null);
+            }}
           >
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-brand-neutral-100">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    selectedConversation.session_type === "voice"
-                      ? "bg-brand-ice text-brand-navy-600"
-                      : "bg-green-100 text-green-600"
-                  }`}
-                >
-                  {selectedConversation.session_type === "voice" ? (
-                    <Phone size={18} />
-                  ) : (
-                    <MessageSquare size={18} />
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium text-brand-navy-900">
-                    {selectedConversation.session_type === "voice"
-                      ? "Voice Call"
-                      : "Text Confession"}
-                  </p>
-                  <p className="text-xs text-brand-navy-600">
-                    {new Date(selectedConversation.created_at).toLocaleDateString([], {
-                      weekday: "long",
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                    {selectedConversation.duration_seconds && (
-                      <span className="ml-2">
-                        · {formatDuration(selectedConversation.duration_seconds)}
-                      </span>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl border border-white/50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-brand-neutral-100 bg-brand-neutral-50/50">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
+                      selectedConversation.session_type === "voice"
+                        ? "bg-brand-ice text-brand-navy-600"
+                        : "bg-emerald-100 text-emerald-600"
                     )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-1">
-                {selectedConversation.transcript && selectedConversation.session_type === 'voice' && clipMode === 'view' && (
-                  <button
-                    onClick={handleCreateClip}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-colors mr-1"
-                    title="Create video clip"
                   >
-                    <Film size={16} />
-                    <span className="hidden sm:inline">Create Clip</span>
-                  </button>
-                )}
-                {selectedConversation.transcript && clipMode === 'view' && (
-                  <button
-                    onClick={() => handleExport(selectedConversation)}
-                    className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
-                    title="Export transcript"
-                  >
-                    <Download size={18} className="text-brand-navy-600" />
-                  </button>
-                )}
-                {clipMode === 'view' && (
-                  <button
-                    onClick={() => setDeleteConfirm(selectedConversation.id)}
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete conversation"
-                  >
-                    <Trash2 size={18} className="text-red-500" />
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setSelectedConversation(null);
-                    setDeleteConfirm(null);
-                    handleBackToView();
-                  }}
-                  className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors ml-1"
-                >
-                  <X size={20} className="text-brand-navy-600" />
-                </button>
-              </div>
-            </div>
-
-            {/* Delete confirmation */}
-            {deleteConfirm === selectedConversation.id && (
-              <div className="px-6 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
-                <p className="text-red-700 text-sm">Delete this conversation?</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setDeleteConfirm(null)}
-                    className="px-3 py-1 text-sm text-brand-navy-600 hover:bg-white rounded transition-colors"
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedConversation.id)}
-                    disabled={isDeleting}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        Deleting...
-                      </>
+                    {selectedConversation.session_type === "voice" ? (
+                      <Phone size={24} strokeWidth={2} />
                     ) : (
-                      "Delete"
+                      <MessageSquare size={24} strokeWidth={2} />
                     )}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-brand-navy-900 text-lg">
+                      {selectedConversation.session_type === "voice"
+                        ? "Voice Call"
+                        : "Text Confession"}
+                    </h3>
+                    <p className="text-xs font-medium text-brand-navy-500">
+                      {new Date(selectedConversation.created_at).toLocaleDateString([], {
+                        weekday: "short",
+                        month: "long",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                      {selectedConversation.duration_seconds && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-brand-neutral-200/50 text-brand-navy-600">
+                          {formatDuration(selectedConversation.duration_seconds)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  {selectedConversation.transcript && selectedConversation.session_type === 'voice' && clipMode === 'view' && (
+                    <button
+                      onClick={handleCreateClip}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-all shadow-md hover:shadow-lg active:scale-95"
+                      title="Create video clip"
+                    >
+                      <Film size={16} />
+                      <span className="hidden sm:inline">Create Clip</span>
+                    </button>
+                  )}
+                  {selectedConversation.transcript && clipMode === 'view' && (
+                    <button
+                      onClick={() => handleExport(selectedConversation)}
+                      className="p-2.5 hover:bg-brand-neutral-100 rounded-lg transition-colors text-brand-navy-600 hover:text-brand-navy-900"
+                      title="Export transcript"
+                    >
+                      <Download size={20} />
+                    </button>
+                  )}
+                  {clipMode === 'view' && (
+                    <button
+                      onClick={() => setDeleteConfirm(selectedConversation.id)}
+                      className="p-2.5 hover:bg-red-50 rounded-lg transition-colors text-brand-navy-400 hover:text-red-500"
+                      title="Delete conversation"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                  <div className="w-px h-8 bg-brand-neutral-200 mx-1" />
+                  <button
+                    onClick={() => {
+                      setSelectedConversation(null);
+                      setDeleteConfirm(null);
+                      handleBackToView();
+                    }}
+                    className="p-2.5 hover:bg-brand-neutral-100 rounded-lg transition-colors text-brand-navy-500 hover:text-brand-navy-900"
+                  >
+                    <X size={22} />
                   </button>
                 </div>
               </div>
-            )}
 
-            {/* Modal content */}
-            <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
-              {/* Clip mode: Select exchange */}
-              {clipMode === 'select' && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <button
-                      onClick={handleBackToView}
-                      className="p-1 text-brand-navy-600 hover:text-brand-navy-900"
-                    >
-                      <ArrowLeft size={20} />
-                    </button>
-                    <h3 className="text-lg font-medium text-brand-navy-900">Select an exchange to clip</h3>
-                  </div>
-                  {clipError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                      {clipError}
-                    </div>
-                  )}
-                  <div className="space-y-3">
-                    {exchanges.map((exchange) => (
-                      <button
-                        key={exchange.index}
-                        onClick={() => handleSelectExchange(exchange.index)}
-                        className="w-full text-left p-4 bg-brand-neutral-50 hover:bg-brand-neutral-100 rounded-xl transition-colors border border-brand-neutral-100"
-                      >
-                        <div className="mb-2">
-                          <span className="text-xs text-brand-navy-600 font-medium">You</span>
-                          <p className="text-brand-navy-800 text-sm line-clamp-2">{exchange.physicianText}</p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-brand-brown font-medium">Doc</span>
-                          <p className="text-brand-navy-600 text-sm line-clamp-2">{exchange.docText}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Clip mode: Generating */}
-              {clipMode === 'generating' && (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 size={48} className="text-brand-brown animate-spin mb-4" />
-                  <p className="text-brand-navy-800">Creating your clip...</p>
-                  <p className="text-brand-navy-600 text-sm mt-1">This may take a few moments</p>
-                </div>
-              )}
-
-              {/* Clip mode: Result */}
-              {clipMode === 'result' && clipUrl && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <button
-                      onClick={handleBackToView}
-                      className="p-1 text-brand-navy-600 hover:text-brand-navy-900"
-                    >
-                      <ArrowLeft size={20} />
-                    </button>
-                    <h3 className="text-lg font-medium text-brand-navy-900">Your clip is ready!</h3>
-                  </div>
-                  <div className="bg-brand-neutral-50 rounded-xl p-4 mb-4">
-                    <video
-                      src={clipUrl}
-                      controls
-                      className="w-full rounded-lg"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <a
-                      href={clipUrl}
-                      download
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-colors"
-                    >
-                      <Download size={18} />
-                      Download
-                    </a>
-                    <button
-                      onClick={handleCopyClipLink}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-neutral-100 hover:bg-brand-neutral-100/80 text-brand-navy-800 rounded-lg transition-colors"
-                    >
-                      <Link2 size={18} />
-                      {copiedClipLink ? "Copied!" : "Copy Link"}
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setClipMode('select')}
-                    className="w-full mt-3 px-4 py-2 text-brand-navy-600 hover:text-brand-navy-900 transition-colors text-sm"
+              {/* Delete confirmation */}
+              <AnimatePresence>
+                {deleteConfirm === selectedConversation.id && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-red-50 border-b border-red-100"
                   >
-                    Create another clip
-                  </button>
-                </div>
-              )}
-
-              {/* Default view mode */}
-              {clipMode === 'view' && (
-                <>
-                  {selectedConversation.quotable_quote && (
-                    <div className="mb-4 p-4 bg-brand-ice/50 rounded-lg border border-brand-ice">
-                      <p className="text-xs text-brand-navy-600 uppercase tracking-wide mb-1">
-                        Highlight
+                    <div className="px-6 py-3 flex items-center justify-between">
+                      <p className="text-red-700 text-sm font-medium flex items-center gap-2">
+                        <AlertCircle size={16} />
+                        Delete this conversation permanently?
                       </p>
-                      <p className="text-brand-navy-800 italic">
-                        "{selectedConversation.quotable_quote}"
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="px-3 py-1.5 text-sm text-brand-navy-600 hover:bg-white/50 rounded-lg transition-colors font-medium"
+                          disabled={isDeleting}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleDelete(selectedConversation.id)}
+                          disabled={isDeleting}
+                          className="px-4 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2 font-medium shadow-sm"
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Loader2 size={14} className="animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            "Yes, delete"
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  {selectedConversation.transcript ? (
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap font-sans text-brand-navy-800 text-sm leading-relaxed bg-transparent p-0 m-0">
-                        {selectedConversation.transcript}
-                      </pre>
+              {/* Modal content */}
+              <div className="px-8 py-6 overflow-y-auto max-h-[60vh] scrollbar-thin">
+                {/* Clip mode: Select exchange */}
+                {clipMode === 'select' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={handleBackToView}
+                        className="p-2 -ml-2 rounded-full hover:bg-brand-neutral-100 text-brand-navy-600 transition-colors"
+                      >
+                        <ArrowLeft size={20} />
+                      </button>
+                      <div>
+                        <h3 className="text-lg font-bold text-brand-navy-900">Select a moment to clip</h3>
+                        <p className="text-sm text-brand-navy-500">Choose an exchange to turn into a shareable video</p>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-brand-navy-600 text-sm">No transcript available</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                    {clipError && (
+                      <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-700 text-sm">
+                        <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+                        <p>{clipError}</p>
+                      </div>
+                    )}
+                    <div className="space-y-4">
+                      {exchanges.map((exchange) => (
+                        <button
+                          key={exchange.index}
+                          onClick={() => handleSelectExchange(exchange.index)}
+                          className="w-full text-left p-5 bg-white border border-brand-neutral-200 hover:border-brand-brown/50 hover:shadow-md hover:scale-[1.01] rounded-2xl transition-all duration-200 group"
+                        >
+                          <div className="mb-3 pl-4 border-l-2 border-brand-neutral-200 group-hover:border-brand-brown/30 transition-colors">
+                            <span className="text-xs text-brand-navy-500 font-bold uppercase tracking-wider mb-1 block">You</span>
+                            <p className="text-brand-navy-900 text-sm leading-relaxed">{exchange.physicianText}</p>
+                          </div>
+                          <div className="pl-4 border-l-2 border-brand-brown/20 group-hover:border-brand-brown transition-colors">
+                            <span className="text-xs text-brand-brown font-bold uppercase tracking-wider mb-1 block">Doc</span>
+                            <p className="text-brand-navy-700 text-sm leading-relaxed">{exchange.docText}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Clip mode: Generating */}
+                {clipMode === 'generating' && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-20"
+                  >
+                    <div className="relative mb-8">
+                      <div className="absolute inset-0 bg-brand-brown/20 blur-xl rounded-full animate-pulse"></div>
+                      <Loader2 size={64} className="text-brand-brown animate-spin relative z-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-brand-navy-900 mb-2">Creating your clip...</h3>
+                    <p className="text-brand-navy-500 text-sm">This magic takes just a moment</p>
+                  </motion.div>
+                )}
+
+                {/* Clip mode: Result */}
+                {clipMode === 'result' && clipUrl && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <button
+                        onClick={handleBackToView}
+                        className="p-2 -ml-2 rounded-full hover:bg-brand-neutral-100 text-brand-navy-600 transition-colors"
+                      >
+                        <ArrowLeft size={20} />
+                      </button>
+                      <div>
+                        <h3 className="text-lg font-bold text-brand-navy-900">Your clip is ready!</h3>
+                        <p className="text-sm text-brand-navy-500">Download or share it with the world</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-black rounded-xl overflow-hidden shadow-2xl mb-8 border border-brand-neutral-200">
+                      <video
+                        src={clipUrl}
+                        controls
+                        className="w-full aspect-video"
+                        autoPlay
+                      />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <a
+                        href={clipUrl}
+                        download
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-brown hover:bg-brand-brown-dark text-white rounded-xl transition-all shadow-lg hover:shadow-xl font-medium"
+                      >
+                        <Download size={20} />
+                        Download Video
+                      </a>
+                      <button
+                        onClick={handleCopyClipLink}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white border border-brand-neutral-200 hover:bg-brand-neutral-50 text-brand-navy-900 rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
+                      >
+                        <Link2 size={20} className="text-brand-navy-500" />
+                        {copiedClipLink ? "Link Copied!" : "Copy Link"}
+                      </button>
+                    </div>
+
+                    <div className="mt-8 text-center">
+                      <button
+                        onClick={() => setClipMode('select')}
+                        className="text-brand-navy-500 hover:text-brand-brown transition-colors text-sm font-medium hover:underline"
+                      >
+                        Create another clip from this conversation
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Default view mode */}
+                {clipMode === 'view' && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    {selectedConversation.quotable_quote && (
+                      <div className="mb-8 p-6 bg-gradient-to-br from-brand-ice/30 to-white rounded-2xl border border-brand-ice/50 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-ice/20 rounded-bl-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+                        <p className="text-xs text-brand-navy-500 font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <span className="w-1 h-4 bg-brand-brown rounded-full"></span>
+                          Highlight
+                        </p>
+                        <p className="text-brand-navy-900 text-lg italic leading-relaxed font-medium">
+                          "{selectedConversation.quotable_quote}"
+                        </p>
+                      </div>
+                    )}
+
+                    {selectedConversation.transcript ? (
+                      <div>
+                        {selectedConversation.quotable_quote && (
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className="h-px bg-brand-neutral-200 flex-1"></div>
+                            <span className="text-xs text-brand-navy-400 font-medium uppercase tracking-widest">Full Transcript</span>
+                            <div className="h-px bg-brand-neutral-200 flex-1"></div>
+                          </div>
+                        )}
+                        <div className="space-y-4 font-sans text-brand-navy-800 leading-relaxed">
+                          {/* We'll render the transcript with some nice formatting */}
+                          {selectedConversation.transcript.split('\n').map((line, i) => {
+                            if (!line.trim()) return null;
+                            const isYou = line.startsWith('You:');
+                            return (
+                              <div key={i} className={cn("p-4 rounded-xl", isYou ? "bg-brand-neutral-50 border border-brand-neutral-100" : "bg-transparent pl-4")}>
+                                <p className={cn("text-sm", isYou ? "text-brand-navy-900" : "text-brand-navy-700")}>
+                                  {isYou ? (
+                                    <span className="font-bold text-brand-navy-500 text-xs uppercase tracking-wide block mb-1">You</span>
+                                  ) : (
+                                    <span className="font-bold text-brand-brown text-xs uppercase tracking-wide block mb-1">Doc</span>
+                                  )}
+                                  {line.replace(/^(You:|Doc:)\s*/, '')}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-12 text-brand-navy-400 opacity-60">
+                        <MessageSquare size={48} className="mb-4" />
+                        <p className="text-sm">No transcript available for this session</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

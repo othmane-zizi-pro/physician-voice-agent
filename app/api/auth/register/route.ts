@@ -9,6 +9,7 @@ import {
   createSessionToken,
   setSessionCookie,
 } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +18,19 @@ const supabase = createClient<Database>(
 
 export async function POST(request: NextRequest) {
   try {
+    // Get IP for rate limiting
+    const forwarded = request.headers.get("x-forwarded-for");
+    const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+
+    // Check rate limit (stricter for registration)
+    const rateLimit = checkRateLimit(ip, "register");
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Please try again in ${Math.ceil(rateLimit.retryAfter / 60)} minutes.` },
+        { status: 429 }
+      );
+    }
+
     const { email, password, name } = await request.json();
 
     // Validate input
@@ -68,9 +82,8 @@ export async function POST(request: NextRequest) {
     const verificationToken = generateToken();
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
-    // Get IP for geolocation
-    const forwarded = request.headers.get("x-forwarded-for");
-    const ipAddress = forwarded ? forwarded.split(",")[0].trim() : null;
+    // Use IP from rate limiting section for geolocation
+    const ipAddress = ip !== "unknown" ? ip : null;
 
     // Create user
     const { data: user, error: insertError } = await supabase

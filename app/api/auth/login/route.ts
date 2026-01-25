@@ -7,6 +7,12 @@ import {
   createSessionToken,
   setSessionCookie,
 } from "@/lib/auth";
+import {
+  checkRateLimit,
+  checkLockout,
+  recordFailedLogin,
+  clearFailedLogins,
+} from "@/lib/rateLimit";
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +21,19 @@ const supabase = createClient<Database>(
 
 export async function POST(request: NextRequest) {
   try {
+    // Get IP for rate limiting
+    const forwarded = request.headers.get("x-forwarded-for");
+    const ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
+
+    // Check rate limit
+    const rateLimit = checkRateLimit(ip, "login");
+    if (rateLimit.isLimited) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Please try again in ${Math.ceil(rateLimit.retryAfter / 60)} minutes.` },
+        { status: 429 }
+      );
+    }
+
     const { email, password } = await request.json();
 
     // Validate input
@@ -32,6 +51,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account is locked out
+    const lockout = checkLockout(email.toLowerCase());
+    if (lockout.isLocked) {
+      return NextResponse.json(
+        { error: `Account temporarily locked. Please try again in ${Math.ceil(lockout.lockoutRemaining / 60)} minutes.` },
+        { status: 423 }
+      );
+    }
+
     // Find user
     const { data: user, error: findError } = await supabase
       .from("users")
@@ -40,8 +68,16 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (findError || !user) {
+      // Record failed attempt
+      const failedResult = recordFailedLogin(email.toLowerCase());
+      if (failedResult.isLocked) {
+        return NextResponse.json(
+          { error: `Too many failed attempts. Account locked for ${Math.ceil(failedResult.lockoutRemaining / 60)} minutes.` },
+          { status: 423 }
+        );
+      }
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: `Invalid email or password. ${failedResult.attemptsRemaining} attempts remaining.` },
         { status: 401 }
       );
     }
@@ -56,19 +92,38 @@ export async function POST(request: NextRequest) {
 
     // Verify password
     if (!user.password_hash) {
+      // Record failed attempt
+      const failedResult = recordFailedLogin(email.toLowerCase());
+      if (failedResult.isLocked) {
+        return NextResponse.json(
+          { error: `Too many failed attempts. Account locked for ${Math.ceil(failedResult.lockoutRemaining / 60)} minutes.` },
+          { status: 423 }
+        );
+      }
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: `Invalid email or password. ${failedResult.attemptsRemaining} attempts remaining.` },
         { status: 401 }
       );
     }
 
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
+      // Record failed attempt
+      const failedResult = recordFailedLogin(email.toLowerCase());
+      if (failedResult.isLocked) {
+        return NextResponse.json(
+          { error: `Too many failed attempts. Account locked for ${Math.ceil(failedResult.lockoutRemaining / 60)} minutes.` },
+          { status: 423 }
+        );
+      }
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: `Invalid email or password. ${failedResult.attemptsRemaining} attempts remaining.` },
         { status: 401 }
       );
     }
+
+    // Clear failed login attempts on success
+    clearFailedLogins(email.toLowerCase());
 
     // Update last login
     await supabase

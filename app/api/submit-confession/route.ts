@@ -153,6 +153,26 @@ ${content}`;
       }
     }
 
+    // Step 4: Generate summary for AI context (only for logged-in users)
+    if (userId && content.length >= 50) {
+      try {
+        // Fire and forget - don't block the response
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/generate-summary`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            callId,
+            userId,
+            transcript: content,
+          }),
+        }).catch((err) => {
+          console.error("Summary generation failed (non-critical):", err);
+        });
+      } catch (summaryError) {
+        console.error("Summary generation failed (non-critical):", summaryError);
+      }
+    }
+
     return NextResponse.json({
       callId,
       quote,
