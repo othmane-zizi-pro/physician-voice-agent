@@ -67,6 +67,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get presigned URL for the S3 recording (Lambda can't access private S3 directly)
+    const presignUrl = new URL('/api/presign-url', request.url);
+    const presignResponse = await fetch(presignUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: call.recording_url }),
+    });
+
+    if (!presignResponse.ok) {
+      const presignError = await presignResponse.json();
+      console.error('Presign URL error:', presignError);
+      throw new Error('Failed to get recording access');
+    }
+
+    const { presignedUrl } = await presignResponse.json();
+
     // Parse transcript into timed exchanges
     const exchanges = parseLiveKitIntoExchanges(call.transcript_object);
     const exchange = exchanges[exchangeIndex];
@@ -112,7 +128,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        recording_url: call.recording_url,
+        recording_url: presignedUrl,
         start_seconds: exchange.startSeconds,
         end_seconds: exchange.endSeconds,
         chat_image_base64: chatImageBase64,
