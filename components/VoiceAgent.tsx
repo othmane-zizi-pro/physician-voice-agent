@@ -734,7 +734,7 @@ export default function VoiceAgent() {
                                 className="w-full h-full"
                             >
                                 <img
-                                    src="/doc-logo.png"
+                                    src="/doc-logo.svg"
                                     alt="Doc Logo"
                                     className="w-full h-full object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
                                 />
