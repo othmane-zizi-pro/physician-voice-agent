@@ -677,7 +677,7 @@ export default function VoiceAgent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
-            <Stethoscope className="absolute -left-12 top-1/2 -translate-y-1/2 w-9 h-9 text-brand-brown" strokeWidth={1.5} />
+            <Stethoscope className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900 animate-bounce" style={{ animationDuration: '2s' }} strokeWidth={1.75} />
             <h1 className="text-5xl font-bold text-brand-navy-900 tracking-tight">Doc</h1>
             <p className="text-brand-navy-600 text-sm">by <a
               href="https://www.meroka.com/"
