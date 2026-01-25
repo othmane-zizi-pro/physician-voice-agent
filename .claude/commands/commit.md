@@ -11,5 +11,6 @@ Commit and push all staged and unstaged changes to the remote repository.
 5. Commit with the message
 6. Push to the remote repository
 7. Confirm success to the user
+8. Don't add "Claude" as co-author
 
 Always push automatically - do not ask for confirmation.

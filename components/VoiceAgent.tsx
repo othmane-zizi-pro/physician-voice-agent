@@ -714,7 +714,7 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-14 top-1.5 w-12 h-12"
+                            className="absolute -left-14 top-1.59 w-12 h-12"
                             initial={{ scale: 0.8, rotate: -10, y: 5 }}
                             animate={{
                                 scale: [0.8, 1.05, 0.98, 1],
