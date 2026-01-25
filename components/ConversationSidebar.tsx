@@ -15,6 +15,9 @@ import {
   Trash2,
   Download,
   AlertCircle,
+  Film,
+  ArrowLeft,
+  Link2,
 } from "lucide-react";
 
 interface Conversation {
@@ -60,6 +63,13 @@ export default function ConversationSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Video clip state
+  const [clipMode, setClipMode] = useState<'view' | 'select' | 'generating' | 'result'>('view');
+  const [exchanges, setExchanges] = useState<Array<{ index: number; physicianText: string; docText: string }>>([]);
+  const [clipUrl, setClipUrl] = useState<string | null>(null);
+  const [clipError, setClipError] = useState<string | null>(null);
+  const [copiedClipLink, setCopiedClipLink] = useState(false);
 
   const fetchConversations = useCallback(async () => {
     if (!session) return;
@@ -216,6 +226,101 @@ ${conv.transcript}
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Parse transcript into exchanges for video clips
+  const parseExchanges = (transcript: string) => {
+    const lines = transcript.split('\n').filter(line => line.trim());
+    const result: Array<{ index: number; physicianText: string; docText: string }> = [];
+
+    let current: { physicianLines: string[]; docLines: string[] } | null = null;
+    let idx = 0;
+
+    for (const line of lines) {
+      const isPhysician = line.startsWith('You:');
+      const isDoc = line.startsWith('Doc:');
+      const content = line.replace(/^(You:|Doc:)\s*/, '').trim();
+
+      if (isPhysician) {
+        if (current && current.docLines.length > 0) {
+          result.push({
+            index: idx,
+            physicianText: current.physicianLines.join(' '),
+            docText: current.docLines.join(' '),
+          });
+          idx++;
+        }
+        if (!current || current.docLines.length > 0) {
+          current = { physicianLines: [content], docLines: [] };
+        } else {
+          current.physicianLines.push(content);
+        }
+      } else if (isDoc && current) {
+        current.docLines.push(content);
+      }
+    }
+
+    if (current && current.docLines.length > 0) {
+      result.push({
+        index: idx,
+        physicianText: current.physicianLines.join(' '),
+        docText: current.docLines.join(' '),
+      });
+    }
+
+    return result;
+  };
+
+  const handleCreateClip = () => {
+    if (selectedConversation?.transcript) {
+      setExchanges(parseExchanges(selectedConversation.transcript));
+      setClipMode('select');
+      setClipError(null);
+    }
+  };
+
+  const handleSelectExchange = async (exchangeIndex: number) => {
+    if (!selectedConversation) return;
+
+    setClipMode('generating');
+    setClipError(null);
+
+    try {
+      const response = await fetch('/api/generate-clip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callId: selectedConversation.id,
+          exchangeIndex,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate clip');
+      }
+
+      setClipUrl(data.clipUrl);
+      setClipMode('result');
+    } catch (error) {
+      setClipError(error instanceof Error ? error.message : 'Failed to generate clip');
+      setClipMode('select');
+    }
+  };
+
+  const handleCopyClipLink = async () => {
+    if (clipUrl) {
+      await navigator.clipboard.writeText(clipUrl);
+      setCopiedClipLink(true);
+      setTimeout(() => setCopiedClipLink(false), 2000);
+    }
+  };
+
+  const handleBackToView = () => {
+    setClipMode('view');
+    setClipUrl(null);
+    setClipError(null);
   };
 
   // Don't render anything if not authenticated
@@ -478,7 +583,17 @@ ${conv.transcript}
 
               {/* Action buttons */}
               <div className="flex items-center gap-1">
-                {selectedConversation.transcript && (
+                {selectedConversation.transcript && selectedConversation.session_type === 'voice' && clipMode === 'view' && (
+                  <button
+                    onClick={handleCreateClip}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-colors mr-1"
+                    title="Create video clip"
+                  >
+                    <Film size={16} />
+                    <span className="hidden sm:inline">Create Clip</span>
+                  </button>
+                )}
+                {selectedConversation.transcript && clipMode === 'view' && (
                   <button
                     onClick={() => handleExport(selectedConversation)}
                     className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
@@ -487,17 +602,20 @@ ${conv.transcript}
                     <Download size={18} className="text-brand-navy-600" />
                   </button>
                 )}
-                <button
-                  onClick={() => setDeleteConfirm(selectedConversation.id)}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete conversation"
-                >
-                  <Trash2 size={18} className="text-red-500" />
-                </button>
+                {clipMode === 'view' && (
+                  <button
+                    onClick={() => setDeleteConfirm(selectedConversation.id)}
+                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete conversation"
+                  >
+                    <Trash2 size={18} className="text-red-500" />
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setSelectedConversation(null);
                     setDeleteConfirm(null);
+                    handleBackToView();
                   }}
                   className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors ml-1"
                 >
@@ -538,25 +656,122 @@ ${conv.transcript}
 
             {/* Modal content */}
             <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
-              {selectedConversation.quotable_quote && (
-                <div className="mb-4 p-4 bg-brand-ice/50 rounded-lg border border-brand-ice">
-                  <p className="text-xs text-brand-navy-600 uppercase tracking-wide mb-1">
-                    Highlight
-                  </p>
-                  <p className="text-brand-navy-800 italic">
-                    "{selectedConversation.quotable_quote}"
-                  </p>
+              {/* Clip mode: Select exchange */}
+              {clipMode === 'select' && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <button
+                      onClick={handleBackToView}
+                      className="p-1 text-brand-navy-600 hover:text-brand-navy-900"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="text-lg font-medium text-brand-navy-900">Select an exchange to clip</h3>
+                  </div>
+                  {clipError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                      {clipError}
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {exchanges.map((exchange) => (
+                      <button
+                        key={exchange.index}
+                        onClick={() => handleSelectExchange(exchange.index)}
+                        className="w-full text-left p-4 bg-brand-neutral-50 hover:bg-brand-neutral-100 rounded-xl transition-colors border border-brand-neutral-100"
+                      >
+                        <div className="mb-2">
+                          <span className="text-xs text-brand-navy-600 font-medium">You</span>
+                          <p className="text-brand-navy-800 text-sm line-clamp-2">{exchange.physicianText}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-brand-brown font-medium">Doc</span>
+                          <p className="text-brand-navy-600 text-sm line-clamp-2">{exchange.docText}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {selectedConversation.transcript ? (
-                <div className="prose prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-brand-navy-800 text-sm leading-relaxed bg-transparent p-0 m-0">
-                    {selectedConversation.transcript}
-                  </pre>
+              {/* Clip mode: Generating */}
+              {clipMode === 'generating' && (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 size={48} className="text-brand-brown animate-spin mb-4" />
+                  <p className="text-brand-navy-800">Creating your clip...</p>
+                  <p className="text-brand-navy-600 text-sm mt-1">This may take a few moments</p>
                 </div>
-              ) : (
-                <p className="text-brand-navy-600 text-sm">No transcript available</p>
+              )}
+
+              {/* Clip mode: Result */}
+              {clipMode === 'result' && clipUrl && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <button
+                      onClick={handleBackToView}
+                      className="p-1 text-brand-navy-600 hover:text-brand-navy-900"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <h3 className="text-lg font-medium text-brand-navy-900">Your clip is ready!</h3>
+                  </div>
+                  <div className="bg-brand-neutral-50 rounded-xl p-4 mb-4">
+                    <video
+                      src={clipUrl}
+                      controls
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <a
+                      href={clipUrl}
+                      download
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-colors"
+                    >
+                      <Download size={18} />
+                      Download
+                    </a>
+                    <button
+                      onClick={handleCopyClipLink}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-brand-neutral-100 hover:bg-brand-neutral-100/80 text-brand-navy-800 rounded-lg transition-colors"
+                    >
+                      <Link2 size={18} />
+                      {copiedClipLink ? "Copied!" : "Copy Link"}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setClipMode('select')}
+                    className="w-full mt-3 px-4 py-2 text-brand-navy-600 hover:text-brand-navy-900 transition-colors text-sm"
+                  >
+                    Create another clip
+                  </button>
+                </div>
+              )}
+
+              {/* Default view mode */}
+              {clipMode === 'view' && (
+                <>
+                  {selectedConversation.quotable_quote && (
+                    <div className="mb-4 p-4 bg-brand-ice/50 rounded-lg border border-brand-ice">
+                      <p className="text-xs text-brand-navy-600 uppercase tracking-wide mb-1">
+                        Highlight
+                      </p>
+                      <p className="text-brand-navy-800 italic">
+                        "{selectedConversation.quotable_quote}"
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedConversation.transcript ? (
+                    <div className="prose prose-sm max-w-none">
+                      <pre className="whitespace-pre-wrap font-sans text-brand-navy-800 text-sm leading-relaxed bg-transparent p-0 m-0">
+                        {selectedConversation.transcript}
+                      </pre>
+                    </div>
+                  ) : (
+                    <p className="text-brand-navy-600 text-sm">No transcript available</p>
+                  )}
+                </>
               )}
             </div>
           </div>
