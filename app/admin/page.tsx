@@ -26,7 +26,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits" | "users";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits";
 type QuotesFilter = "all" | "featured" | "not-featured";
 type SessionTypeFilter = "all" | "voice" | "text";
 
@@ -631,17 +631,6 @@ export default function AdminDashboard() {
         >
           Traffic ({pageVisits.length})
         </button>
-        <button
-          onClick={() => setActiveTab("users")}
-          className={cn(
-            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
-            activeTab === "users"
-              ? "bg-white text-brand-navy-900 shadow-sm"
-              : "text-brand-navy-600 hover:bg-white/50"
-          )}
-        >
-          Users {userStats ? `(${userStats.totalUsers})` : ""}
-        </button>
       </div>
 
       {/* Search */}
@@ -1177,11 +1166,242 @@ export default function AdminDashboard() {
       {/* Map */}
       {activeTab === "map" && <CallsMap calls={calls} />}
 
-      {activeTab === "form-flow" && (
-        <div className="bg-white/50 backdrop-blur-sm p-8 rounded-2xl border border-brand-neutral-200 text-center">
-          <p className="text-brand-navy-500">Form flow visualization coming soon</p>
-        </div>
-      )}
+      {activeTab === "form-flow" && (() => {
+        // Calculate form flow statistics from leads data
+        const totalLeads = leads.length;
+        const healthcareYes = leads.filter(l => l.works_in_healthcare === true).length;
+        const healthcareNo = leads.filter(l => l.works_in_healthcare === false).length;
+        const independentPractice = leads.filter(l => l.workplace_type === "independent").length;
+        const hospitalSystem = leads.filter(l => l.workplace_type === "hospital").length;
+        const roleOwner = leads.filter(l => l.role_type === "owner").length;
+        const roleProvider = leads.filter(l => l.role_type === "provider").length;
+        const roleFrontOffice = leads.filter(l => l.role_type === "front_office").length;
+        const interestedYes = leads.filter(l => l.interested_in_collective === true).length;
+        const interestedNo = leads.filter(l => l.interested_in_collective === false).length;
+        const withContact = leads.filter(l => l.email).length;
+
+        const getPercent = (count: number, total: number) =>
+          total > 0 ? Math.round((count / total) * 100) : 0;
+
+        return (
+          <div className="space-y-6">
+            {/* Summary Stats */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <p className="text-brand-navy-500 text-xs font-bold uppercase">Total Responses</p>
+                <p className="text-3xl font-bold text-brand-navy-900">{totalLeads}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <p className="text-brand-navy-500 text-xs font-bold uppercase">Healthcare Workers</p>
+                <p className="text-3xl font-bold text-emerald-600">{healthcareYes}</p>
+                <p className="text-xs text-brand-navy-400">{getPercent(healthcareYes, totalLeads)}% of responses</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <p className="text-brand-navy-500 text-xs font-bold uppercase">Interested in Collective</p>
+                <p className="text-3xl font-bold text-brand-brown">{interestedYes}</p>
+                <p className="text-xs text-brand-navy-400">{getPercent(interestedYes, totalLeads)}% of responses</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <p className="text-brand-navy-500 text-xs font-bold uppercase">Contact Provided</p>
+                <p className="text-3xl font-bold text-blue-600">{withContact}</p>
+                <p className="text-xs text-brand-navy-400">{getPercent(withContact, interestedYes)}% of interested</p>
+              </div>
+            </div>
+
+            {/* Flow Visualization */}
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <h3 className="text-lg font-bold text-brand-navy-900 mb-6">Form Flow Funnel</h3>
+
+              <div className="space-y-4">
+                {/* Step 1: Healthcare Question */}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-48 text-right">
+                      <p className="text-sm font-semibold text-brand-navy-700">Work in Healthcare?</p>
+                      <p className="text-xs text-brand-navy-400">{totalLeads} responses</p>
+                    </div>
+                    <div className="flex-1 flex gap-2">
+                      <div
+                        className="h-10 bg-emerald-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(healthcareYes, totalLeads)}%`, minWidth: healthcareYes > 0 ? '60px' : '0' }}
+                      >
+                        Yes: {healthcareYes}
+                      </div>
+                      <div
+                        className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(healthcareNo, totalLeads)}%`, minWidth: healthcareNo > 0 ? '60px' : '0' }}
+                      >
+                        No: {healthcareNo}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex items-center gap-4">
+                  <div className="w-48" />
+                  <div className="text-brand-navy-300 pl-4">↓</div>
+                </div>
+
+                {/* Step 2: Workplace Type */}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-48 text-right">
+                      <p className="text-sm font-semibold text-brand-navy-700">Workplace Type</p>
+                      <p className="text-xs text-brand-navy-400">{independentPractice + hospitalSystem} responses</p>
+                    </div>
+                    <div className="flex-1 flex gap-2">
+                      <div
+                        className="h-10 bg-blue-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(independentPractice, independentPractice + hospitalSystem)}%`, minWidth: independentPractice > 0 ? '80px' : '0' }}
+                      >
+                        Independent: {independentPractice}
+                      </div>
+                      <div
+                        className="h-10 bg-purple-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(hospitalSystem, independentPractice + hospitalSystem)}%`, minWidth: hospitalSystem > 0 ? '80px' : '0' }}
+                      >
+                        Hospital: {hospitalSystem}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex items-center gap-4">
+                  <div className="w-48" />
+                  <div className="text-brand-navy-300 pl-4">↓</div>
+                </div>
+
+                {/* Step 3: Role Type (Independent only) */}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-48 text-right">
+                      <p className="text-sm font-semibold text-brand-navy-700">Role (Independent)</p>
+                      <p className="text-xs text-brand-navy-400">{roleOwner + roleProvider + roleFrontOffice} responses</p>
+                    </div>
+                    <div className="flex-1 flex gap-2">
+                      <div
+                        className="h-10 bg-amber-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(roleOwner, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleOwner > 0 ? '60px' : '0' }}
+                      >
+                        Owner: {roleOwner}
+                      </div>
+                      <div
+                        className="h-10 bg-teal-500 flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(roleProvider, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleProvider > 0 ? '60px' : '0' }}
+                      >
+                        Provider: {roleProvider}
+                      </div>
+                      <div
+                        className="h-10 bg-gray-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(roleFrontOffice, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleFrontOffice > 0 ? '60px' : '0' }}
+                      >
+                        Front Office: {roleFrontOffice}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex items-center gap-4">
+                  <div className="w-48" />
+                  <div className="text-brand-navy-300 pl-4">↓</div>
+                </div>
+
+                {/* Step 4: Collective Interest */}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-48 text-right">
+                      <p className="text-sm font-semibold text-brand-navy-700">Interested in Collective?</p>
+                      <p className="text-xs text-brand-navy-400">{interestedYes + interestedNo} responses</p>
+                    </div>
+                    <div className="flex-1 flex gap-2">
+                      <div
+                        className="h-10 bg-brand-brown rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(interestedYes, interestedYes + interestedNo)}%`, minWidth: interestedYes > 0 ? '60px' : '0' }}
+                      >
+                        Yes: {interestedYes}
+                      </div>
+                      <div
+                        className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(interestedNo, interestedYes + interestedNo)}%`, minWidth: interestedNo > 0 ? '60px' : '0' }}
+                      >
+                        No: {interestedNo}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="flex items-center gap-4">
+                  <div className="w-48" />
+                  <div className="text-brand-navy-300 pl-4">↓</div>
+                </div>
+
+                {/* Step 5: Contact Form */}
+                <div className="relative">
+                  <div className="flex items-center gap-4">
+                    <div className="w-48 text-right">
+                      <p className="text-sm font-semibold text-brand-navy-700">Contact Submitted</p>
+                      <p className="text-xs text-brand-navy-400">of {interestedYes} interested</p>
+                    </div>
+                    <div className="flex-1">
+                      <div
+                        className="h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all"
+                        style={{ width: `${getPercent(withContact, interestedYes)}%`, minWidth: withContact > 0 ? '100px' : '0' }}
+                      >
+                        {withContact} contacts ({getPercent(withContact, interestedYes)}%)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Breakdown Tables */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Workplace Breakdown */}
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <h4 className="text-sm font-bold text-brand-navy-900 mb-3">Workplace Breakdown</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Independent Practice</span>
+                    <span className="font-bold text-brand-navy-900">{independentPractice}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Hospital/Health System</span>
+                    <span className="font-bold text-brand-navy-900">{hospitalSystem}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Not in Healthcare</span>
+                    <span className="font-bold text-brand-navy-900">{healthcareNo}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Breakdown */}
+              <div className="glass p-4 rounded-xl border border-white/40">
+                <h4 className="text-sm font-bold text-brand-navy-900 mb-3">Role Breakdown (Independent)</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Owner/Partner</span>
+                    <span className="font-bold text-amber-600">{roleOwner}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Provider</span>
+                    <span className="font-bold text-brand-navy-900">{roleProvider}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-brand-navy-600">Front Office/Admin</span>
+                    <span className="font-bold text-brand-navy-900">{roleFrontOffice}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {activeTab === "clicks" && (
         <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
