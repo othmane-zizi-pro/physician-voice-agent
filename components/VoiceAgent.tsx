@@ -1202,8 +1202,8 @@ export default function VoiceAgent() {
                 )}
             </div>{/* End content container */}
 
-            {/* Footer disclaimer */}
-            <div className="mt-8 lg:fixed lg:bottom-4 text-center text-brand-navy-400 text-xs relative z-10 w-full">
+            {/* Footer disclaimer - fixed at bottom on all screen sizes */}
+            <div className="fixed bottom-0 left-0 right-0 text-center text-brand-navy-400 text-xs z-10 px-4 py-4 bg-gradient-to-t from-white/95 via-white/80 to-transparent">
                 <p>Not a real therapist. For entertainment and venting purposes only.</p>
                 <div className="flex items-center justify-center gap-3 mt-2">
                     <a
