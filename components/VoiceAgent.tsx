@@ -345,15 +345,16 @@ export default function VoiceAgent() {
         const transcriptText = fullTranscriptRef.current.join("\n");
         setLastTranscript(transcriptText);
 
-        // Show the form after a call ends (only if not already completed this session)
-        if (!hasCompletedFormRef.current) {
-            setShowPostCallForm(true);
-        }
-
         // Update call record with transcript and duration
         const callId = await updateCallRecord();
         if (callId) {
             setLastCallId(callId);
+
+            // Show the form after a call ends (only if not already completed this session)
+            // Must happen AFTER setLastCallId so the form has the correct callId
+            if (!hasCompletedFormRef.current) {
+                setShowPostCallForm(true);
+            }
 
             // Extract quotable quote in background
             const transcriptText = fullTranscriptRef.current.join("\n");
@@ -386,6 +387,10 @@ export default function VoiceAgent() {
             }
         } else {
             console.warn("Call update failed - call record may not exist");
+            // Still show form for lead collection (clips won't work without callId)
+            if (!hasCompletedFormRef.current) {
+                setShowPostCallForm(true);
+            }
         }
 
         // Reset call ID ref
@@ -633,7 +638,7 @@ export default function VoiceAgent() {
     }, [confessionText, isSubmittingConfession]);
 
     return (
-        <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-32 lg:justify-center relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
+        <div className="flex flex-col items-center min-h-screen p-8 pt-12 relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
             {/* Animated gradient background - Light theme */}
             <motion.div
                 className="fixed inset-0 -z-10"
@@ -754,7 +759,7 @@ export default function VoiceAgent() {
             )}
 
             {/* Content container */}
-            <div className="relative z-10 flex flex-col items-center w-full max-w-4xl mx-auto">
+            <div className="relative z-10 flex flex-col items-center justify-center flex-grow w-full max-w-4xl mx-auto py-8">
                 {/* Header */}
                 <motion.div
                     className="text-center mb-10"
@@ -1202,8 +1207,8 @@ export default function VoiceAgent() {
                 )}
             </div>{/* End content container */}
 
-            {/* Footer disclaimer - fixed at bottom on all screen sizes */}
-            <div className="fixed bottom-0 left-0 right-0 text-center text-brand-navy-400 text-xs z-10 px-4 py-4 bg-gradient-to-t from-white/95 via-white/80 to-transparent">
+            {/* Footer disclaimer - static at bottom */}
+            <div className="w-full mt-auto text-center text-brand-navy-400 text-xs z-10 px-4 py-4">
                 <p>Not a real therapist. For entertainment and venting purposes only.</p>
                 <div className="flex items-center justify-center gap-3 mt-2">
                     <a
