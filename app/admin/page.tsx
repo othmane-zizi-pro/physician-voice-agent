@@ -1214,19 +1214,23 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-brand-navy-700">Work in Healthcare?</p>
                       <p className="text-xs text-brand-navy-400">{totalLeads} responses</p>
                     </div>
-                    <div className="flex-1 flex gap-2">
-                      <div
-                        className="h-10 bg-emerald-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(healthcareYes, totalLeads)}%`, minWidth: healthcareYes > 0 ? '60px' : '0' }}
-                      >
-                        Yes: {healthcareYes}
-                      </div>
-                      <div
-                        className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(healthcareNo, totalLeads)}%`, minWidth: healthcareNo > 0 ? '60px' : '0' }}
-                      >
-                        No: {healthcareNo}
-                      </div>
+                    <div className="flex-1 flex gap-2 overflow-hidden">
+                      {healthcareYes > 0 && (
+                        <div
+                          className="h-10 bg-emerald-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(healthcareYes, totalLeads)}%`, minWidth: '60px' }}
+                        >
+                          <span className="truncate px-2">Yes: {healthcareYes}</span>
+                        </div>
+                      )}
+                      {healthcareNo > 0 && (
+                        <div
+                          className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(healthcareNo, totalLeads)}%`, minWidth: '60px' }}
+                        >
+                          <span className="truncate px-2">No: {healthcareNo}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1244,19 +1248,28 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-brand-navy-700">Workplace Type</p>
                       <p className="text-xs text-brand-navy-400">{independentPractice + hospitalSystem} responses</p>
                     </div>
-                    <div className="flex-1 flex gap-2">
-                      <div
-                        className="h-10 bg-blue-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(independentPractice, independentPractice + hospitalSystem)}%`, minWidth: independentPractice > 0 ? '80px' : '0' }}
-                      >
-                        Independent: {independentPractice}
-                      </div>
-                      <div
-                        className="h-10 bg-purple-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(hospitalSystem, independentPractice + hospitalSystem)}%`, minWidth: hospitalSystem > 0 ? '80px' : '0' }}
-                      >
-                        Hospital: {hospitalSystem}
-                      </div>
+                    <div className="flex-1 flex gap-2 overflow-hidden">
+                      {independentPractice > 0 && (
+                        <div
+                          className="h-10 bg-blue-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(independentPractice, independentPractice + hospitalSystem)}%`, minWidth: '80px' }}
+                        >
+                          <span className="truncate px-2">Independent: {independentPractice}</span>
+                        </div>
+                      )}
+                      {hospitalSystem > 0 && (
+                        <div
+                          className="h-10 bg-purple-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(hospitalSystem, independentPractice + hospitalSystem)}%`, minWidth: '80px' }}
+                        >
+                          <span className="truncate px-2">Hospital: {hospitalSystem}</span>
+                        </div>
+                      )}
+                      {independentPractice === 0 && hospitalSystem === 0 && (
+                        <div className="h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm flex-1">
+                          No data
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1274,25 +1287,36 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-brand-navy-700">Role (Independent)</p>
                       <p className="text-xs text-brand-navy-400">{roleOwner + roleProvider + roleFrontOffice} responses</p>
                     </div>
-                    <div className="flex-1 flex gap-2">
-                      <div
-                        className="h-10 bg-amber-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(roleOwner, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleOwner > 0 ? '60px' : '0' }}
-                      >
-                        Owner: {roleOwner}
-                      </div>
-                      <div
-                        className="h-10 bg-teal-500 flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(roleProvider, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleProvider > 0 ? '60px' : '0' }}
-                      >
-                        Provider: {roleProvider}
-                      </div>
-                      <div
-                        className="h-10 bg-gray-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(roleFrontOffice, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: roleFrontOffice > 0 ? '60px' : '0' }}
-                      >
-                        Front Office: {roleFrontOffice}
-                      </div>
+                    <div className="flex-1 flex gap-2 overflow-hidden">
+                      {roleOwner > 0 && (
+                        <div
+                          className="h-10 bg-amber-500 rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(roleOwner, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: '70px' }}
+                        >
+                          <span className="truncate px-2">Owner: {roleOwner}</span>
+                        </div>
+                      )}
+                      {roleProvider > 0 && (
+                        <div
+                          className="h-10 bg-teal-500 flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(roleProvider, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: '70px' }}
+                        >
+                          <span className="truncate px-2">Provider: {roleProvider}</span>
+                        </div>
+                      )}
+                      {roleFrontOffice > 0 && (
+                        <div
+                          className="h-10 bg-gray-500 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(roleFrontOffice, roleOwner + roleProvider + roleFrontOffice)}%`, minWidth: '90px' }}
+                        >
+                          <span className="truncate px-2">Front Office: {roleFrontOffice}</span>
+                        </div>
+                      )}
+                      {roleOwner === 0 && roleProvider === 0 && roleFrontOffice === 0 && (
+                        <div className="h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm flex-1">
+                          No data
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1310,19 +1334,23 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-brand-navy-700">Interested in Collective?</p>
                       <p className="text-xs text-brand-navy-400">{interestedYes + interestedNo} responses</p>
                     </div>
-                    <div className="flex-1 flex gap-2">
-                      <div
-                        className="h-10 bg-brand-brown rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(interestedYes, interestedYes + interestedNo)}%`, minWidth: interestedYes > 0 ? '60px' : '0' }}
-                      >
-                        Yes: {interestedYes}
-                      </div>
-                      <div
-                        className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(interestedNo, interestedYes + interestedNo)}%`, minWidth: interestedNo > 0 ? '60px' : '0' }}
-                      >
-                        No: {interestedNo}
-                      </div>
+                    <div className="flex-1 flex gap-2 overflow-hidden">
+                      {interestedYes > 0 && (
+                        <div
+                          className="h-10 bg-brand-brown rounded-l-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(interestedYes, interestedYes + interestedNo)}%`, minWidth: '60px' }}
+                        >
+                          <span className="truncate px-2">Yes: {interestedYes}</span>
+                        </div>
+                      )}
+                      {interestedNo > 0 && (
+                        <div
+                          className="h-10 bg-gray-400 rounded-r-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(interestedNo, interestedYes + interestedNo)}%`, minWidth: '60px' }}
+                        >
+                          <span className="truncate px-2">No: {interestedNo}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1340,13 +1368,19 @@ export default function AdminDashboard() {
                       <p className="text-sm font-semibold text-brand-navy-700">Contact Submitted</p>
                       <p className="text-xs text-brand-navy-400">of {interestedYes} interested</p>
                     </div>
-                    <div className="flex-1">
-                      <div
-                        className="h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all"
-                        style={{ width: `${getPercent(withContact, interestedYes)}%`, minWidth: withContact > 0 ? '100px' : '0' }}
-                      >
-                        {withContact} contacts ({getPercent(withContact, interestedYes)}%)
-                      </div>
+                    <div className="flex-1 overflow-hidden">
+                      {withContact > 0 ? (
+                        <div
+                          className="h-10 bg-emerald-600 rounded-lg flex items-center justify-center text-white text-sm font-bold transition-all overflow-hidden"
+                          style={{ width: `${getPercent(withContact, interestedYes)}%`, minWidth: '120px' }}
+                        >
+                          <span className="truncate px-2">{withContact} contacts ({getPercent(withContact, interestedYes)}%)</span>
+                        </div>
+                      ) : (
+                        <div className="h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">
+                          No contacts yet
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
