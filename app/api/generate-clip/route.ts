@@ -37,17 +37,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the call from our database
+    console.log('Fetching call:', callId, 'for user:', session.userId, 'email:', session.email);
+
     const { data: call, error: callError } = await supabase
       .from('calls')
       .select('user_id, recording_url, transcript_object, livekit_room_name')
       .eq('id', callId)
       .single();
 
-    if (callError || !call) {
+    if (callError) {
+      console.error('Call lookup error:', { callId, error: callError.message, code: callError.code });
+      return NextResponse.json({ error: `Call not found: ${callError.message}` }, { status: 404 });
+    }
+
+    if (!call) {
+      console.error('Call not found in database:', callId);
       return NextResponse.json({ error: 'Call not found' }, { status: 404 });
     }
 
-    if (call.user_id !== session.userId) {
+    console.log('Call found:', { user_id: call.user_id, has_recording: !!call.recording_url, has_transcript: !!call.transcript_object });
+
+    // Check ownership - admins can access any call
+    const isAdmin = session.email?.endsWith('@meroka.com') || false;
+    if (!isAdmin && call.user_id && call.user_id !== session.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
