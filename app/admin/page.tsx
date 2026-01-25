@@ -140,6 +140,9 @@ export default function AdminDashboard() {
   const [userWorkplaceFilter, setUserWorkplaceFilter] = useState<string>("all");
   const [userSearchQuery, setUserSearchQuery] = useState("");
 
+  // Quote expansion
+  const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+
   // Bulk actions and modals
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
@@ -798,9 +801,16 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 text-sm max-w-xs">
                       {call.quotable_quote ? (
-                        <span className="text-brand-navy-800 italic line-clamp-2 font-medium bg-brand-neutral-100/50 p-1.5 rounded-lg border border-brand-neutral-200/50">
+                        <button
+                          onClick={() => setExpandedQuoteId(expandedQuoteId === call.id ? null : call.id)}
+                          className={cn(
+                            "text-brand-navy-800 italic font-medium bg-brand-neutral-100/50 p-1.5 rounded-lg border border-brand-neutral-200/50 text-left hover:bg-brand-neutral-100 transition-colors cursor-pointer",
+                            expandedQuoteId === call.id ? "" : "line-clamp-2"
+                          )}
+                          title={expandedQuoteId === call.id ? "Click to collapse" : "Click to expand"}
+                        >
                           &ldquo;{call.quotable_quote}&rdquo;
-                        </span>
+                        </button>
                       ) : (
                         <span className="text-brand-navy-300">-</span>
                       )}
@@ -1100,9 +1110,30 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <p className="text-brand-navy-900 italic pr-8 line-clamp-3">
+                        <p
+                          className={cn(
+                            "text-brand-navy-900 italic pr-8 cursor-pointer hover:text-brand-navy-700 transition-colors",
+                            expandedQuoteId === call.id ? "" : "line-clamp-3"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedQuoteId(expandedQuoteId === call.id ? null : call.id);
+                          }}
+                          title={expandedQuoteId === call.id ? "Click to collapse" : "Click to expand"}
+                        >
                           &ldquo;{call.quotable_quote}&rdquo;
                         </p>
+                        {call.quotable_quote && call.quotable_quote.length > 150 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedQuoteId(expandedQuoteId === call.id ? null : call.id);
+                            }}
+                            className="text-xs text-brand-brown hover:text-brand-brown-dark mt-1 font-medium"
+                          >
+                            {expandedQuoteId === call.id ? "Show less" : "Show more"}
+                          </button>
+                        )}
                         <div className="flex items-center gap-2 mt-3 text-xs">
                           <span className="font-bold text-brand-navy-600">
                             {call.city || "Unknown"}, {call.region || ""}

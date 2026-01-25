@@ -26,15 +26,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ quote: null, reason: "Transcript too short" });
     }
 
+    // Pre-filter to only include USER lines (exclude Doc's responses entirely)
+    const userOnlyLines = transcript
+      .split("\n")
+      .filter((line: string) => line.startsWith("You:"))
+      .map((line: string) => line.replace(/^You:\s*/, "").trim())
+      .filter((line: string) => line.length > 10) // Skip very short utterances
+      .join("\n");
+
+    if (userOnlyLines.length < 50) {
+      return NextResponse.json({ quote: null, reason: "Not enough user content" });
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const prompt = `You are an expert at finding powerful, quotable moments from conversations between burnt-out physicians and an AI companion. Extract a single compelling quote that captures the emotional truth of their experience with the healthcare system.
+    const prompt = `You are an expert at finding powerful, quotable moments from healthcare workers venting about their experiences. Below are ONLY the user's statements (the AI's responses have been removed).
+
+Extract a single compelling quote that captures the emotional truth of their experience with the healthcare system.
 
 Rules:
-- Only extract quotes from the physician (lines starting with "You:")
-- Choose something raw, honest, and relatable to other physicians
+- Choose something raw, honest, and relatable to other healthcare workers
 - Keep it to 1-2 sentences max
-- Remove the "You:" prefix from the quote
 - Rate frustration with the healthcare system on a scale of 0-10 (10 = extremely frustrated)
 - Consider: complaints about insurance, admin burden, bureaucracy, burnout, pay, work-life balance
 
@@ -44,9 +56,9 @@ Respond ONLY with valid JSON in this exact format:
 If there's nothing quotable, respond with:
 {"quote": null, "frustration_score": 0}
 
-Extract from this conversation:
+User statements:
 
-${transcript}`;
+${userOnlyLines}`;
 
     const result = await model.generateContent(prompt);
     const responseText = result.response.text()?.trim();
