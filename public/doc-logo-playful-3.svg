@@ -1,0 +1,27 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Heart shape formed by stethoscope tubing -->
+    <!-- Left lobe -->
+    <path d="M250 150 
+             C 250 100 100 100 100 200 
+             C 100 300 250 450 250 450" 
+          stroke="#0E1219" stroke-width="25" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          
+    <!-- Right lobe -->
+    <path d="M250 150 
+             C 250 100 400 100 400 200 
+             C 400 300 250 450 250 450" 
+          stroke="#0E1219" stroke-width="25" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Ear pieces connected to top center -->
+    <path d="M250 150 V 100" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    <path d="M250 100 L 180 50" stroke="#0E1219" stroke-width="20" stroke-linecap="round"/>
+    <path d="M250 100 L 320 50" stroke="#0E1219" stroke-width="20" stroke-linecap="round"/>
+    
+    <circle cx="180" cy="50" r="12" fill="#0E1219"/>
+    <circle cx="320" cy="50" r="12" fill="#0E1219"/>
+
+    <!-- Cute Chest Piece dangling inside -->
+    <path d="M250 150 V 220" stroke="#0E1219" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="250" cy="250" r="25" stroke="#0E1219" stroke-width="10" fill="none"/>
+    <circle cx="250" cy="250" r="8" fill="#0E1219"/>
+</svg>

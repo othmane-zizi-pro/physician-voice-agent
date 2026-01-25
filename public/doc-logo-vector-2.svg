@@ -1,0 +1,16 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Ear pieces (U shape top) -->
+    <path d="M150 100 V 150 C 150 220 350 220 350 150 V 100" stroke="#0E1219" stroke-width="30" stroke-linecap="round"/>
+    <circle cx="150" cy="90" r="20" fill="#0E1219"/>
+    <circle cx="350" cy="90" r="20" fill="#0E1219"/>
+
+    <!-- Tubing flowing down in a loop -->
+    <path d="M250 220 V 260 C 250 350 150 350 150 420 C 150 480 300 480 350 400" stroke="#0E1219" stroke-width="30" stroke-linecap="round" fill="none"/>
+
+    <!-- Bell at end -->
+    <g transform="translate(350, 400)">
+        <circle cx="0" cy="0" r="40" fill="#0E1219"/>
+        <circle cx="0" cy="0" r="25" fill="white"/>
+        <circle cx="0" cy="0" r="12" fill="#0E1219"/>
+    </g>
+</svg>

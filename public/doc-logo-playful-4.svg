@@ -1,0 +1,16 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Stethoscope shaped like a music note -->
+    <!-- Stem -->
+    <path d="M350 100 V 350" stroke="#0E1219" stroke-width="28" stroke-linecap="round"/>
+    
+    <!-- Bulb of the note (Chest piece) -->
+    <circle cx="320" cy="380" r="50" fill="#0E1219"/>
+    <circle cx="320" cy="380" r="20" fill="white"/>
+    
+    <!-- Flag / Tubing curving down -->
+    <path d="M350 100 C 350 100 250 150 200 250" stroke="#0E1219" stroke-width="28" stroke-linecap="round"/>
+    
+    <!-- Ear pieces sprouting from the curve -->
+    <path d="M200 250 C 150 300 100 250 100 200" stroke="#0E1219" stroke-width="20" stroke-linecap="round"/>
+    <circle cx="100" cy="200" r="15" fill="#0E1219"/>
+</svg>

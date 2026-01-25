@@ -1,0 +1,20 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Ear pieces -->
+    <path d="M120 100 C120 50 250 50 250 100" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    <path d="M380 100 C380 50 250 50 250 100" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    
+    <!-- Ear tips -->
+    <circle cx="120" cy="100" r="15" fill="#0E1219"/>
+    <circle cx="380" cy="100" r="15" fill="#0E1219"/>
+
+    <!-- Y-junction down to heart -->
+    <path d="M250 100 V 180" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    
+    <!-- Heart shape tubing -->
+    <!-- Curves from 250,180 to form a heart and ends with bell -->
+    <path d="M250 180 C 150 180 50 250 50 350 C 50 450 150 500 250 420 C 350 500 450 450 450 350 C 450 280 400 220 340 200" stroke="#0E1219" stroke-width="25" stroke-linecap="round" fill="none"/>
+
+    <!-- Bell/Chest Piece at the end of the curve -->
+    <circle cx="340" cy="200" r="35" stroke="#0E1219" stroke-width="15" fill="none"/>
+    <circle cx="340" cy="200" r="12" fill="#0E1219"/>
+</svg>

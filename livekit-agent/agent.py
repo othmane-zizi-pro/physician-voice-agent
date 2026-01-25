@@ -26,12 +26,20 @@ transcript_entries: list = []
 
 async def start_room_recording(room_name: str) -> str | None:
     """Start recording the room to S3. Returns egress ID if successful."""
+    logger.info(f"Attempting to start recording for room: {room_name}")
+    logger.info(f"S3 config - Bucket: {S3_BUCKET}, Region: {S3_REGION}, Has Access Key: {bool(AWS_ACCESS_KEY_ID)}, Has Secret: {bool(AWS_SECRET_ACCESS_KEY)}")
+
     if not all([AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_BUCKET]):
-        logger.warning("S3 credentials not configured, skipping recording")
+        logger.error("S3 credentials not configured! Missing: " +
+                    ", ".join([k for k, v in [("AWS_ACCESS_KEY_ID", AWS_ACCESS_KEY_ID),
+                                               ("AWS_SECRET_ACCESS_KEY", AWS_SECRET_ACCESS_KEY),
+                                               ("S3_BUCKET", S3_BUCKET)] if not v]))
         return None
 
     try:
         livekit_url = os.getenv("LIVEKIT_URL", "").replace("wss://", "https://")
+        logger.info(f"LiveKit API URL: {livekit_url}")
+
         livekit_api = api.LiveKitAPI(
             url=livekit_url,
             api_key=os.getenv("LIVEKIT_API_KEY"),
@@ -46,7 +54,7 @@ async def start_room_recording(room_name: str) -> str | None:
             secret=AWS_SECRET_ACCESS_KEY,
         )
 
-        # Start room composite egress (records entire room)
+        # Start room composite egress (records entire room as audio)
         egress_request = api.RoomCompositeEgressRequest(
             room_name=room_name,
             file=api.EncodedFileOutput(
@@ -57,12 +65,15 @@ async def start_room_recording(room_name: str) -> str | None:
             audio_only=True,  # We only need audio for this use case
         )
 
+        logger.info(f"Sending egress request for room {room_name}...")
         egress_info = await livekit_api.egress.start_room_composite_egress(egress_request)
-        logger.info(f"Started recording for room {room_name}, egress_id: {egress_info.egress_id}")
+        logger.info(f"Recording STARTED for room {room_name}, egress_id: {egress_info.egress_id}")
         return egress_info.egress_id
 
     except Exception as e:
-        logger.error(f"Failed to start recording: {e}")
+        logger.error(f"Failed to start recording: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None
 
 # Doc's persona - the sardonic physician companion

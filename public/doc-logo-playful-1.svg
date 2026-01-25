@@ -1,0 +1,28 @@
+<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Head/Earpieces -->
+    <path d="M150 100 C150 50 350 50 350 100" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    <circle cx="150" cy="100" r="18" fill="#0E1219"/>
+    <circle cx="350" cy="100" r="18" fill="#0E1219"/>
+
+    <!-- Tubing down forming U shape -->
+    <path d="M150 100 V 200 C 150 350 350 350 350 200 V 100" stroke="#0E1219" stroke-width="25" stroke-linecap="round" fill="none" opacity="0.1"/> <!-- visual guide ghost -->
+    
+    <!-- Actual Smiley Tubing -->
+    <!-- Left side down -->
+    <path d="M150 100 V 220" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    <!-- Right side down -->
+    <path d="M350 100 V 220" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+    
+    <!-- The Smile Curve (joining the two sides loosely) -->
+    <path d="M150 220 C 150 380 350 380 350 220" stroke="#0E1219" stroke-width="25" stroke-linecap="round"/>
+
+    <!-- Eyes (simple playful dots) -->
+    <circle cx="200" cy="200" r="15" fill="#0E1219"/>
+    <circle cx="300" cy="200" r="15" fill="#0E1219"/>
+    <!-- Winking eye detail on right -->
+    <path d="M290 190 Q 300 180 310 190" stroke="#0E1219" stroke-width="5" stroke-linecap="round" fill="none"/>
+
+    <!-- Bell at the bottom (like a little tongue sticking out or chin) -->
+    <path d="M250 350 V 420" stroke="#0E1219" stroke-width="20" stroke-linecap="round"/>
+    <circle cx="250" cy="440" r="30" stroke="#0E1219" stroke-width="12" fill="white"/>
+</svg>
