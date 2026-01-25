@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrack, RemoteTrackPublication } from "livekit-client";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, Stethoscope } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
@@ -677,11 +677,7 @@ export default function VoiceAgent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
-            <svg className="absolute -left-14 top-1/2 -translate-y-1/2 w-10 h-10 text-brand-navy-900" viewBox="0 0 100 100" fill="none">
-              <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
-              <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
-              <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-            </svg>
+            <Stethoscope className="absolute -left-12 top-1/2 -translate-y-1/2 w-9 h-9 text-brand-brown" strokeWidth={1.5} />
             <h1 className="text-5xl font-bold text-brand-navy-900 tracking-tight">Doc</h1>
             <p className="text-brand-navy-600 text-sm">by <a
               href="https://www.meroka.com/"
