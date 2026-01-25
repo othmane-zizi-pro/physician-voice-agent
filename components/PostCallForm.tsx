@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Twitter, Linkedin, Link2, Check } from "lucide-react";
+import { Twitter, Linkedin, Link2, Check, Film, Download, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
+import type { TranscriptEntry } from "@/types/database";
 
 type FormStep =
-  | "consent"
-  | "share_quote"
   | "healthcare_question"
   | "workplace_question"
   | "role_question"
   | "collective_question"
   | "contact_form"
+  | "video_clip"
   | "thank_you";
 
 type WorkplaceType = "independent" | "hospital" | null;
@@ -29,12 +29,80 @@ interface PostCallFormProps {
   onComplete: () => void;
 }
 
-export default function PostCallForm({ callId, transcript, onComplete }: PostCallFormProps) {
-  const [step, setStep] = useState<FormStep>("consent");
+// Parse timestamped transcript into exchanges (user turn + doc response)
+function parseTranscriptIntoExchanges(entries: TranscriptEntry[]): Array<{
+  index: number;
+  physicianText: string;
+  docText: string;
+  startSeconds: number;
+  endSeconds: number;
+}> {
+  const exchanges: Array<{
+    index: number;
+    physicianText: string;
+    docText: string;
+    startSeconds: number;
+    endSeconds: number;
+  }> = [];
 
-  // Consent answers
-  const [consentShareQuote, setConsentShareQuote] = useState<boolean | null>(null);
-  const [consentStoreChatlog, setConsentStoreChatlog] = useState<boolean | null>(null);
+  let current: {
+    physicianLines: string[];
+    docLines: string[];
+    startSeconds: number;
+    endSeconds: number;
+  } | null = null;
+  let idx = 0;
+
+  for (const entry of entries) {
+    const isUser = entry.speaker === 'user';
+    const isDoc = entry.speaker === 'agent';
+
+    if (isUser) {
+      // If we have a complete exchange, save it
+      if (current && current.docLines.length > 0) {
+        exchanges.push({
+          index: idx,
+          physicianText: current.physicianLines.join(' '),
+          docText: current.docLines.join(' '),
+          startSeconds: current.startSeconds,
+          endSeconds: current.endSeconds,
+        });
+        idx++;
+      }
+      // Start new exchange
+      if (!current || current.docLines.length > 0) {
+        current = {
+          physicianLines: [entry.text],
+          docLines: [],
+          startSeconds: entry.startSeconds,
+          endSeconds: entry.endSeconds,
+        };
+      } else {
+        current.physicianLines.push(entry.text);
+        current.endSeconds = Math.max(current.endSeconds, entry.endSeconds);
+      }
+    } else if (isDoc && current) {
+      current.docLines.push(entry.text);
+      current.endSeconds = Math.max(current.endSeconds, entry.endSeconds);
+    }
+  }
+
+  // Don't forget the last exchange
+  if (current && current.docLines.length > 0) {
+    exchanges.push({
+      index: idx,
+      physicianText: current.physicianLines.join(' '),
+      docText: current.docLines.join(' '),
+      startSeconds: current.startSeconds,
+      endSeconds: current.endSeconds,
+    });
+  }
+
+  return exchanges;
+}
+
+export default function PostCallForm({ callId, transcript, onComplete }: PostCallFormProps) {
+  const [step, setStep] = useState<FormStep>("healthcare_question");
 
   // Qualification answers
   const [worksInHealthcare, setWorksInHealthcare] = useState<boolean | null>(null);
@@ -50,9 +118,14 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
   // Featured quotes for sidebar
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
 
-  // Share quote state
-  const [extractedQuote, setExtractedQuote] = useState<string | null>(null);
+  // Video clip state
+  const [clipMode, setClipMode] = useState<'select' | 'generating' | 'result'>('select');
+  const [exchanges, setExchanges] = useState<Array<{ index: number; physicianText: string; docText: string; startSeconds: number; endSeconds: number }>>([]);
+  const [clipUrl, setClipUrl] = useState<string | null>(null);
+  const [clipError, setClipError] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [transcriptObject, setTranscriptObject] = useState<TranscriptEntry[] | null>(null);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
 
   // Fetch featured quotes on mount
   useEffect(() => {
@@ -66,27 +139,32 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       .catch(console.error);
   }, []);
 
-  // Fetch extracted quote when callId is available
+  // Fetch call data for video clips when callId is available
   useEffect(() => {
     if (!callId) return;
 
-    // Poll for the extracted quote (it's extracted async after call ends)
-    const checkQuote = async () => {
+    const fetchCallData = async () => {
       const { data } = await supabase
         .from("calls")
-        .select("quotable_quote")
+        .select("transcript_object, recording_url")
         .eq("id", callId)
         .single();
 
-      if (data?.quotable_quote) {
-        setExtractedQuote(data.quotable_quote);
+      if (data?.transcript_object) {
+        setTranscriptObject(data.transcript_object as TranscriptEntry[]);
+        // Parse into exchanges
+        const parsed = parseTranscriptIntoExchanges(data.transcript_object as TranscriptEntry[]);
+        setExchanges(parsed);
+      }
+      if (data?.recording_url) {
+        setRecordingUrl(data.recording_url);
       }
     };
 
-    // Check immediately, then poll a few times
-    checkQuote();
-    const interval = setInterval(checkQuote, 2000);
-    const timeout = setTimeout(() => clearInterval(interval), 10000);
+    // Poll a few times to wait for data to be saved
+    fetchCallData();
+    const interval = setInterval(fetchCallData, 2000);
+    const timeout = setTimeout(() => clearInterval(interval), 15000);
 
     return () => {
       clearInterval(interval);
@@ -112,61 +190,71 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
 
   const transcriptPreview = getTranscriptPreview();
 
-  // Share functions
+  // Video clip handlers
   const getBaseUrl = () => typeof window !== "undefined" ? window.location.origin : "https://doc.meroka.co";
 
-  const shareToTwitter = () => {
-    if (!extractedQuote || !callId) return;
-    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
-    const text = `"${extractedQuote.length > 100 ? extractedQuote.slice(0, 97) + "..." : extractedQuote}"\n\nTalk to Doc:`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
-    trackClick("form_share_twitter", url);
-    window.open(url, "_blank", "width=550,height=420");
-  };
+  const handleSelectExchange = async (exchangeIndex: number) => {
+    setClipMode('generating');
+    setClipError(null);
 
-  const shareToLinkedIn = () => {
-    if (!callId) return;
-    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-    trackClick("form_share_linkedin", url);
-    window.open(url, "_blank", "width=550,height=420");
-  };
+    try {
+      const response = await fetch('/api/generate-clip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          callId,
+          exchangeIndex,
+        }),
+      });
 
-  const copyShareLink = async () => {
-    if (!callId) return;
-    const shareUrl = `${getBaseUrl()}/share/call-${callId}`;
-    trackClick("form_share_copy", shareUrl);
-    await navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
+      const data = await response.json();
 
-  // Step handlers
-  const handleConsentComplete = () => {
-    // Show share step if user consented to sharing and we have a quote
-    if (consentShareQuote && extractedQuote) {
-      setStep("share_quote");
-    } else {
-      setStep("healthcare_question");
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate clip');
+      }
+
+      setClipUrl(data.clipUrl);
+      setClipMode('result');
+    } catch (error) {
+      setClipError(error instanceof Error ? error.message : 'Failed to generate clip');
+      setClipMode('select');
     }
   };
 
-  const handleShareComplete = () => {
-    setStep("healthcare_question");
+  const handleCopyClipLink = async () => {
+    if (clipUrl) {
+      await navigator.clipboard.writeText(clipUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
   };
 
+  const shareClipToTwitter = () => {
+    if (!clipUrl) return;
+    const text = "Listen to what healthcare workers are really going through.\n\nTalk to Doc:";
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(clipUrl)}`;
+    trackClick("form_clip_twitter", url);
+    window.open(url, "_blank", "width=550,height=420");
+  };
+
+  const shareClipToLinkedIn = () => {
+    if (!clipUrl) return;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(clipUrl)}`;
+    trackClick("form_clip_linkedin", url);
+    window.open(url, "_blank", "width=550,height=420");
+  };
+
+  // Step handlers
   const handleHealthcareAnswer = (answer: boolean) => {
     setWorksInHealthcare(answer);
     if (answer) {
       setStep("workplace_question");
     } else {
-      // Not in healthcare - save and thank
+      // Not in healthcare - save and go to video clip
       saveLead({
         works_in_healthcare: false,
-        consent_share_quote: consentShareQuote,
-        consent_store_chatlog: consentStoreChatlog,
       });
-      setStep("thank_you");
+      setStep("video_clip");
     }
   };
 
@@ -195,13 +283,10 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         workplace_type: workplaceType,
         role_type: roleType,
         interested_in_collective: false,
-        consent_share_quote: consentShareQuote,
-        consent_store_chatlog: consentStoreChatlog,
-        // Backwards compatibility
         is_physician_owner: workplaceType === "independent" && roleType === "owner",
         works_at_independent_clinic: workplaceType === "independent",
       });
-      setStep("thank_you");
+      setStep("video_clip");
     }
   };
 
@@ -217,14 +302,11 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       interested_in_collective: true,
       name: name.trim(),
       email: email.trim(),
-      consent_share_quote: consentShareQuote,
-      consent_store_chatlog: consentStoreChatlog,
-      // Backwards compatibility
       is_physician_owner: workplaceType === "independent" && roleType === "owner",
       works_at_independent_clinic: workplaceType === "independent",
     });
     setIsSubmitting(false);
-    setStep("thank_you");
+    setStep("video_clip");
   };
 
   const saveLead = async (data: {
@@ -234,8 +316,6 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
     interested_in_collective?: boolean;
     name?: string;
     email?: string;
-    consent_share_quote?: boolean | null;
-    consent_store_chatlog?: boolean | null;
     is_physician_owner?: boolean;
     works_at_independent_clinic?: boolean | null;
   }) => {
@@ -249,168 +329,11 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
     }
   };
 
-  const showSidebar = step !== "thank_you";
+  const showSidebar = step !== "thank_you" && step !== "video_clip";
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-        {/* Consent Step */}
-        {step === "consent" && (
-          <div className="animate-fade-in">
-            <h2 className="text-xl font-semibold text-white mb-2 text-center">
-              Thanks for sharing
-            </h2>
-            <p className="text-gray-400 text-sm text-center mb-6">
-              We believe in being upfront about how we use your conversation.
-            </p>
-
-            {/* Show transcript preview if available */}
-            {transcriptPreview && (
-              <div className="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700">
-                <p className="text-gray-500 text-xs uppercase tracking-wide mb-2">
-                  From your conversation
-                </p>
-                <p className="text-gray-300 text-sm italic">
-                  &ldquo;{transcriptPreview}&rdquo;
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {/* Share quote consent */}
-              <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
-                <p className="text-white text-sm mb-3">
-                  May we share highlights from your conversation anonymously?
-                </p>
-                <p className="text-gray-500 text-xs mb-3">
-                  This helps other healthcare workers see they&apos;re not alone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setConsentShareQuote(true)}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                      consentShareQuote === true
-                        ? "bg-meroka-primary text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    Yes, share
-                  </button>
-                  <button
-                    onClick={() => setConsentShareQuote(false)}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                      consentShareQuote === false
-                        ? "bg-gray-500 text-white ring-2 ring-gray-400"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    No thanks
-                  </button>
-                </div>
-              </div>
-
-              {/* Store chatlog consent */}
-              <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
-                <p className="text-white text-sm mb-3">
-                  Can we store this conversation to improve Doc?
-                </p>
-                <p className="text-gray-500 text-xs mb-3">
-                  Helps us understand healthcare workers better.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setConsentStoreChatlog(true)}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                      consentStoreChatlog === true
-                        ? "bg-meroka-primary text-white"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    Yes, store
-                  </button>
-                  <button
-                    onClick={() => setConsentStoreChatlog(false)}
-                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                      consentStoreChatlog === false
-                        ? "bg-gray-500 text-white ring-2 ring-gray-400"
-                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                    }`}
-                  >
-                    No thanks
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={handleConsentComplete}
-              disabled={consentShareQuote === null || consentStoreChatlog === null}
-              className="w-full mt-6 py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-            >
-              Continue
-            </button>
-          </div>
-        )}
-
-        {/* Share Quote Step */}
-        {step === "share_quote" && extractedQuote && (
-          <div className="animate-fade-in">
-            <h2 className="text-xl font-semibold text-white mb-2 text-center">
-              Share your confession?
-            </h2>
-            <p className="text-gray-400 text-sm text-center mb-6">
-              Let other healthcare workers know they&apos;re not alone.
-            </p>
-
-            {/* Quote preview */}
-            <div className="bg-gray-800/50 rounded-lg p-4 mb-6 border border-gray-700">
-              <p className="text-gray-300 text-base italic leading-relaxed">
-                &ldquo;{extractedQuote}&rdquo;
-              </p>
-              <p className="text-gray-500 text-xs mt-2">— Anonymous Healthcare Worker</p>
-            </div>
-
-            {/* Share buttons */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={shareToTwitter}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                <Twitter size={18} />
-                <span>Twitter</span>
-              </button>
-              <button
-                onClick={shareToLinkedIn}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                <Linkedin size={18} />
-                <span>LinkedIn</span>
-              </button>
-              <button
-                onClick={copyShareLink}
-                className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                {copiedLink ? <Check size={18} className="text-meroka-primary" /> : <Link2 size={18} />}
-                <span>{copiedLink ? "Copied!" : "Copy"}</span>
-              </button>
-            </div>
-
-            <button
-              onClick={handleShareComplete}
-              className="w-full py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
-            >
-              Continue
-            </button>
-
-            <button
-              onClick={handleShareComplete}
-              className="w-full mt-2 py-2 text-gray-500 hover:text-gray-400 text-sm transition-colors"
-            >
-              Skip sharing
-            </button>
-          </div>
-        )}
-
         {/* Healthcare Question */}
         {step === "healthcare_question" && (
           <div className="animate-fade-in">
@@ -569,6 +492,143 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
           </div>
         )}
 
+        {/* Video Clip Step */}
+        {step === "video_clip" && (
+          <div className="animate-fade-in">
+            {clipMode === 'select' && (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Film size={24} className="text-meroka-primary" />
+                  <h2 className="text-xl font-semibold text-white">
+                    Create a shareable clip
+                  </h2>
+                </div>
+                <p className="text-gray-400 text-sm text-center mb-6">
+                  Turn a moment from your conversation into a video to share on social media.
+                </p>
+
+                {clipError && (
+                  <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                    {clipError}
+                  </div>
+                )}
+
+                {exchanges.length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {exchanges.map((exchange) => (
+                      <button
+                        key={exchange.index}
+                        onClick={() => handleSelectExchange(exchange.index)}
+                        className="w-full text-left p-4 bg-gray-800/50 hover:bg-gray-800 rounded-xl transition-colors border border-gray-700/50"
+                      >
+                        <div className="mb-2">
+                          <span className="text-xs text-blue-400 font-medium">You</span>
+                          <p className="text-gray-300 text-sm line-clamp-2">{exchange.physicianText}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-meroka-primary font-medium">Doc</span>
+                          <p className="text-gray-400 text-sm line-clamp-2">{exchange.docText}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Loader2 size={24} className="text-gray-500 animate-spin mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">Loading conversation...</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setStep("thank_you")}
+                  className="w-full mt-4 py-2 text-gray-500 hover:text-gray-400 text-sm transition-colors"
+                >
+                  Skip
+                </button>
+              </>
+            )}
+
+            {clipMode === 'generating' && (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 size={48} className="text-meroka-primary animate-spin mb-4" />
+                <p className="text-white font-medium">Creating your clip...</p>
+                <p className="text-gray-500 text-sm mt-1">This may take a moment</p>
+              </div>
+            )}
+
+            {clipMode === 'result' && clipUrl && (
+              <>
+                <h2 className="text-xl font-semibold text-white mb-2 text-center">
+                  Your clip is ready!
+                </h2>
+                <p className="text-gray-400 text-sm text-center mb-4">
+                  Share it to help others know they&apos;re not alone.
+                </p>
+
+                <div className="bg-gray-800/50 rounded-xl p-2 mb-4">
+                  <video
+                    src={clipUrl}
+                    controls
+                    className="w-full rounded-lg"
+                  />
+                </div>
+
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={shareClipToTwitter}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
+                  >
+                    <Twitter size={18} />
+                    <span>Twitter</span>
+                  </button>
+                  <button
+                    onClick={shareClipToLinkedIn}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 hover:text-white transition-colors"
+                  >
+                    <Linkedin size={18} />
+                    <span>LinkedIn</span>
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <a
+                    href={clipUrl}
+                    download
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-meroka-primary hover:bg-meroka-primary-hover text-white rounded-lg transition-colors"
+                  >
+                    <Download size={18} />
+                    Download
+                  </a>
+                  <button
+                    onClick={handleCopyClipLink}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    {copiedLink ? <Check size={18} className="text-meroka-primary" /> : <Link2 size={18} />}
+                    {copiedLink ? "Copied!" : "Copy Link"}
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setClipMode('select');
+                    setClipUrl(null);
+                  }}
+                  className="w-full mt-3 py-2 text-gray-500 hover:text-gray-400 text-sm transition-colors"
+                >
+                  Create another clip
+                </button>
+
+                <button
+                  onClick={() => setStep("thank_you")}
+                  className="w-full mt-1 py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
+                >
+                  Done
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Thank You */}
         {step === "thank_you" && (
           <div className="animate-fade-in text-center">
@@ -591,7 +651,7 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         )}
 
         {/* Featured Quotes - shown during form questions */}
-        {showSidebar && featuredQuotes.length > 0 && step !== "consent" && (
+        {showSidebar && featuredQuotes.length > 0 && (
           <div className="mt-6 pt-6 border-t border-gray-800">
             <p className="text-gray-500 text-xs text-center mb-4">
               What other healthcare workers are saying

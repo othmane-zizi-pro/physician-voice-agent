@@ -647,13 +647,15 @@ export default function VoiceAgent() {
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             />
 
-            {/* Conversation history sidebar - only for logged in users */}
+            {/* Conversation history sidebar - TEMPORARILY DISABLED
             <ConversationSidebar />
+            */}
 
-            {/* User auth button - top right */}
+            {/* User auth button - TEMPORARILY DISABLED
             <div className="fixed top-4 right-4 z-30">
                 <UserAuthButton />
             </div>
+            */}
 
             {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
             <AnimatePresence>

@@ -19,10 +19,8 @@ const supabase = createClient<Database>(
 );
 
 export async function POST(request: NextRequest) {
+  // Allow anonymous users to create clips (removed auth requirement)
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   let workDir: string | null = null;
 
@@ -37,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch the call from our database
-    console.log('Fetching call:', callId, 'for user:', session.userId, 'email:', session.email);
+    console.log('Fetching call:', callId, 'for user:', session?.userId || 'anonymous');
 
     const { data: call, error: callError } = await supabase
       .from('calls')
@@ -57,11 +55,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Call found:', { user_id: call.user_id, has_recording: !!call.recording_url, has_transcript: !!call.transcript_object });
 
-    // Check ownership - admins can access any call
-    const isAdmin = session.email?.endsWith('@meroka.com') || false;
-    if (!isAdmin && call.user_id && call.user_id !== session.userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Note: Allowing anonymous clip creation for all calls (no ownership check)
+    // This enables the post-call form video clip feature for anonymous users
 
     // Check for timestamped transcript
     if (!call.transcript_object || !Array.isArray(call.transcript_object) || call.transcript_object.length === 0) {
