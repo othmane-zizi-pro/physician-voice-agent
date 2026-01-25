@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
 import UserAuthButton from "./UserAuthButton";
+import ConversationSidebar from "./ConversationSidebar";
 import type { TranscriptEntry } from "@/types/database";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -577,6 +578,9 @@ export default function VoiceAgent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(212,228,244,0.4)_0%,_transparent_50%)]" />
       </div>
 
+      {/* Conversation history sidebar - only for logged in users */}
+      <ConversationSidebar />
+
       {/* User auth button - top right */}
       <div className="fixed top-4 right-4 z-30">
         <UserAuthButton />
@@ -692,7 +696,7 @@ export default function VoiceAgent() {
 
         {/* Today's venting counter - below tagline */}
         {todayCount !== null && callStatus === "idle" && (
-          <div className="mb-6 px-4 py-2 bg-brand-navy-600 border border-brand-navy-800/30 rounded-full flex items-center justify-center gap-2 shadow-sm">
+          <div className="mb-6 px-4 py-2 bg-brand-navy-900 border border-brand-navy-600/30 rounded-full flex items-center justify-center gap-2 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
