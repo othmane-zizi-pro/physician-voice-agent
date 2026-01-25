@@ -86,6 +86,31 @@ const formatDate = (date: string) => {
   });
 };
 
+const exportCallsToCSV = (calls: Call[]) => {
+  const headers = ["Date", "Type", "Duration (seconds)", "Transcript", "Quote", "IP Address", "Recording URL", "Location"];
+  const rows = calls.map(call => [
+    new Date(call.created_at).toISOString(),
+    call.session_type || "voice",
+    call.duration_seconds?.toString() || "",
+    (call.transcript || "").replace(/"/g, '""'),
+    (call.quotable_quote || "").replace(/"/g, '""'),
+    call.ip_address || "",
+    call.recording_url || "",
+    [call.city, call.region, call.country].filter(Boolean).join(", ")
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `calls-export-${new Date().toISOString().split("T")[0]}.csv`;
+  link.click();
+};
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -677,8 +702,21 @@ export default function AdminDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl overflow-hidden relative z-10 shadow-glass border border-white/40"
+          className="space-y-4"
         >
+          {/* Export Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => exportCallsToCSV(filteredCalls)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-navy-900 text-white rounded-lg hover:bg-brand-navy-800 transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export CSV
+            </button>
+          </div>
+          <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
           <table className="w-full">
             <thead>
               <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
@@ -748,9 +786,12 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 text-sm max-w-xs">
                       {call.transcript ? (
-                        <span className={cn("line-clamp-2 text-xs leading-relaxed", call.session_type === "text" ? "text-amber-800 font-medium" : "text-brand-navy-600")}>
+                        <button
+                          onClick={() => setSelectedCall(call)}
+                          className={cn("line-clamp-2 text-xs leading-relaxed text-left hover:underline cursor-pointer", call.session_type === "text" ? "text-amber-800 font-medium" : "text-brand-navy-600")}
+                        >
                           {call.transcript.slice(0, 100)}{call.transcript.length > 100 ? "..." : ""}
-                        </span>
+                        </button>
                       ) : (
                         <span className="text-brand-navy-300">-</span>
                       )}
@@ -780,8 +821,111 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+          </div>
         </motion.div>
       )}
+
+      {/* Call Detail Modal */}
+      <AnimatePresence>
+        {selectedCall && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedCall(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-brand-neutral-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-brand-navy-900">Call Details</h3>
+                  <p className="text-sm text-brand-navy-500">{formatDate(selectedCall.created_at)}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedCall(null)}
+                  className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-brand-navy-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
+                {/* Meta info */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-brand-navy-500">Type:</span>
+                    <span className="ml-2 font-medium">{selectedCall.session_type === "text" ? "Text" : "Voice"}</span>
+                  </div>
+                  <div>
+                    <span className="text-brand-navy-500">Duration:</span>
+                    <span className="ml-2 font-medium">{formatDuration(selectedCall.duration_seconds)}</span>
+                  </div>
+                  {selectedCall.ip_address && (
+                    <div>
+                      <span className="text-brand-navy-500">IP:</span>
+                      <span className="ml-2 font-mono text-xs">{selectedCall.ip_address}</span>
+                    </div>
+                  )}
+                  {(selectedCall.city || selectedCall.country) && (
+                    <div>
+                      <span className="text-brand-navy-500">Location:</span>
+                      <span className="ml-2">{[selectedCall.city, selectedCall.region, selectedCall.country].filter(Boolean).join(", ")}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recording */}
+                {selectedCall.recording_url && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-brand-navy-900 mb-2">Recording</h4>
+                    <button
+                      onClick={() => openPresignedUrl(selectedCall.recording_url!)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors text-sm font-medium"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      Play Recording
+                    </button>
+                  </div>
+                )}
+
+                {/* Transcript */}
+                <div>
+                  <h4 className="text-sm font-semibold text-brand-navy-900 mb-2">Transcript</h4>
+                  {selectedCall.transcript ? (
+                    <div className="bg-brand-neutral-50 rounded-lg p-4 text-sm text-brand-navy-700 whitespace-pre-wrap max-h-64 overflow-y-auto border border-brand-neutral-200">
+                      {selectedCall.transcript}
+                    </div>
+                  ) : (
+                    <p className="text-brand-navy-400 text-sm italic">No transcript available</p>
+                  )}
+                </div>
+
+                {/* Quotable Quote */}
+                {selectedCall.quotable_quote && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-brand-navy-900 mb-2">Quotable Quote</h4>
+                    <div className="bg-brand-ice rounded-lg p-4 text-sm text-brand-navy-800 italic border border-brand-navy-200">
+                      &ldquo;{selectedCall.quotable_quote}&rdquo;
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Leads Table */}
       {activeTab === "leads" && (

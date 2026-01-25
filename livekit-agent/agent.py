@@ -183,68 +183,25 @@ async def entrypoint(ctx: agents.JobContext):
         await ctx.room.local_participant.publish_data(data, reliable=True)
         logger.debug(f"Transcript: [{speaker}] {text[:50]}... ({start_time:.2f}s - {end_time:.2f}s)")
 
-    # Track when user/agent start and stop speaking
-    user_speech_start: float | None = None
-    user_speech_text: list[str] = []
-    agent_speech_start: float | None = None
-    agent_speech_text: list[str] = []
+    # Capture transcripts from conversation_item_added events
+    @session.on("conversation_item_added")
+    def on_conversation_item(event):
+        item = event.item
+        role = item.role  # "user" or "assistant"
+        content = item.content[0] if item.content else ""
+        metrics = item.metrics or {}
 
-    @session.on("user_started_speaking")
-    def on_user_started_speaking():
-        nonlocal user_speech_start, user_speech_text
-        user_speech_start = time.time() - session_start_time
-        user_speech_text = []
-        logger.info(f"User started speaking at {user_speech_start:.2f}s")
+        # Calculate timestamps relative to session start
+        started_at = metrics.get('started_speaking_at', time.time())
+        stopped_at = metrics.get('stopped_speaking_at', time.time())
+        start_seconds = started_at - session_start_time if started_at else 0
+        end_seconds = stopped_at - session_start_time if stopped_at else start_seconds + 1
 
-    @session.on("user_stopped_speaking")
-    def on_user_stopped_speaking():
-        nonlocal user_speech_start, user_speech_text
-        logger.info(f"User stopped speaking. Collected text: {user_speech_text}")
-        if user_speech_start is not None and user_speech_text:
-            end_time = time.time() - session_start_time
-            full_text = " ".join(user_speech_text)
-            logger.info(f"Broadcasting user transcript: {full_text[:100]}...")
-            # Fire and forget the broadcast
-            import asyncio
-            asyncio.create_task(broadcast_transcript("user", full_text, user_speech_start, end_time))
-        user_speech_start = None
-        user_speech_text = []
+        speaker = "user" if role == "user" else "agent"
+        logger.info(f"Conversation item: [{speaker}] {content[:100]}... ({start_seconds:.2f}s - {end_seconds:.2f}s)")
 
-    @session.on("agent_started_speaking")
-    def on_agent_started_speaking():
-        nonlocal agent_speech_start, agent_speech_text
-        agent_speech_start = time.time() - session_start_time
-        agent_speech_text = []
-        logger.info(f"Agent started speaking at {agent_speech_start:.2f}s")
-
-    @session.on("agent_stopped_speaking")
-    def on_agent_stopped_speaking():
-        nonlocal agent_speech_start, agent_speech_text
-        logger.info(f"Agent stopped speaking. Collected text: {agent_speech_text}")
-        if agent_speech_start is not None and agent_speech_text:
-            end_time = time.time() - session_start_time
-            full_text = " ".join(agent_speech_text)
-            logger.info(f"Broadcasting agent transcript: {full_text[:100]}...")
-            import asyncio
-            asyncio.create_task(broadcast_transcript("agent", full_text, agent_speech_start, end_time))
-        agent_speech_start = None
-        agent_speech_text = []
-
-    @session.on("user_speech_committed")
-    def on_user_speech(msg):
-        nonlocal user_speech_text
-        logger.info(f"user_speech_committed event: {msg}")
-        if hasattr(msg, 'content') and msg.content:
-            user_speech_text.append(msg.content)
-            logger.info(f"User said: {msg.content}")
-
-    @session.on("agent_speech_committed")
-    def on_agent_speech(msg):
-        nonlocal agent_speech_text
-        logger.info(f"agent_speech_committed event: {msg}")
-        if hasattr(msg, 'content') and msg.content:
-            agent_speech_text.append(msg.content)
-            logger.info(f"Agent said: {msg.content}")
+        # Broadcast to frontend
+        asyncio.create_task(broadcast_transcript(speaker, content, start_seconds, end_seconds))
 
     await session.start(
         room=ctx.room,

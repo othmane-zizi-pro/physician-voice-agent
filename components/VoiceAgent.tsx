@@ -260,6 +260,13 @@ export default function VoiceAgent() {
             : null;
 
         const transcriptText = fullTranscriptRef.current.join("\n");
+        console.log("Updating call record:", {
+            callId: callIdRef.current,
+            durationSeconds,
+            transcriptLength: transcriptText.length,
+            transcriptLines: fullTranscriptRef.current.length,
+            timestampedEntries: timestampedTranscriptRef.current.length,
+        });
 
         // Get timestamped transcript for video clip feature
         const transcriptObject = timestampedTranscriptRef.current.length > 0
@@ -477,6 +484,7 @@ export default function VoiceAgent() {
                 // Handle transcript data from agent
                 try {
                     const data = JSON.parse(new TextDecoder().decode(payload));
+                    console.log("DataReceived:", data.type, data);
 
                     if (data.type === 'transcript' && data.text) {
                         // Store timestamped entry for video clip feature
