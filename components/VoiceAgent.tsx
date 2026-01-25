@@ -4,12 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrack, RemoteTrackPublication } from "livekit-client";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, User, LogOut, History } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
-import { useAuth } from "./auth/AuthProvider";
-import AuthModal from "./auth/AuthModal";
+import UserAuthButton from "./UserAuthButton";
 import type { TranscriptEntry } from "@/types/database";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -105,11 +105,10 @@ export default function VoiceAgent() {
   // Track if user already completed form this session (to avoid asking twice)
   const hasCompletedFormRef = useRef(false);
 
-  // Auth state
-  const { user, isLoading: isAuthLoading, logout } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  // Auth state - using NextAuth
+  const { data: session } = useSession();
+  const user = session?.user;
+  const userId = (session as any)?.userId as string | undefined;
 
   const roomRef = useRef<Room | null>(null);
   const ipAddressRef = useRef<string | null>(null);
@@ -236,7 +235,7 @@ export default function VoiceAgent() {
         duration_seconds: durationSeconds,
         ip_address: ipAddressRef.current,
         livekit_room_name: livekitRoomNameRef.current,
-        user_id: user?.id || null, // Link to user if logged in
+        user_id: userId || null, // Link to user if logged in
       })
       .select("id")
       .single();
@@ -321,13 +320,13 @@ export default function VoiceAgent() {
       }
 
       // Generate AI summary for logged-in users (in background)
-      if (user?.id) {
+      if (userId) {
         fetch("/api/generate-summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             callId,
-            userId: user.id,
+            userId,
             transcript: transcriptText,
           }),
         }).catch(console.error);
@@ -335,7 +334,7 @@ export default function VoiceAgent() {
     } else {
       console.warn("Call not saved to database - transcript may be empty or save failed");
     }
-  }, [saveCallToDatabase, user?.id]);
+  }, [saveCallToDatabase, userId]);
 
   // Cleanup room on unmount
   useEffect(() => {
@@ -376,7 +375,7 @@ export default function VoiceAgent() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          userId: user?.id || `anon-${Date.now()}`,
+          userId: userId || `anon-${Date.now()}`,
           userName: user?.name || 'User',
         }),
       });
@@ -578,69 +577,9 @@ export default function VoiceAgent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(212,228,244,0.4)_0%,_transparent_50%)]" />
       </div>
 
-      {/* User menu - top right */}
+      {/* User auth button - top right */}
       <div className="fixed top-4 right-4 z-30">
-        {!isAuthLoading && user && (
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-brand-navy-300 rounded-full hover:bg-brand-neutral-100 transition-colors shadow-sm"
-              >
-                {user.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.name || "User"}
-                    className="w-6 h-6 rounded-full"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-brand-brown flex items-center justify-center">
-                    <User size={14} className="text-white" />
-                  </div>
-                )}
-                <span className="text-brand-navy-800 text-sm hidden sm:inline">
-                  {user.name || user.email.split("@")[0]}
-                </span>
-              </button>
-
-              {/* Dropdown menu */}
-              {showUserMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowUserMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-brand-navy-300 rounded-lg shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 border-b border-brand-neutral-100">
-                      <p className="text-sm text-brand-navy-900 font-medium truncate">
-                        {user.name || "User"}
-                      </p>
-                      <p className="text-xs text-brand-navy-600 truncate">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        router.push("/dashboard");
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
-                    >
-                      <History size={16} />
-                      My conversations
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        logout();
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Sign out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-        )}
+        <UserAuthButton />
       </div>
 
       {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
@@ -1089,12 +1028,6 @@ export default function VoiceAgent() {
         />
       )}
 
-      {/* Auth modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        initialMode={authModalMode}
-      />
     </div>
   );
 }

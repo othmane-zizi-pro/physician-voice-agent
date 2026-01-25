@@ -83,14 +83,15 @@ export async function getSession(): Promise<SessionPayload | null> {
     if (session) return session;
   }
 
-  // Fall back to NextAuth session (for admin/dashboard users)
+  // Fall back to NextAuth session (for all users now)
   try {
     const nextAuthSession = await getServerSession();
     if (nextAuthSession?.user?.email) {
       // Return a compatible session payload
-      // Note: userId will be the email for NextAuth users (admin/dashboard only)
+      // userId will be the database UUID if available, otherwise email
+      const userId = (nextAuthSession as any).userId || nextAuthSession.user.email;
       return {
-        userId: nextAuthSession.user.email, // Use email as identifier
+        userId,
         email: nextAuthSession.user.email,
         name: nextAuthSession.user.name || null,
         avatarUrl: nextAuthSession.user.image || null,

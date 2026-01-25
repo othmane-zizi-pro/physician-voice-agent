@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit } from "@/types/database";
+import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User } from "@/types/database";
 import FeaturedQuotesManager from "@/components/FeaturedQuotesManager";
 import QuotePreviewModal from "@/components/QuotePreviewModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -19,9 +19,33 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits" | "users";
 type QuotesFilter = "all" | "featured" | "not-featured";
 type SessionTypeFilter = "all" | "voice" | "text";
+
+interface UserWithStats extends User {
+  conversation_count: number;
+}
+
+interface UserStats {
+  totalUsers: number;
+  newToday: number;
+  newThisWeek: number;
+  activeUsers: number;
+  aiMemoryEnabled: number;
+  verifiedUsers: number;
+  roleBreakdown: Record<string, number>;
+  workplaceBreakdown: Record<string, number>;
+  authBreakdown: Record<string, number>;
+  topCountries: { country: string; count: number }[];
+}
+
+interface UserDetail extends User {
+  conversation_count: number;
+  summary_count: number;
+  avg_frustration_score: number | null;
+  last_conversation_at: string | null;
+}
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -42,6 +66,16 @@ export default function AdminDashboard() {
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
+  // Users state
+  const [users, setUsers] = useState<UserWithStats[]>([]);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
+  const [userConversations, setUserConversations] = useState<Call[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
+  const [userWorkplaceFilter, setUserWorkplaceFilter] = useState<string>("all");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+
   // Phase 5: Bulk actions and modals
   const [selectedQuoteIds, setSelectedQuoteIds] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
@@ -55,8 +89,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/admin/login");
+    } else if (status === "authenticated" && session?.user?.email) {
+      // Check for @meroka.com domain
+      const domain = session.user.email.split("@")[1];
+      if (domain !== "meroka.com") {
+        signOut({ callbackUrl: "/admin/login?error=AccessDenied" });
+      }
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   useEffect(() => {
     if (session) {
@@ -75,6 +115,13 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, [autoRefresh, refreshInterval, session]);
 
+  // Fetch users when tab becomes active or filters change
+  useEffect(() => {
+    if (activeTab === "users" && session) {
+      fetchUsers();
+    }
+  }, [activeTab, userSearchQuery, userRoleFilter, userWorkplaceFilter, session]);
+
   const fetchData = async () => {
     setLoading(true);
     const [callsRes, leadsRes, featuredRes, clicksRes, visitsRes] = await Promise.all([
@@ -92,6 +139,50 @@ export default function AdminDashboard() {
     if (visitsRes.data) setPageVisits(visitsRes.data);
     setLastRefresh(new Date());
     setLoading(false);
+  };
+
+  // Fetch users data
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (userSearchQuery) params.set("search", userSearchQuery);
+      if (userRoleFilter !== "all") params.set("roleType", userRoleFilter);
+      if (userWorkplaceFilter !== "all") params.set("workplaceType", userWorkplaceFilter);
+      params.set("limit", "100");
+
+      const [usersRes, statsRes] = await Promise.all([
+        fetch(`/api/admin/users?${params}`),
+        fetch("/api/admin/users/stats"),
+      ]);
+
+      const usersData = await usersRes.json();
+      const statsData = await statsRes.json();
+
+      if (usersData.users) setUsers(usersData.users);
+      if (!statsData.error) setUserStats(statsData);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+    setUsersLoading(false);
+  };
+
+  // Fetch user detail and conversations
+  const fetchUserDetail = async (userId: string) => {
+    try {
+      const [detailRes, convRes] = await Promise.all([
+        fetch(`/api/admin/users/${userId}`),
+        fetch(`/api/admin/users/${userId}/conversations?limit=50`),
+      ]);
+
+      const detailData = await detailRes.json();
+      const convData = await convRes.json();
+
+      if (detailData.user) setSelectedUser(detailData.user);
+      if (convData.conversations) setUserConversations(convData.conversations);
+    } catch (error) {
+      console.error("Failed to fetch user detail:", error);
+    }
   };
 
   // Generate hourly traffic data for chart
@@ -480,6 +571,16 @@ export default function AdminDashboard() {
           }`}
         >
           Traffic ({pageVisits.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("users")}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            activeTab === "users"
+              ? "bg-meroka-primary text-white"
+              : "bg-gray-800/80 backdrop-blur-sm text-gray-300 hover:bg-gray-700 border border-gray-700"
+          }`}
+        >
+          Users {userStats ? `(${userStats.totalUsers})` : ""}
         </button>
       </div>
 
@@ -1409,6 +1510,385 @@ export default function AdminDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === "users" && (
+        <div className="space-y-6 relative z-10">
+          {/* User Stats */}
+          {userStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">Total Users</p>
+                <p className="text-2xl font-bold text-white">{userStats.totalUsers}</p>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">New Today</p>
+                <p className="text-2xl font-bold text-meroka-primary">{userStats.newToday}</p>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">New This Week</p>
+                <p className="text-2xl font-bold text-amber-400">{userStats.newThisWeek}</p>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">Active (7d)</p>
+                <p className="text-2xl font-bold text-green-400">{userStats.activeUsers}</p>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">AI Memory On</p>
+                <p className="text-2xl font-bold text-purple-400">{userStats.aiMemoryEnabled}</p>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm">Verified</p>
+                <p className="text-2xl font-bold text-gray-300">{userStats.verifiedUsers}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Auth Provider & Role Breakdown */}
+          {userStats && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm mb-3">Auth Provider</p>
+                <div className="flex gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded"></div>
+                    <span className="text-gray-300 text-sm">Google: {userStats.authBreakdown.google}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <span className="text-gray-300 text-sm">Email: {userStats.authBreakdown.email}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm mb-3">Role Types</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(userStats.roleBreakdown).map(([role, count]) => (
+                    <span key={role} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
+                      {role}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-4">
+                <p className="text-gray-400 text-sm mb-3">Workplace Types</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(userStats.workplaceBreakdown).map(([type, count]) => (
+                    <span key={type} className="px-2 py-1 bg-gray-800 rounded text-xs text-gray-300">
+                      {type}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* User Search and Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+            <input
+              type="text"
+              placeholder="Search users by email or name..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+              className="w-full max-w-md px-4 py-2 bg-gray-900/70 backdrop-blur-sm border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-meroka-primary focus:ring-1 focus:ring-meroka-primary"
+            />
+            <select
+              value={userRoleFilter}
+              onChange={(e) => setUserRoleFilter(e.target.value)}
+              className="px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-gray-300 text-sm"
+            >
+              <option value="all">All Roles</option>
+              <option value="physician">Physician</option>
+              <option value="nurse">Nurse</option>
+              <option value="admin_staff">Admin Staff</option>
+              <option value="other">Other</option>
+            </select>
+            <select
+              value={userWorkplaceFilter}
+              onChange={(e) => setUserWorkplaceFilter(e.target.value)}
+              className="px-3 py-2 bg-gray-900/70 border border-gray-700 rounded-lg text-gray-300 text-sm"
+            >
+              <option value="all">All Workplaces</option>
+              <option value="independent">Independent</option>
+              <option value="hospital">Hospital</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl overflow-hidden">
+            {usersLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-gray-600 border-t-meroka-primary rounded-full animate-spin" />
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-800">
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">User</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Role</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Workplace</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Auth</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Conversations</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">AI Memory</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Joined</th>
+                    <th className="text-left text-gray-400 text-sm font-medium px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center text-gray-500 py-8">
+                        No users found
+                      </td>
+                    </tr>
+                  ) : (
+                    users.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {user.avatar_url ? (
+                              <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-full" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-meroka-primary flex items-center justify-center text-white text-sm font-medium">
+                                {(user.name || user.email)[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-white text-sm font-medium">{user.name || "-"}</p>
+                              <p className="text-gray-500 text-xs">{user.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.role_type ? (
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              user.role_type === "physician"
+                                ? "bg-meroka-primary/20 text-meroka-primary"
+                                : user.role_type === "nurse"
+                                ? "bg-amber-500/20 text-amber-400"
+                                : "bg-gray-500/20 text-gray-400"
+                            }`}>
+                              {user.role_type}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {user.workplace_type ? (
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              user.workplace_type === "independent"
+                                ? "bg-green-500/20 text-green-400"
+                                : "bg-gray-500/20 text-gray-400"
+                            }`}>
+                              {user.workplace_type}
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            user.auth_provider === "google"
+                              ? "bg-red-500/20 text-red-400"
+                              : "bg-blue-500/20 text-blue-400"
+                          }`}>
+                            {user.auth_provider}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-white text-sm font-medium">
+                          {user.conversation_count}
+                        </td>
+                        <td className="px-4 py-3">
+                          {user.ai_memory_enabled ? (
+                            <span className="text-green-400 text-xs">On</span>
+                          ) : (
+                            <span className="text-gray-500 text-xs">Off</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 text-sm whitespace-nowrap">
+                          {formatDate(user.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => fetchUserDetail(user.id)}
+                            className="text-meroka-primary hover:text-meroka-primary-hover text-sm"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                {selectedUser.avatar_url ? (
+                  <img src={selectedUser.avatar_url} alt="" className="w-16 h-16 rounded-full" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-meroka-primary flex items-center justify-center text-white text-2xl font-medium">
+                    {(selectedUser.name || selectedUser.email)[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-xl font-semibold text-white">{selectedUser.name || "No name"}</h2>
+                  <p className="text-gray-400">{selectedUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setUserConversations([]);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* User Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-800/50 rounded-xl p-4">
+                <p className="text-gray-400 text-sm">Conversations</p>
+                <p className="text-xl font-bold text-white">{selectedUser.conversation_count}</p>
+              </div>
+              <div className="bg-gray-800/50 rounded-xl p-4">
+                <p className="text-gray-400 text-sm">Summaries</p>
+                <p className="text-xl font-bold text-purple-400">{selectedUser.summary_count}</p>
+              </div>
+              <div className="bg-gray-800/50 rounded-xl p-4">
+                <p className="text-gray-400 text-sm">Avg Frustration</p>
+                <p className="text-xl font-bold text-amber-400">
+                  {selectedUser.avg_frustration_score !== null ? `${selectedUser.avg_frustration_score}/10` : "-"}
+                </p>
+              </div>
+              <div className="bg-gray-800/50 rounded-xl p-4">
+                <p className="text-gray-400 text-sm">Last Active</p>
+                <p className="text-lg font-medium text-gray-300">
+                  {selectedUser.last_conversation_at ? formatDate(selectedUser.last_conversation_at) : "Never"}
+                </p>
+              </div>
+            </div>
+
+            {/* User Info */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+              <div>
+                <span className="text-gray-400">Role:</span>{" "}
+                <span className="text-white">{selectedUser.role_type || "-"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Workplace:</span>{" "}
+                <span className="text-white">{selectedUser.workplace_type || "-"}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Auth:</span>{" "}
+                <span className="text-white">{selectedUser.auth_provider}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">AI Memory:</span>{" "}
+                <span className={selectedUser.ai_memory_enabled ? "text-green-400" : "text-gray-500"}>
+                  {selectedUser.ai_memory_enabled ? "Enabled" : "Disabled"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400">Verified:</span>{" "}
+                <span className={selectedUser.email_verified ? "text-green-400" : "text-yellow-400"}>
+                  {selectedUser.email_verified ? "Yes" : "No"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400">Location:</span>{" "}
+                <span className="text-white">
+                  {[selectedUser.city, selectedUser.region, selectedUser.country].filter(Boolean).join(", ") || "-"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-400">Joined:</span>{" "}
+                <span className="text-white">{formatDate(selectedUser.created_at)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Last Login:</span>{" "}
+                <span className="text-white">
+                  {selectedUser.last_login_at ? formatDate(selectedUser.last_login_at) : "-"}
+                </span>
+              </div>
+            </div>
+
+            {/* User Conversations */}
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-4">Conversation History</h3>
+              {userConversations.length === 0 ? (
+                <p className="text-gray-500 text-sm">No conversations yet</p>
+              ) : (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {userConversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className={`p-4 rounded-xl border ${
+                        conv.session_type === "text"
+                          ? "bg-amber-900/10 border-amber-700/30"
+                          : "bg-gray-800/50 border-gray-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            conv.session_type === "text"
+                              ? "bg-amber-500/20 text-amber-400"
+                              : "bg-gray-600/30 text-gray-400"
+                          }`}>
+                            {conv.session_type === "text" ? "Text" : "Voice"}
+                          </span>
+                          <span className="text-gray-400 text-xs">{formatDate(conv.created_at)}</span>
+                          {conv.duration_seconds && (
+                            <span className="text-gray-500 text-xs">
+                              {formatDuration(conv.duration_seconds)}
+                            </span>
+                          )}
+                        </div>
+                        {conv.frustration_score !== null && (
+                          <span className={`px-2 py-0.5 rounded text-xs ${
+                            conv.frustration_score >= 7
+                              ? "bg-red-500/20 text-red-400"
+                              : conv.frustration_score >= 4
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-gray-500/20 text-gray-400"
+                          }`}>
+                            Frustration: {conv.frustration_score}/10
+                          </span>
+                        )}
+                      </div>
+                      {conv.quotable_quote && (
+                        <p className="text-meroka-primary italic text-sm mb-2">
+                          &ldquo;{conv.quotable_quote}&rdquo;
+                        </p>
+                      )}
+                      {conv.transcript && (
+                        <p className="text-gray-400 text-xs line-clamp-2">
+                          {conv.transcript.slice(0, 200)}{conv.transcript.length > 200 ? "..." : ""}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
