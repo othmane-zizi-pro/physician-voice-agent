@@ -680,8 +680,11 @@ export default function VoiceAgent() {
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
             <svg
-              className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900 animate-pulse"
-              style={{ animationDuration: '3s' }}
+              className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900"
+              style={{
+                animation: 'clippy 4s ease-in-out infinite',
+                transformOrigin: 'center bottom',
+              }}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -689,6 +692,21 @@ export default function VoiceAgent() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
+              <style>{`
+                @keyframes clippy {
+                  0%, 100% { transform: translateY(-50%) rotate(0deg) scale(1); }
+                  10% { transform: translateY(-50%) rotate(-8deg) scale(1.02); }
+                  20% { transform: translateY(-50%) rotate(6deg) scale(0.98); }
+                  30% { transform: translateY(-50%) rotate(-4deg) scale(1.01); }
+                  40% { transform: translateY(-50%) rotate(2deg) scale(1); }
+                  50% { transform: translateY(-50%) rotate(0deg) scale(1.03); }
+                  55% { transform: translateY(-52%) rotate(0deg) scale(1.03); }
+                  60% { transform: translateY(-50%) rotate(0deg) scale(1); }
+                  70% { transform: translateY(-50%) rotate(5deg) scale(0.99); }
+                  80% { transform: translateY(-50%) rotate(-3deg) scale(1.01); }
+                  90% { transform: translateY(-50%) rotate(1deg) scale(1); }
+                }
+              `}</style>
               {/* Earpieces */}
               <path d="M4 4v4a4 4 0 0 0 4 4h0" />
               <path d="M20 4v4a4 4 0 0 1-4 4h0" />
