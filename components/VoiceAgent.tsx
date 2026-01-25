@@ -249,6 +249,7 @@ export default function VoiceAgent() {
     }, [userId]);
 
     // Update call record when call ends with transcript and duration
+    // Uses server-side API to bypass Supabase RLS
     const updateCallRecord = useCallback(async () => {
         if (!callIdRef.current) {
             console.warn("No call ID to update");
@@ -260,7 +261,7 @@ export default function VoiceAgent() {
             : null;
 
         const transcriptText = fullTranscriptRef.current.join("\n");
-        console.log("Updating call record:", {
+        console.log("Updating call record via API:", {
             callId: callIdRef.current,
             durationSeconds,
             transcriptLength: transcriptText.length,
@@ -273,23 +274,31 @@ export default function VoiceAgent() {
             ? timestampedTranscriptRef.current
             : null;
 
-        const { data, error } = await supabase
-            .from("calls")
-            .update({
-                transcript: transcriptText,
-                transcript_object: transcriptObject,
-                duration_seconds: durationSeconds,
-            })
-            .eq("id", callIdRef.current)
-            .select();
+        try {
+            const response = await fetch("/api/calls/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    callId: callIdRef.current,
+                    transcript: transcriptText,
+                    transcriptObject,
+                    durationSeconds,
+                }),
+            });
 
-        if (error) {
+            const result = await response.json();
+
+            if (!response.ok) {
+                console.error("Failed to update call:", result.error);
+                return null;
+            }
+
+            console.log("Call record updated successfully:", result.data);
+            return callIdRef.current;
+        } catch (error) {
             console.error("Failed to update call:", error);
             return null;
         }
-
-        console.log("Call record updated successfully:", data);
-        return callIdRef.current;
     }, []);
 
     // Handle call end logic
