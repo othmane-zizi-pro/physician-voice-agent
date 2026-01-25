@@ -633,7 +633,7 @@ export default function VoiceAgent() {
     }, [confessionText, isSubmittingConfession]);
 
     return (
-        <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-24 lg:pb-8 lg:justify-center relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
+        <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-32 lg:justify-center relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
             {/* Animated gradient background - Light theme */}
             <motion.div
                 className="fixed inset-0 -z-10"
@@ -1139,7 +1139,7 @@ export default function VoiceAgent() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mt-12 w-full max-w-lg mb-20"
+                            className="mt-12 w-full max-w-lg mb-28"
                         >
                             <div className="glass rounded-2xl p-6 shadow-glass">
                                 <p className="text-brand-navy-400 text-xs font-bold uppercase tracking-wider mb-4">Live Transcript</p>
