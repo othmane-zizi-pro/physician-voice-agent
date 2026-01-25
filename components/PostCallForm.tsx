@@ -471,12 +471,12 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 <div className="bg-[#D4E4F4]/40 border border-[#D4E4F4] rounded-2xl p-6 mb-8">
                   <p className="text-[#9A4616] text-xs font-bold uppercase tracking-wider mb-2">Join the movement</p>
                   <p className="text-[#0E1219] leading-relaxed font-medium">
-                    We're building a collective of independent practices to negotiate better rates and reduce admin burden.
+                    The system is rigged against solo practices. We're changing that.
                   </p>
                 </div>
 
                 <h2 className="text-xl font-bold text-[#0E1219] mb-6 text-center">
-                  Want to learn more about the collective?
+                  Want to learn more about the Meroka collective?
                 </h2>
 
                 <div className="flex flex-col gap-3">
