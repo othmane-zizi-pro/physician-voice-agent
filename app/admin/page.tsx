@@ -61,6 +61,22 @@ const formatDuration = (seconds: number | null) => {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
+const openPresignedUrl = async (url: string) => {
+  try {
+    const response = await fetch('/api/presign-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await response.json();
+    if (data.presignedUrl) {
+      window.open(data.presignedUrl, '_blank');
+    }
+  } catch (error) {
+    console.error('Failed to get presigned URL:', error);
+  }
+};
+
 const formatDate = (date: string) => {
   return new Date(date).toLocaleString("en-US", {
     month: "short",
@@ -717,17 +733,15 @@ export default function AdminDashboard() {
                       {call.session_type === "text" ? (
                         <span className="text-brand-navy-300 text-xs">N/A</span>
                       ) : call.recording_url ? (
-                        <a
-                          href={call.recording_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => openPresignedUrl(call.recording_url!)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors shadow-sm text-xs font-medium"
                         >
                           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M8 5v14l11-7z" />
                           </svg>
                           <span>Play</span>
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-brand-navy-300">-</span>
                       )}

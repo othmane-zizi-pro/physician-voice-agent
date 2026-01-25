@@ -31,6 +31,7 @@ export default function ConversationDetail({ conversation, onClose }: Conversati
   const [exchanges, setExchanges] = useState<Array<{ index: number; physicianText: string; docText: string }>>([]);
   const [clipUrl, setClipUrl] = useState<string | null>(null);
   const [clipError, setClipError] = useState<string | null>(null);
+  const [presignedRecordingUrl, setPresignedRecordingUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -39,6 +40,24 @@ export default function ConversationDetail({ conversation, onClose }: Conversati
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [onClose]);
+
+  // Fetch presigned URL for recording
+  useEffect(() => {
+    if (conversation.recording_url) {
+      fetch('/api/presign-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: conversation.recording_url }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.presignedUrl) {
+            setPresignedRecordingUrl(data.presignedUrl);
+          }
+        })
+        .catch(err => console.error('Failed to get presigned URL:', err));
+    }
+  }, [conversation.recording_url]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -402,37 +421,46 @@ export default function ConversationDetail({ conversation, onClose }: Conversati
                     <span className="text-sm text-gray-300 font-medium">Recording</span>
                   </div>
 
-                  <audio
-                    ref={audioRef}
-                    src={conversation.recording_url}
-                    onTimeUpdate={handleTimeUpdate}
-                    onLoadedMetadata={handleLoadedMetadata}
-                    onEnded={handleEnded}
-                  />
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={togglePlayback}
-                      className="w-10 h-10 rounded-full bg-meroka-primary hover:bg-meroka-primary-hover flex items-center justify-center text-white transition-colors"
-                    >
-                      {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
-                    </button>
-
-                    <div className="flex-1">
-                      <input
-                        type="range"
-                        min={0}
-                        max={duration || 100}
-                        value={currentTime}
-                        onChange={handleSeek}
-                        className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-meroka-primary"
+                  {presignedRecordingUrl ? (
+                    <>
+                      <audio
+                        ref={audioRef}
+                        src={presignedRecordingUrl}
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={handleEnded}
                       />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>{formatTime(currentTime)}</span>
-                        <span>{formatTime(duration)}</span>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={togglePlayback}
+                          className="w-10 h-10 rounded-full bg-meroka-primary hover:bg-meroka-primary-hover flex items-center justify-center text-white transition-colors"
+                        >
+                          {isPlaying ? <Pause size={18} /> : <Play size={18} className="ml-0.5" />}
+                        </button>
+
+                        <div className="flex-1">
+                          <input
+                            type="range"
+                            min={0}
+                            max={duration || 100}
+                            value={currentTime}
+                            onChange={handleSeek}
+                            className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-meroka-primary"
+                          />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>{formatTime(currentTime)}</span>
+                            <span>{formatTime(duration)}</span>
+                          </div>
+                        </div>
                       </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-gray-400 text-sm">
+                      <Loader2 size={16} className="animate-spin" />
+                      Loading recording...
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
