@@ -11,6 +11,7 @@ import { trackClick } from "@/lib/trackClick";
 import PostCallForm from "./PostCallForm";
 import UserAuthButton from "./UserAuthButton";
 import ConversationSidebar from "./ConversationSidebar";
+import SignUpPrompt from "./SignUpPrompt";
 import type { TranscriptEntry } from "@/types/database";
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -103,8 +104,12 @@ export default function VoiceAgent() {
   const [isSubmittingConfession, setIsSubmittingConfession] = useState(false);
   const [confessionError, setConfessionError] = useState<string | null>(null);
 
+  // Sign-up prompt state (for anonymous users after first conversation)
+  const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
+
   // Track if user already completed form this session (to avoid asking twice)
   const hasCompletedFormRef = useRef(false);
+  const hasShownSignUpPromptRef = useRef(false);
 
   // Auth state - using NextAuth
   const { data: session } = useSession();
@@ -1028,8 +1033,20 @@ export default function VoiceAgent() {
             setTranscript([]);
             setLastTranscript("");
             hasCompletedFormRef.current = true;
+
+            // Show sign-up prompt for anonymous users after their first conversation
+            if (!session && !hasShownSignUpPromptRef.current) {
+              hasShownSignUpPromptRef.current = true;
+              // Small delay for smoother UX
+              setTimeout(() => setShowSignUpPrompt(true), 500);
+            }
           }}
         />
+      )}
+
+      {/* Sign-up prompt for anonymous users */}
+      {showSignUpPrompt && (
+        <SignUpPrompt onClose={() => setShowSignUpPrompt(false)} />
       )}
 
     </div>

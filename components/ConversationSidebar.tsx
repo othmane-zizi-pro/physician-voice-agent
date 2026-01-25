@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
   Menu,
   X,
   Phone,
   MessageSquare,
-  Calendar,
   Clock,
   ChevronRight,
   Loader2,
   History,
+  Search,
+  Trash2,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 
 interface Conversation {
@@ -32,6 +35,21 @@ interface GroupedConversations {
   [key: string]: Conversation[];
 }
 
+// Skeleton loader component
+function ConversationSkeleton() {
+  return (
+    <div className="px-4 py-3 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-brand-neutral-100" />
+        <div className="flex-1">
+          <div className="h-4 bg-brand-neutral-100 rounded w-3/4 mb-2" />
+          <div className="h-3 bg-brand-neutral-100 rounded w-1/2" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ConversationSidebar() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +57,9 @@ export default function ConversationSidebar() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchConversations = useCallback(async () => {
     if (!session) return;
@@ -68,6 +89,18 @@ export default function ConversationSidebar() {
       fetchConversations();
     }
   }, [isOpen, session, fetchConversations]);
+
+  // Filter conversations based on search query
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+
+    const query = searchQuery.toLowerCase();
+    return conversations.filter((conv) => {
+      const transcript = conv.transcript?.toLowerCase() || "";
+      const quote = conv.quotable_quote?.toLowerCase() || "";
+      return transcript.includes(query) || quote.includes(query);
+    });
+  }, [conversations, searchQuery]);
 
   // Group conversations by date
   const groupConversations = (convs: Conversation[]): GroupedConversations => {
@@ -128,13 +161,116 @@ export default function ConversationSidebar() {
     return "No transcript";
   };
 
+  // Delete conversation
+  const handleDelete = async (id: string) => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/user/conversations/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+
+      // Remove from local state
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      setSelectedConversation(null);
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete conversation");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Export transcript as text file
+  const handleExport = (conv: Conversation) => {
+    if (!conv.transcript) return;
+
+    const date = new Date(conv.created_at).toLocaleDateString([], {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    const content = `Doc Conversation - ${date}
+Type: ${conv.session_type === "voice" ? "Voice Call" : "Text Confession"}
+${conv.duration_seconds ? `Duration: ${formatDuration(conv.duration_seconds)}` : ""}
+${conv.quotable_quote ? `\nHighlight: "${conv.quotable_quote}"\n` : ""}
+---
+
+${conv.transcript}
+`;
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `doc-conversation-${conv.id.slice(0, 8)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Don't render anything if not authenticated
   if (status === "loading" || !session) {
     return null;
   }
 
-  const groupedConversations = groupConversations(conversations);
+  const groupedConversations = groupConversations(filteredConversations);
   const groupOrder = ["Today", "Yesterday", "Previous 7 Days", "Previous 30 Days"];
+
+  // Render conversation item
+  const renderConversationItem = (conv: Conversation) => (
+    <button
+      key={conv.id}
+      onClick={() => setSelectedConversation(conv)}
+      className="w-full text-left px-4 py-3 hover:bg-brand-neutral-50 transition-colors group"
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+            conv.session_type === "voice"
+              ? "bg-brand-ice text-brand-navy-600"
+              : "bg-green-100 text-green-600"
+          }`}
+        >
+          {conv.session_type === "voice" ? (
+            <Phone size={14} />
+          ) : (
+            <MessageSquare size={14} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-brand-navy-800 truncate">
+            {getPreview(conv)}
+          </p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-brand-navy-600">
+            <span>{formatTime(conv.created_at)}</span>
+            {conv.session_type === "voice" && conv.duration_seconds && (
+              <>
+                <span className="text-brand-navy-300">·</span>
+                <span className="flex items-center gap-0.5">
+                  <Clock size={10} />
+                  {formatDuration(conv.duration_seconds)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <ChevronRight
+          size={16}
+          className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-600 transition-colors mt-1"
+        />
+      </div>
+    </button>
+  );
 
   return (
     <>
@@ -181,14 +317,43 @@ export default function ConversationSidebar() {
           </button>
         </div>
 
+        {/* Search bar */}
+        <div className="px-3 py-2 border-b border-brand-neutral-100">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-navy-300" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-3 py-2 text-sm bg-brand-neutral-50 border border-brand-neutral-100 rounded-lg focus:outline-none focus:border-brand-navy-300 focus:bg-white transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-brand-neutral-100 rounded"
+              >
+                <X size={14} className="text-brand-navy-600" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Content */}
-        <div className="h-[calc(100%-3.5rem)] overflow-y-auto">
+        <div className="h-[calc(100%-7.5rem)] overflow-y-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 text-brand-brown animate-spin" />
+            // Skeleton loaders
+            <div className="py-2">
+              <div className="px-4 py-2">
+                <div className="h-3 bg-brand-neutral-100 rounded w-16 animate-pulse" />
+              </div>
+              {[...Array(5)].map((_, i) => (
+                <ConversationSkeleton key={i} />
+              ))}
             </div>
           ) : error ? (
             <div className="text-center py-8 px-4">
+              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
               <p className="text-red-500 text-sm mb-3">{error}</p>
               <button
                 onClick={fetchConversations}
@@ -197,13 +362,25 @@ export default function ConversationSidebar() {
                 Try again
               </button>
             </div>
-          ) : conversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <div className="text-center py-12 px-4">
-              <MessageSquare className="w-10 h-10 text-brand-navy-300 mx-auto mb-3" />
-              <p className="text-brand-navy-600 text-sm">No conversations yet</p>
-              <p className="text-brand-navy-300 text-xs mt-1">
-                Start venting to see your history
-              </p>
+              {searchQuery ? (
+                <>
+                  <Search className="w-10 h-10 text-brand-navy-300 mx-auto mb-3" />
+                  <p className="text-brand-navy-600 text-sm">No results found</p>
+                  <p className="text-brand-navy-300 text-xs mt-1">
+                    Try a different search term
+                  </p>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-10 h-10 text-brand-navy-300 mx-auto mb-3" />
+                  <p className="text-brand-navy-600 text-sm">No conversations yet</p>
+                  <p className="text-brand-navy-300 text-xs mt-1">
+                    Start venting to see your history
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="py-2">
@@ -218,50 +395,7 @@ export default function ConversationSidebar() {
                       {groupKey}
                     </p>
                     <div className="space-y-0.5">
-                      {convs.map((conv) => (
-                        <button
-                          key={conv.id}
-                          onClick={() => setSelectedConversation(conv)}
-                          className="w-full text-left px-4 py-3 hover:bg-brand-neutral-50 transition-colors group"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                                conv.session_type === "voice"
-                                  ? "bg-brand-ice text-brand-navy-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              {conv.session_type === "voice" ? (
-                                <Phone size={14} />
-                              ) : (
-                                <MessageSquare size={14} />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-brand-navy-800 truncate">
-                                {getPreview(conv)}
-                              </p>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-brand-navy-600">
-                                <span>{formatTime(conv.created_at)}</span>
-                                {conv.session_type === "voice" && conv.duration_seconds && (
-                                  <>
-                                    <span className="text-brand-navy-300">·</span>
-                                    <span className="flex items-center gap-0.5">
-                                      <Clock size={10} />
-                                      {formatDuration(conv.duration_seconds)}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <ChevronRight
-                              size={16}
-                              className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-600 transition-colors mt-1"
-                            />
-                          </div>
-                        </button>
-                      ))}
+                      {convs.map(renderConversationItem)}
                     </div>
                   </div>
                 );
@@ -280,50 +414,7 @@ export default function ConversationSidebar() {
                         {groupKey}
                       </p>
                       <div className="space-y-0.5">
-                        {convs.map((conv) => (
-                          <button
-                            key={conv.id}
-                            onClick={() => setSelectedConversation(conv)}
-                            className="w-full text-left px-4 py-3 hover:bg-brand-neutral-50 transition-colors group"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div
-                                className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                                  conv.session_type === "voice"
-                                    ? "bg-brand-ice text-brand-navy-600"
-                                    : "bg-green-100 text-green-600"
-                                }`}
-                              >
-                                {conv.session_type === "voice" ? (
-                                  <Phone size={14} />
-                                ) : (
-                                  <MessageSquare size={14} />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm text-brand-navy-800 truncate">
-                                  {getPreview(conv)}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1 text-xs text-brand-navy-600">
-                                  <span>{formatTime(conv.created_at)}</span>
-                                  {conv.session_type === "voice" && conv.duration_seconds && (
-                                    <>
-                                      <span className="text-brand-navy-300">·</span>
-                                      <span className="flex items-center gap-0.5">
-                                        <Clock size={10} />
-                                        {formatDuration(conv.duration_seconds)}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                              <ChevronRight
-                                size={16}
-                                className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-600 transition-colors mt-1"
-                              />
-                            </div>
-                          </button>
-                        ))}
+                        {convs.map(renderConversationItem)}
                       </div>
                     </div>
                   );
@@ -337,7 +428,10 @@ export default function ConversationSidebar() {
       {selectedConversation && (
         <div
           className="fixed inset-0 bg-brand-navy-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedConversation(null)}
+          onClick={() => {
+            setSelectedConversation(null);
+            setDeleteConfirm(null);
+          }}
         >
           <div
             className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl"
@@ -381,13 +475,66 @@ export default function ConversationSidebar() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedConversation(null)}
-                className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-brand-navy-600" />
-              </button>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-1">
+                {selectedConversation.transcript && (
+                  <button
+                    onClick={() => handleExport(selectedConversation)}
+                    className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                    title="Export transcript"
+                  >
+                    <Download size={18} className="text-brand-navy-600" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setDeleteConfirm(selectedConversation.id)}
+                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete conversation"
+                >
+                  <Trash2 size={18} className="text-red-500" />
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedConversation(null);
+                    setDeleteConfirm(null);
+                  }}
+                  className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors ml-1"
+                >
+                  <X size={20} className="text-brand-navy-600" />
+                </button>
+              </div>
             </div>
+
+            {/* Delete confirmation */}
+            {deleteConfirm === selectedConversation.id && (
+              <div className="px-6 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                <p className="text-red-700 text-sm">Delete this conversation?</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="px-3 py-1 text-sm text-brand-navy-600 hover:bg-white rounded transition-colors"
+                    disabled={isDeleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleDelete(selectedConversation.id)}
+                    disabled={isDeleting}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete"
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Modal content */}
             <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
