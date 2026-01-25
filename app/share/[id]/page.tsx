@@ -93,11 +93,11 @@ export default async function SharePage({ params }: PageProps) {
 
   if (!quote) {
     return (
-      <div className="min-h-screen bg-meroka-secondary flex flex-col items-center justify-center p-8">
-        <h1 className="text-2xl text-white mb-4">Quote not found</h1>
+      <div className="min-h-screen bg-brand-neutral-50 flex flex-col items-center justify-center p-8">
+        <h1 className="text-2xl text-brand-navy-900 mb-4">Quote not found</h1>
         <Link
           href="/"
-          className="text-meroka-primary hover:text-meroka-primary-hover transition-colors"
+          className="text-brand-brown hover:text-brand-brown-dark transition-colors"
         >
           Go to Doc
         </Link>
@@ -109,34 +109,34 @@ export default async function SharePage({ params }: PageProps) {
   const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
 
   return (
-    <div className="min-h-screen bg-meroka-secondary flex flex-col items-center justify-center p-8">
+    <div className="min-h-screen bg-brand-neutral-50 flex flex-col items-center justify-center p-8">
       {/* Quote Card */}
       <div className="max-w-2xl w-full">
-        <div className="bg-[#0f151d] rounded-2xl p-8 border border-gray-700 mb-8">
+        <div className="bg-white rounded-2xl p-8 border border-brand-neutral-100 mb-8 shadow-lg">
           {/* Quote */}
           <div className="relative">
-            <span className="absolute -top-4 -left-2 text-6xl text-meroka-primary/30 font-serif">
+            <span className="absolute -top-4 -left-2 text-6xl text-brand-brown/30 font-serif">
               &ldquo;
             </span>
-            <p className="text-xl md:text-2xl text-gray-200 italic leading-relaxed pl-6">
+            <p className="text-xl md:text-2xl text-brand-navy-800 italic leading-relaxed pl-6">
               {quote.quote}
             </p>
-            <span className="absolute -bottom-8 right-0 text-6xl text-meroka-primary/30 font-serif">
+            <span className="absolute -bottom-8 right-0 text-6xl text-brand-brown/30 font-serif">
               &rdquo;
             </span>
           </div>
 
-          <p className="text-gray-400 mt-8 text-right">— {quote.location}</p>
+          <p className="text-brand-navy-600 mt-8 text-right">— {quote.location}</p>
         </div>
 
         {/* Share buttons */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <span className="text-gray-500 text-sm">Share:</span>
+          <span className="text-brand-navy-600 text-sm">Share:</span>
           <a
             href={twitterUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-3 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
+            className="p-3 rounded-full bg-brand-neutral-100 hover:bg-brand-ice text-brand-navy-600 hover:text-brand-navy-900 transition-colors"
             title="Share on Twitter"
           >
             <Twitter size={20} />
@@ -145,7 +145,7 @@ export default async function SharePage({ params }: PageProps) {
             href={linkedInUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-3 rounded-full bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors"
+            className="p-3 rounded-full bg-brand-neutral-100 hover:bg-brand-ice text-brand-navy-600 hover:text-brand-navy-900 transition-colors"
             title="Share on LinkedIn"
           >
             <Linkedin size={20} />
@@ -155,15 +155,15 @@ export default async function SharePage({ params }: PageProps) {
 
         {/* CTA */}
         <div className="text-center">
-          <p className="text-gray-400 mb-6">
+          <p className="text-brand-navy-800 mb-6">
             Healthcare workers are venting to Doc every day.
             <br />
-            <span className="text-gray-500">An AI companion who gets the system&apos;s BS.</span>
+            <span className="text-brand-navy-600">An AI companion who gets the system&apos;s BS.</span>
           </p>
 
           <Link
             href="/"
-            className="inline-flex items-center gap-3 bg-meroka-primary hover:bg-meroka-primary-hover text-white px-8 py-4 rounded-full text-lg font-medium transition-all transform hover:scale-105 shadow-lg shadow-meroka-primary/30"
+            className="inline-flex items-center gap-3 bg-brand-brown hover:bg-brand-brown-dark text-white px-8 py-4 rounded-full text-lg font-medium transition-all transform hover:scale-105 shadow-lg shadow-brand-brown/30"
           >
             <Phone size={24} />
             Talk to Doc
@@ -171,13 +171,13 @@ export default async function SharePage({ params }: PageProps) {
         </div>
 
         {/* Meroka branding */}
-        <p className="text-center text-gray-600 text-sm mt-12">
+        <p className="text-center text-brand-navy-600 text-sm mt-12">
           by{" "}
           <a
             href="https://meroka.co"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-gray-400 transition-colors"
+            className="hover:text-brand-brown transition-colors"
           >
             Meroka
           </a>

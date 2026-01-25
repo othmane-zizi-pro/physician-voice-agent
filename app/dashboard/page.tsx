@@ -99,19 +99,19 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-white">My Conversations</h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <h1 className="text-2xl font-semibold text-brand-navy-900">My Conversations</h1>
+          <p className="text-brand-navy-600 text-sm mt-1">
             {total} conversation{total !== 1 ? "s" : ""} total
           </p>
         </div>
 
         {/* Filter */}
         <div className="flex items-center gap-2">
-          <Filter size={16} className="text-gray-500" />
+          <Filter size={16} className="text-brand-navy-600" />
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as "all" | "voice" | "text")}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-meroka-primary"
+            className="bg-white border border-brand-neutral-100 rounded-lg px-3 py-1.5 text-sm text-brand-navy-800 focus:outline-none focus:border-brand-brown shadow-sm"
           >
             <option value="all">All types</option>
             <option value="voice">Voice calls</option>
@@ -123,23 +123,23 @@ export default function DashboardPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 text-meroka-primary animate-spin" />
+          <Loader2 className="w-6 h-6 text-brand-brown animate-spin" />
         </div>
       ) : error ? (
         <div className="text-center py-12">
-          <p className="text-red-400">{error}</p>
+          <p className="text-red-500">{error}</p>
           <button
             onClick={fetchConversations}
-            className="mt-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
+            className="mt-4 px-4 py-2 bg-brand-neutral-100 hover:bg-brand-neutral-100/80 text-brand-navy-800 rounded-lg transition-colors"
           >
             Try again
           </button>
         </div>
       ) : conversations.length === 0 ? (
-        <div className="text-center py-12 bg-gray-900/50 rounded-xl border border-gray-800">
-          <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No conversations yet</h3>
-          <p className="text-gray-400 text-sm mb-4">
+        <div className="text-center py-12 bg-white/80 rounded-xl border border-brand-neutral-100 shadow-sm">
+          <MessageSquare className="w-12 h-12 text-brand-navy-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-brand-navy-900 mb-2">No conversations yet</h3>
+          <p className="text-brand-navy-600 text-sm mb-4">
             {filter === "all"
               ? "Start a voice call or type a confession to see your history here."
               : filter === "voice"
@@ -148,7 +148,7 @@ export default function DashboardPage() {
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-meroka-primary hover:bg-meroka-primary-hover text-white rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-brown hover:bg-brand-brown-dark text-white rounded-lg transition-colors"
           >
             Start venting
           </a>
@@ -159,15 +159,15 @@ export default function DashboardPage() {
             <button
               key={conv.id}
               onClick={() => setSelectedConversation(conv)}
-              className="w-full text-left bg-gray-900/50 hover:bg-gray-900/70 border border-gray-800 hover:border-gray-700 rounded-xl p-4 transition-colors group"
+              className="w-full text-left bg-white/80 hover:bg-white border border-brand-neutral-100 hover:border-brand-navy-300 rounded-xl p-4 transition-colors group shadow-sm"
             >
               <div className="flex items-start gap-4">
                 {/* Icon */}
                 <div
                   className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                     conv.session_type === "voice"
-                      ? "bg-blue-500/20 text-blue-400"
-                      : "bg-green-500/20 text-green-400"
+                      ? "bg-brand-ice text-brand-navy-600"
+                      : "bg-green-100 text-green-600"
                   }`}
                 >
                   {conv.session_type === "voice" ? (
@@ -180,17 +180,17 @@ export default function DashboardPage() {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-gray-500 uppercase">
+                    <span className="text-xs font-medium text-brand-navy-600 uppercase">
                       {conv.session_type === "voice" ? "Voice Call" : "Text"}
                     </span>
                     {conv.frustration_score !== null && conv.frustration_score > 0 && (
                       <span
                         className={`text-xs px-1.5 py-0.5 rounded ${
                           conv.frustration_score >= 7
-                            ? "bg-red-500/20 text-red-400"
+                            ? "bg-red-100 text-red-600"
                             : conv.frustration_score >= 4
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-green-500/20 text-green-400"
+                            ? "bg-yellow-100 text-yellow-600"
+                            : "bg-green-100 text-green-600"
                         }`}
                       >
                         {conv.frustration_score}/10
@@ -198,11 +198,11 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <p className="text-gray-300 text-sm line-clamp-2 mb-2">
+                  <p className="text-brand-navy-800 text-sm line-clamp-2 mb-2">
                     {getPreview(conv)}
                   </p>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-brand-navy-600">
                     <span className="flex items-center gap-1">
                       <Calendar size={12} />
                       {formatDate(conv.created_at)}
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                 {/* Arrow */}
                 <ChevronRight
                   size={20}
-                  className="flex-shrink-0 text-gray-600 group-hover:text-gray-400 transition-colors"
+                  className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-600 transition-colors"
                 />
               </div>
             </button>

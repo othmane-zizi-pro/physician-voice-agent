@@ -6,8 +6,17 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #F8F6F3;
+  --foreground: #0E1219;
+  --brand-brown: #9A4616;
+  --brand-brown-dark: #69311E;
+  --brand-navy-900: #0E1219;
+  --brand-navy-800: #1C222D;
+  --brand-navy-600: #3C5676;
+  --brand-navy-300: #A9BCD0;
+  --brand-neutral-50: #F8F6F3;
+  --brand-neutral-100: #E8E2DC;
+  --brand-ice: #D4E4F4;
 }
 
 body {
@@ -75,7 +84,7 @@ body {
 /* Custom scrollbar for quotes panel */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-color: #A9BCD0 transparent;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -87,10 +96,10 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #374151;
+  background-color: #A9BCD0;
   border-radius: 3px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: #4b5563;
+  background-color: #3C5676;
 }

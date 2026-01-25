@@ -9,14 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        meroka: {
-          primary: "#9b420f",      // Burnt orange-brown (CTAs)
-          "primary-hover": "#b54d12", // Lighter for hover
-          secondary: "#18212d",    // Dark slate
-          cream: "#F7F5F2",        // Light beige (primary bg)
-          warm: "#FBF5EB",         // Warm peachy beige (secondary bg)
-          text: "#18212d",         // Primary text on light
-          "text-soft": "#1F1F1F",  // Softer text
+        brand: {
+          // Browns
+          "brown-dark": "#69311E",
+          brown: "#9A4616",
+          // Blues
+          "navy-900": "#0E1219",
+          "navy-800": "#1C222D",
+          "navy-600": "#3C5676",
+          "navy-300": "#A9BCD0",
+          // Neutrals
+          "neutral-50": "#F8F6F3",
+          "neutral-100": "#E8E2DC",
+          ice: "#D4E4F4",
         },
       },
       fontFamily: {

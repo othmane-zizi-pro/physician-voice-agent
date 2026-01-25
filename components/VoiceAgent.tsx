@@ -572,10 +572,10 @@ export default function VoiceAgent() {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-8 pt-12 pb-24 lg:pb-8 lg:justify-center relative overflow-x-hidden">
-      {/* Animated gradient background - Meroka dark slate */}
-      <div className="fixed inset-0 bg-gradient-to-br from-meroka-secondary via-[#0f151d] to-meroka-secondary -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(155,66,15,0.15)_0%,_transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(247,245,242,0.05)_0%,_transparent_50%)]" />
+      {/* Animated gradient background - Light theme */}
+      <div className="fixed inset-0 bg-gradient-to-br from-brand-neutral-50 via-white to-brand-neutral-100 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(154,70,22,0.08)_0%,_transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(212,228,244,0.4)_0%,_transparent_50%)]" />
       </div>
 
       {/* User menu - top right */}
@@ -584,7 +584,7 @@ export default function VoiceAgent() {
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-full hover:bg-gray-700/80 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm border border-brand-navy-300 rounded-full hover:bg-brand-neutral-100 transition-colors shadow-sm"
               >
                 {user.avatarUrl ? (
                   <img
@@ -593,11 +593,11 @@ export default function VoiceAgent() {
                     className="w-6 h-6 rounded-full"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-meroka-primary flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-brand-brown flex items-center justify-center">
                     <User size={14} className="text-white" />
                   </div>
                 )}
-                <span className="text-gray-300 text-sm hidden sm:inline">
+                <span className="text-brand-navy-800 text-sm hidden sm:inline">
                   {user.name || user.email.split("@")[0]}
                 </span>
               </button>
@@ -609,19 +609,19 @@ export default function VoiceAgent() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 border-b border-gray-700">
-                      <p className="text-sm text-white font-medium truncate">
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-brand-navy-300 rounded-lg shadow-xl z-50 py-1">
+                    <div className="px-3 py-2 border-b border-brand-neutral-100">
+                      <p className="text-sm text-brand-navy-900 font-medium truncate">
                         {user.name || "User"}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                      <p className="text-xs text-brand-navy-600 truncate">{user.email}</p>
                     </div>
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
                         router.push("/dashboard");
                       }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
                     >
                       <History size={16} />
                       My conversations
@@ -631,7 +631,7 @@ export default function VoiceAgent() {
                         setShowUserMenu(false);
                         logout();
                       }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
                     >
                       <LogOut size={16} />
                       Sign out
@@ -646,21 +646,21 @@ export default function VoiceAgent() {
       {/* Side Quote Feed - hidden on mobile, shown on lg screens */}
       {callStatus === "idle" && featuredQuotes.length > 0 && (
         <div className="hidden lg:flex flex-col fixed right-6 top-1/2 -translate-y-1/2 w-72 max-h-[70vh] z-20">
-          <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide">
+          <p className="text-brand-navy-600 text-xs mb-3 uppercase tracking-wide">
             What others are saying
           </p>
 
-          <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+          <div className="overflow-y-auto space-y-3 pr-2 scrollbar-thin">
             {featuredQuotes.map((quote) => (
               <div
                 key={quote.id}
-                className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
+                className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-brand-neutral-100 shadow-sm"
               >
-                <p className="text-gray-300 text-sm italic leading-relaxed">
+                <p className="text-brand-navy-800 text-sm italic leading-relaxed">
                   &ldquo;{quote.quote}&rdquo;
                 </p>
                 <div className="flex items-center justify-between mt-3">
-                  <p className="text-gray-500 text-xs">— {quote.location}</p>
+                  <p className="text-brand-navy-600 text-xs">— {quote.location}</p>
 
                   {/* Share button */}
                   <button
@@ -671,7 +671,7 @@ export default function VoiceAgent() {
                       setShareMenuSource("sidebar");
                       setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
                     }}
-                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    className="p-1.5 rounded-full hover:bg-brand-neutral-100 transition-colors text-brand-navy-600 hover:text-brand-navy-900"
                     title="Share this quote"
                   >
                     <Share2 size={14} />
@@ -686,7 +686,7 @@ export default function VoiceAgent() {
       {/* Share dropdown - rendered via portal at body level */}
       {shareMenuOpen && shareMenuPos && typeof document !== "undefined" && createPortal(
         <div
-          className="fixed bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-1 z-[9999] min-w-[140px]"
+          className="fixed bg-white rounded-lg shadow-xl border border-brand-neutral-100 py-1 z-[9999] min-w-[140px]"
           style={{ left: shareMenuPos.x, top: shareMenuPos.y }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -695,7 +695,7 @@ export default function VoiceAgent() {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
               if (quote) shareToTwitter(quote, shareMenuSource);
             }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
           >
             <Twitter size={14} />
             Twitter/X
@@ -705,7 +705,7 @@ export default function VoiceAgent() {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
               if (quote) shareToLinkedIn(quote, shareMenuSource);
             }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
           >
             <Linkedin size={14} />
             LinkedIn
@@ -715,7 +715,7 @@ export default function VoiceAgent() {
               const quote = featuredQuotes.find(q => q.id === shareMenuOpen);
               if (quote) copyLink(quote, shareMenuSource);
             }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
           >
             <Link2 size={14} />
             {copiedId === shareMenuOpen ? "Copied!" : "Copy Link"}
@@ -729,36 +729,36 @@ export default function VoiceAgent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
-            <svg className="absolute -left-14 top-1/2 -translate-y-1/2 w-10 h-10 text-white" viewBox="0 0 100 100" fill="none">
+            <svg className="absolute -left-14 top-1/2 -translate-y-1/2 w-10 h-10 text-brand-navy-900" viewBox="0 0 100 100" fill="none">
               <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
               <path d="M65 28 L82 70 L68 70 Z" fill="currentColor" />
               <path d="M10 64 Q20 64 28 64 L32 58 L38 70 L44 50 L50 78 L56 58 L62 64 Q75 64 90 64" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
-            <h1 className="text-5xl font-bold text-white tracking-tight">Doc</h1>
-            <p className="text-gray-500 text-sm">by <a
+            <h1 className="text-5xl font-bold text-brand-navy-900 tracking-tight">Doc</h1>
+            <p className="text-brand-navy-600 text-sm">by <a
               href="https://www.meroka.com/"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
-              className="font-medium tracking-tight hover:text-gray-400 transition-colors"
+              className="font-medium tracking-tight hover:text-brand-brown transition-colors"
             >Meroka</a></p>
           </div>
 
-          <p className="text-gray-400 text-lg max-w-md leading-relaxed">
+          <p className="text-brand-navy-800 text-lg max-w-md leading-relaxed">
             An AI companion for burnt-out healthcare workers.
             <br />
-            <span className="text-gray-500">Vent about the system with someone who gets it.</span>
+            <span className="text-brand-navy-600">Vent about the system with someone who gets it.</span>
           </p>
         </div>
 
         {/* Today's venting counter - below tagline */}
         {todayCount !== null && callStatus === "idle" && (
-          <div className="mb-6 px-4 py-2 bg-meroka-primary/20 border border-meroka-primary/30 rounded-full flex items-center justify-center gap-2">
+          <div className="mb-6 px-4 py-2 bg-brand-ice border border-brand-navy-300/30 rounded-full flex items-center justify-center gap-2 shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            <p className="text-meroka-cream text-sm">
+            <p className="text-brand-navy-800 text-sm">
               <span className="font-semibold">{(1531 + todayCount).toLocaleString()}</span> healthcare workers vented today
             </p>
           </div>
@@ -767,7 +767,7 @@ export default function VoiceAgent() {
 
       {/* Rate limit indicator */}
       {callStatus === "idle" && !isRateLimited && usageData.usedSeconds > 0 && (
-        <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
+        <div className="flex items-center gap-2 text-brand-navy-600 text-xs mb-4">
           <Clock size={12} />
           <span>{formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds)} remaining today</span>
         </div>
@@ -775,9 +775,9 @@ export default function VoiceAgent() {
 
       {/* Rate limited message */}
       {isRateLimited && callStatus === "idle" && (
-        <div className="w-full max-w-md mb-6 bg-yellow-900/20 border border-yellow-800/50 rounded-lg p-4 text-center">
-          <p className="text-yellow-400 text-sm font-medium mb-1">Daily limit reached</p>
-          <p className="text-gray-400 text-xs">
+        <div className="w-full max-w-md mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+          <p className="text-yellow-700 text-sm font-medium mb-1">Daily limit reached</p>
+          <p className="text-brand-navy-600 text-xs">
             Your time resets in {formatTimeUntilReset(usageData.windowStart)}
           </p>
         </div>
@@ -788,9 +788,9 @@ export default function VoiceAgent() {
         {/* Pulse rings when active */}
         {callStatus === "active" && (
           <>
-            <div className="absolute inset-0 bg-meroka-primary/20 rounded-full pulse-ring"
+            <div className="absolute inset-0 bg-brand-brown/20 rounded-full pulse-ring"
                  style={{ width: "200px", height: "200px", left: "-30px", top: "-30px" }} />
-            <div className="absolute inset-0 bg-meroka-primary/10 rounded-full pulse-ring"
+            <div className="absolute inset-0 bg-brand-brown/10 rounded-full pulse-ring"
                  style={{ width: "240px", height: "240px", left: "-50px", top: "-50px", animationDelay: "0.5s" }} />
           </>
         )}
@@ -803,18 +803,18 @@ export default function VoiceAgent() {
             relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center
             transition-all duration-300 transform hover:scale-105
             ${isRateLimited
-              ? "bg-gray-700 cursor-not-allowed"
+              ? "bg-brand-navy-300 cursor-not-allowed"
               : callStatus === "idle"
-              ? "bg-meroka-primary hover:bg-meroka-primary-hover shadow-lg shadow-meroka-primary/30"
+              ? "bg-brand-brown hover:bg-brand-brown-dark shadow-lg shadow-brand-brown/30"
               : callStatus === "active"
               ? "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/30"
-              : "bg-gray-600 cursor-not-allowed"
+              : "bg-brand-navy-300 cursor-not-allowed"
             }
           `}
         >
           {callStatus === "idle" && !isRateLimited && <Phone size={48} className="text-white" />}
           {callStatus === "idle" && isRateLimited && (
-            <Clock size={48} className="text-gray-400" />
+            <Clock size={48} className="text-brand-navy-600" />
           )}
           {callStatus === "connecting" && (
             <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -835,8 +835,8 @@ export default function VoiceAgent() {
 
       {/* Low time warning */}
       {showLowTimeWarning && callStatus === "active" && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-900/90 border border-yellow-700 rounded-lg px-4 py-2 z-20 animate-pulse">
-          <p className="text-yellow-400 text-sm font-medium">
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-2 z-20 animate-pulse shadow-lg">
+          <p className="text-yellow-700 text-sm font-medium">
             Less than 1 minute remaining
           </p>
         </div>
@@ -844,21 +844,21 @@ export default function VoiceAgent() {
 
       {/* Time limit reached message */}
       {showTimeLimitMessage && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-meroka-secondary border border-gray-700 rounded-2xl p-8 max-w-sm w-full text-center">
+        <div className="fixed inset-0 bg-brand-navy-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-brand-neutral-100 rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
             <div className="text-4xl mb-4">⏰</div>
-            <h2 className="text-xl font-semibold text-white mb-2">
+            <h2 className="text-xl font-semibold text-brand-navy-900 mb-2">
               Time&apos;s up for today
             </h2>
-            <p className="text-gray-300 mb-2">
+            <p className="text-brand-navy-800 mb-2">
               Doc says: &quot;Hey, you&apos;ve used your 7 minutes. Even I need a break from this broken system.&quot;
             </p>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-brand-navy-600 text-sm mb-6">
               Your time resets in {formatTimeUntilReset(usageData.windowStart)}
             </p>
             <button
               onClick={dismissTimeLimitMessage}
-              className="py-3 px-6 bg-meroka-primary hover:bg-meroka-primary-hover text-white font-medium rounded-lg transition-colors"
+              className="py-3 px-6 bg-brand-brown hover:bg-brand-brown-dark text-white font-medium rounded-lg transition-colors"
             >
               Got it
             </button>
@@ -869,16 +869,16 @@ export default function VoiceAgent() {
       {/* Status text */}
       <div className="text-center mb-8">
         {callStatus === "idle" && !isRateLimited && (
-          <p className="text-gray-400">Tap to start venting</p>
+          <p className="text-brand-navy-600">Tap to start venting</p>
         )}
         {callStatus === "idle" && isRateLimited && (
-          <p className="text-gray-500">Come back later for more venting</p>
+          <p className="text-brand-navy-600">Come back later for more venting</p>
         )}
         {callStatus === "connecting" && (
-          <p className="text-yellow-400">Connecting to Doc...</p>
+          <p className="text-yellow-600">Connecting to Doc...</p>
         )}
         {callStatus === "active" && (
-          <div className="flex items-center gap-2 text-meroka-cream">
+          <div className="flex items-center gap-2 text-brand-navy-800">
             {currentSpeaker === "assistant" ? (
               <>
                 <span>Doc is talking</span>
@@ -886,7 +886,7 @@ export default function VoiceAgent() {
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="w-1 bg-meroka-primary rounded-full waveform-bar"
+                      className="w-1 bg-brand-brown rounded-full waveform-bar"
                       style={{ height: "8px" }}
                     />
                   ))}
@@ -898,26 +898,26 @@ export default function VoiceAgent() {
           </div>
         )}
         {callStatus === "ending" && (
-          <p className="text-gray-400">Ending call...</p>
+          <p className="text-brand-navy-600">Ending call...</p>
         )}
       </div>
 
       {/* Trust signals */}
-      <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+      <div className="flex items-center gap-4 mb-4 text-xs text-brand-navy-600">
         <span className="flex items-center gap-1">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
           Anonymous
         </span>
-        <span className="text-gray-700">|</span>
+        <span className="text-brand-navy-300">|</span>
         <span className="flex items-center gap-1">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
           </svg>
           No account needed
         </span>
-        <span className="text-gray-700">|</span>
+        <span className="text-brand-navy-300">|</span>
         <span className="flex items-center gap-1">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -929,7 +929,7 @@ export default function VoiceAgent() {
       {/* Text confession input bar */}
       {callStatus === "idle" && !isRateLimited && (
         <div className="w-full max-w-lg mb-8 relative z-10">
-          <div className="relative flex items-center bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-full px-4 py-2 focus-within:border-gray-600 focus-within:bg-gray-800/80 transition-all">
+          <div className="relative flex items-center bg-white/80 backdrop-blur-sm border border-brand-neutral-100 rounded-full px-4 py-2 focus-within:border-brand-navy-300 focus-within:bg-white shadow-sm transition-all">
             <input
               type="text"
               value={confessionText}
@@ -941,7 +941,7 @@ export default function VoiceAgent() {
                 }
               }}
               placeholder="I haven't had a real lunch break in three years..."
-              className="flex-1 bg-transparent text-gray-200 placeholder-gray-500 text-sm focus:outline-none"
+              className="flex-1 bg-transparent text-brand-navy-900 placeholder-brand-navy-300 text-sm focus:outline-none"
               maxLength={2000}
               disabled={isSubmittingConfession}
             />
@@ -952,8 +952,8 @@ export default function VoiceAgent() {
               disabled={confessionText.trim().length < 10 || isSubmittingConfession}
               className={`ml-2 p-2 rounded-full transition-all ${
                 confessionText.trim().length >= 10 && !isSubmittingConfession
-                  ? "bg-meroka-primary hover:bg-meroka-primary-hover text-white"
-                  : "bg-gray-700/50 text-gray-500"
+                  ? "bg-brand-brown hover:bg-brand-brown-dark text-white"
+                  : "bg-brand-neutral-100 text-brand-navy-300"
               }`}
             >
               {isSubmittingConfession ? (
@@ -965,7 +965,7 @@ export default function VoiceAgent() {
           </div>
 
           {confessionError && (
-            <p className="mt-2 text-red-400 text-sm text-center">{confessionError}</p>
+            <p className="mt-2 text-red-500 text-sm text-center">{confessionError}</p>
           )}
         </div>
       )}
@@ -977,8 +977,8 @@ export default function VoiceAgent() {
           className={`
             p-4 rounded-full transition-all duration-200
             ${isMuted
-              ? "bg-red-600/20 text-red-400 hover:bg-red-600/30"
-              : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              ? "bg-red-100 text-red-600 hover:bg-red-200"
+              : "bg-brand-neutral-100 text-brand-navy-800 hover:bg-brand-neutral-100/80"
             }
           `}
         >
@@ -989,14 +989,14 @@ export default function VoiceAgent() {
       {/* Transcript (recent messages) */}
       {transcript.length > 0 && (
         <div className="mt-12 w-full max-w-lg">
-          <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-500 text-xs uppercase tracking-wide mb-3">Recent</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-brand-neutral-100 shadow-sm">
+            <p className="text-brand-navy-600 text-xs uppercase tracking-wide mb-3">Recent</p>
             <div className="space-y-2">
               {transcript.map((line, i) => (
                 <p
                   key={i}
                   className={`text-sm ${
-                    line.startsWith("You:") ? "text-blue-400" : "text-gray-300"
+                    line.startsWith("You:") ? "text-brand-brown" : "text-brand-navy-800"
                   }`}
                 >
                   {line}
@@ -1010,20 +1010,20 @@ export default function VoiceAgent() {
       {/* Mobile Quote Feed - shown only on mobile, hidden on lg screens */}
       {callStatus === "idle" && featuredQuotes.length > 0 && (
         <div className="lg:hidden w-full max-w-md mt-12">
-          <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide text-center">
+          <p className="text-brand-navy-600 text-xs mb-3 uppercase tracking-wide text-center">
             What others are saying
           </p>
           <div className="space-y-3">
             {featuredQuotes.slice(0, 4).map((quote) => (
               <div
                 key={quote.id}
-                className="bg-gray-900/70 backdrop-blur-sm rounded-lg p-4 border border-gray-800"
+                className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-brand-neutral-100 shadow-sm"
               >
-                <p className="text-gray-300 text-sm italic leading-relaxed">
+                <p className="text-brand-navy-800 text-sm italic leading-relaxed">
                   &ldquo;{quote.quote}&rdquo;
                 </p>
                 <div className="flex items-center justify-between mt-3">
-                  <p className="text-gray-500 text-xs">— {quote.location}</p>
+                  <p className="text-brand-navy-600 text-xs">— {quote.location}</p>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1032,7 +1032,7 @@ export default function VoiceAgent() {
                       setShareMenuSource("mobile");
                       setShareMenuOpen(shareMenuOpen === quote.id ? null : quote.id);
                     }}
-                    className="p-1.5 rounded-full hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-300"
+                    className="p-1.5 rounded-full hover:bg-brand-neutral-100 transition-colors text-brand-navy-600 hover:text-brand-navy-900"
                     title="Share this quote"
                   >
                     <Share2 size={14} />
@@ -1046,23 +1046,23 @@ export default function VoiceAgent() {
       </div>{/* End content container */}
 
       {/* Footer disclaimer */}
-      <div className="mt-12 lg:fixed lg:bottom-4 text-center text-gray-600 text-xs relative z-10">
+      <div className="mt-12 lg:fixed lg:bottom-4 text-center text-brand-navy-600 text-xs relative z-10">
         <p>Not a real therapist. For entertainment and venting purposes only.</p>
         <div className="flex items-center justify-center gap-3 mt-2">
           <a
             href="/privacy"
             onClick={() => trackClick("footer_privacy", "/privacy")}
-            className="hover:text-gray-400 transition-colors underline"
+            className="hover:text-brand-brown transition-colors underline"
           >
             Privacy Policy
           </a>
-          <span className="text-gray-700">|</span>
+          <span className="text-brand-navy-300">|</span>
           <a
             href="https://www.meroka.com/"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackClick("footer_meroka", "https://www.meroka.com/")}
-            className="flex items-center gap-1.5 hover:text-gray-400 transition-colors"
+            className="flex items-center gap-1.5 hover:text-brand-brown transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 100 100" fill="none">
               <path d="M50 12 L22 70 L35 70 L35 58 L50 58 L50 70 L78 70 Z" fill="currentColor" />
