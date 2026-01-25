@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrack, RemoteTrackPublication } from "livekit-client";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Twitter, Linkedin, Link2, Clock, Send, Stethoscope } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Share2, Linkedin, Link2, Clock, Send, Stethoscope } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
@@ -645,8 +645,10 @@ export default function VoiceAgent() {
             }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-brand-navy-800 hover:bg-brand-neutral-100 transition-colors"
           >
-            <Twitter size={14} />
-            Twitter/X
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            X
           </button>
           <button
             onClick={() => {
