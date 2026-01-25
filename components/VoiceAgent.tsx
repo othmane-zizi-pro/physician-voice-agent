@@ -713,18 +713,17 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-16 top-1 w-16 h-16"
-                            initial={{ scale: 0, rotate: -15, opacity: 0, y: 10 }}
+                            className="absolute -left-16 top-3 w-16 h-16"
+                            initial={{ scale: 0.8, rotate: -10, y: 5 }}
                             animate={{
-                                scale: 1,
-                                rotate: [0, 3, -2, 1, 0],
-                                opacity: 1,
-                                y: [0, -3, 2, -1, 0],
+                                scale: [0.8, 1.05, 0.98, 1],
+                                rotate: [-10, 12, 4, 8],
+                                y: [5, -2, 1, 0],
                             }}
                             transition={{
                                 duration: 2.5,
                                 ease: "easeOut",
-                                times: [0, 0.25, 0.5, 0.75, 1],
+                                times: [0, 0.4, 0.7, 1],
                             }}
                         >
                             <img
