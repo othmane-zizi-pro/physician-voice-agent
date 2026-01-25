@@ -273,20 +273,22 @@ export default function VoiceAgent() {
             ? timestampedTranscriptRef.current
             : null;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from("calls")
             .update({
                 transcript: transcriptText,
                 transcript_object: transcriptObject,
                 duration_seconds: durationSeconds,
             })
-            .eq("id", callIdRef.current);
+            .eq("id", callIdRef.current)
+            .select();
 
         if (error) {
             console.error("Failed to update call:", error);
             return null;
         }
 
+        console.log("Call record updated successfully:", data);
         return callIdRef.current;
     }, []);
 
