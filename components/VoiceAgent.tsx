@@ -738,7 +738,7 @@ export default function VoiceAgent() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
-                            className="hover:text-brand-brown transition-colors underline decoration-brand-brown/30 underline-offset-2"
+                            className="hover:text-brand-brown transition-colors underline decoration-brand-brown/30 underline-offset-2 tracking-tight"
                         >Meroka</a></p>
                     </div>
 
