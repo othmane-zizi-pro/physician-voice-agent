@@ -8,7 +8,7 @@ const supabase = createClient<Database>(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Check if userId looks like a UUID (custom auth) vs email (NextAuth admin)
+// Check if userId looks like a UUID
 function isUUID(str: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
@@ -30,8 +30,16 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Check if this is a NextAuth admin (email as userId) or regular user (UUID)
-    const isAdmin = !isUUID(session.userId);
+    // Check if this is an admin (@meroka.com email) - admins see all conversations
+    const isAdmin = session.email?.endsWith("@meroka.com") || false;
+
+    // For non-admin users, we need a valid UUID to filter by
+    if (!isAdmin && !isUUID(session.userId)) {
+      return NextResponse.json(
+        { error: "Invalid user session" },
+        { status: 401 }
+      );
+    }
 
     // Build query - admins see all conversations, users see only their own
     let query = supabase
