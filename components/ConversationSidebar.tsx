@@ -336,42 +336,36 @@ ${conv.transcript}
     <button
       key={conv.id}
       onClick={() => setSelectedConversation(conv)}
-      className="w-full text-left px-4 py-3 hover:bg-brand-neutral-50 transition-colors group"
+      className="w-full text-left px-4 py-2.5 hover:bg-brand-neutral-50/80 transition-all duration-150 group"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-3">
         <div
-          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+          className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
             conv.session_type === "voice"
-              ? "bg-brand-ice text-brand-navy-600"
-              : "bg-green-100 text-green-600"
+              ? "bg-brand-ice/60 text-brand-navy-600"
+              : "bg-emerald-50 text-emerald-600"
           }`}
         >
           {conv.session_type === "voice" ? (
-            <Phone size={14} />
+            <Phone size={13} />
           ) : (
-            <MessageSquare size={14} />
+            <MessageSquare size={13} />
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-brand-navy-800 truncate">
+          <p className="text-[13px] text-brand-navy-800 truncate leading-snug">
             {getPreview(conv)}
           </p>
-          <div className="flex items-center gap-2 mt-1 text-xs text-brand-navy-600">
-            <span>{formatTime(conv.created_at)}</span>
+          <p className="text-[11px] text-brand-navy-400 mt-0.5">
+            {formatTime(conv.created_at)}
             {conv.session_type === "voice" && conv.duration_seconds && (
-              <>
-                <span className="text-brand-navy-300">·</span>
-                <span className="flex items-center gap-0.5">
-                  <Clock size={10} />
-                  {formatDuration(conv.duration_seconds)}
-                </span>
-              </>
+              <span className="ml-1.5">· {formatDuration(conv.duration_seconds)}</span>
             )}
-          </div>
+          </p>
         </div>
         <ChevronRight
-          size={16}
-          className="flex-shrink-0 text-brand-navy-300 group-hover:text-brand-navy-600 transition-colors mt-1"
+          size={14}
+          className="flex-shrink-0 text-brand-navy-200 group-hover:text-brand-navy-400 transition-colors"
         />
       </div>
     </button>
@@ -379,23 +373,21 @@ ${conv.transcript}
 
   return (
     <>
-      {/* Toggle button - hamburger icon */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-40 p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-brand-neutral-100 hover:bg-white hover:border-brand-navy-300 transition-all shadow-sm"
-        aria-label={isOpen ? "Close sidebar" : "Open conversation history"}
-      >
-        {isOpen ? (
-          <X size={20} className="text-brand-navy-800" />
-        ) : (
-          <Menu size={20} className="text-brand-navy-800" />
-        )}
-      </button>
+      {/* Toggle button - only visible when sidebar is closed */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-4 left-4 z-40 p-2.5 rounded-xl bg-white/90 backdrop-blur-sm border border-brand-neutral-100/80 hover:bg-white hover:border-brand-neutral-200 hover:shadow-md transition-all duration-200 shadow-sm"
+          aria-label="Open conversation history"
+        >
+          <Menu size={18} className="text-brand-navy-700" />
+        </button>
+      )}
 
       {/* Overlay for mobile */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-brand-navy-900/30 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-brand-navy-900/20 backdrop-blur-[2px] z-30 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -403,41 +395,52 @@ ${conv.transcript}
       {/* Sidebar */}
       <div
         className={`
-          fixed top-0 left-0 h-full w-80 bg-white border-r border-brand-neutral-100 z-30
-          transform transition-transform duration-300 ease-in-out shadow-lg
+          fixed top-0 left-0 h-full w-72 bg-white/95 backdrop-blur-md border-r border-brand-neutral-100/80 z-40
+          transform transition-transform duration-300 ease-out shadow-xl
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Header - pl-14 to make room for the toggle button */}
-        <div className="flex items-center pl-14 pr-4 h-14 border-b border-brand-neutral-100">
-          <History size={18} className="text-brand-navy-600" />
-          <span className="font-medium text-brand-navy-900 ml-2">History</span>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 h-14 border-b border-brand-neutral-100/60">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-brand-neutral-50">
+              <History size={16} className="text-brand-navy-600" />
+            </div>
+            <span className="font-semibold text-brand-navy-900 text-[15px]">History</span>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 rounded-lg hover:bg-brand-neutral-100/80 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <X size={18} className="text-brand-navy-500" />
+          </button>
         </div>
 
         {/* Search bar */}
-        <div className="px-3 py-2 border-b border-brand-neutral-100">
+        <div className="px-3 py-3">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-navy-300" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-navy-300" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search conversations..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-brand-neutral-50 border border-brand-neutral-100 rounded-lg focus:outline-none focus:border-brand-navy-300 focus:bg-white transition-colors"
+              placeholder="Search..."
+              className="w-full pl-9 pr-8 py-2 text-[13px] bg-brand-neutral-50/80 border border-brand-neutral-100/60 rounded-xl focus:outline-none focus:border-brand-navy-200 focus:bg-white focus:ring-2 focus:ring-brand-navy-100/50 transition-all duration-150 placeholder:text-brand-navy-300"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-brand-neutral-100 rounded"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-brand-neutral-200/80 rounded-md transition-colors"
               >
-                <X size={14} className="text-brand-navy-600" />
+                <X size={13} className="text-brand-navy-500" />
               </button>
             )}
           </div>
         </div>
 
         {/* Content */}
-        <div className="h-[calc(100%-7.5rem)] overflow-y-auto">
+        <div className="h-[calc(100%-7rem)] overflow-y-auto">
           {isLoading ? (
             // Skeleton loaders
             <div className="py-2">
@@ -480,18 +483,18 @@ ${conv.transcript}
               )}
             </div>
           ) : (
-            <div className="py-2">
+            <div className="pt-1 pb-4">
               {/* Render groups in order */}
               {groupOrder.map((groupKey) => {
                 const convs = groupedConversations[groupKey];
                 if (!convs || convs.length === 0) return null;
 
                 return (
-                  <div key={groupKey} className="mb-4">
-                    <p className="px-4 py-2 text-xs font-medium text-brand-navy-600 uppercase tracking-wide">
+                  <div key={groupKey} className="mb-1">
+                    <p className="px-4 py-2 text-[11px] font-medium text-brand-navy-400 uppercase tracking-wider">
                       {groupKey}
                     </p>
-                    <div className="space-y-0.5">
+                    <div>
                       {convs.map(renderConversationItem)}
                     </div>
                   </div>
@@ -506,11 +509,11 @@ ${conv.transcript}
                   if (!convs || convs.length === 0) return null;
 
                   return (
-                    <div key={groupKey} className="mb-4">
-                      <p className="px-4 py-2 text-xs font-medium text-brand-navy-600 uppercase tracking-wide">
+                    <div key={groupKey} className="mb-1">
+                      <p className="px-4 py-2 text-[11px] font-medium text-brand-navy-400 uppercase tracking-wider">
                         {groupKey}
                       </p>
-                      <div className="space-y-0.5">
+                      <div>
                         {convs.map(renderConversationItem)}
                       </div>
                     </div>
