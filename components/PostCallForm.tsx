@@ -364,8 +364,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 exit="exit"
                 className="flex flex-col items-center text-center py-4"
               >
-                <div className="w-16 h-16 bg-[#D4E4F4] rounded-full flex items-center justify-center mb-6 text-[#3C5676]">
-                  <Heart size={32} fill="currentColor" className="text-[#3C5676]/20" stroke="currentColor"] />
+                <div className="w-16 h-16 bg-[#D4E4F4] rounded-full flex items-center justify-center mb-6 text-[#3C5676] relative">
+                  <Heart size={32} fill="currentColor" className="text-[#3C5676]/20" stroke="currentColor" />
                   <Heart size={32} className="absolute text-[#3C5676]" />
                 </div>
                 <h2 className="text-2xl font-bold text-[#0E1219] mb-3">
