@@ -613,7 +613,7 @@ export default function VoiceAgent() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
-                        className="hidden lg:flex flex-col fixed right-6 top-1/2 -translate-y-1/2 w-72 max-h-[70vh] z-20"
+                        className="hidden lg:flex flex-col fixed right-6 top-1/2 -translate-y-[65%] w-72 max-h-[70vh] z-20"
                     >
                         <p className="text-brand-navy-400 text-xs mb-3 uppercase tracking-wider font-bold pl-1">
                             Community Voices
