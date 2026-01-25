@@ -1,21 +1,12 @@
 <svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Main Shape: A smooth, continuous rounded square/circle hybrid (Superellipse) -->
-    <!-- Represents stability and softness -->
-    <rect x="50" y="50" width="400" height="400" rx="120" fill="#0E1219"/>
-    
-    <!-- Negative Space: The "Voice/Medical" Fusion -->
-    <!-- A medical cross that also looks like sound bars or a spark -->
-    
-    <!-- Vertical Bar -->
-    <rect x="215" y="125" width="70" height="250" rx="35" fill="white"/>
-    
-    <!-- Horizontal Bar -->
-    <rect x="125" y="215" width="250" height="70" rx="35" fill="white"/>
-    
-    <!-- Center Polish: A small circle in the middle to make it look like a "node" or "connection" point -->
-    <circle cx="250" cy="250" r="15" fill="#0E1219"/>
-
-    <!-- A subtle "Chat Tail" implication to link it to voice/communication, 
-         making the whole outer shape feel like a speech bubble -->
-    <path d="M 380 400 L 450 450 L 380 350" fill="#0E1219" stroke="#0E1219" stroke-width="20" stroke-linejoin="round"/>
+    <g clip-path="url(#clip0)">
+        <!-- The Shape: A single path representing a conversation bubble with the symbol of health carved out of it. -->
+        <!-- Color: Deep Navy #0E1219 -->
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M250 20C134.02 20 40 114.02 40 230C40 345.98 134.02 440 250 440C275.922 440 300.906 435.297 324.406 426.656L427.657 469.672C440.094 474.854 453.646 464.719 451.625 451.375L438.156 362.406C452.125 321.828 460 277.266 460 230C460 114.02 365.98 20 250 20ZM250 110C266.569 110 280 123.431 280 140V200H340C356.569 200 370 213.431 370 230C370 246.569 356.569 260 340 260H280V320C280 336.569 266.569 350 250 350C233.431 350 220 336.569 220 320V260H160C143.431 260 130 246.569 130 230C130 213.431 143.431 200 160 200H220V140C220 123.431 233.431 110 250 110Z" fill="#0E1219"/>
+    </g>
+    <defs>
+        <clipPath id="clip0">
+            <rect width="500" height="500" fill="white"/>
+        </clipPath>
+    </defs>
 </svg>
