@@ -613,7 +613,7 @@ export default function VoiceAgent() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
-                        className="hidden lg:flex flex-col fixed right-6 top-1/2 -translate-y-[65%] w-72 max-h-[70vh] z-20"
+                        className="hidden lg:flex flex-col fixed right-6 top-32 w-72 max-h-[70vh] z-20"
                     >
                         <p className="text-brand-navy-400 text-xs mb-3 uppercase tracking-wider font-bold pl-1">
                             Community Voices
@@ -713,39 +713,62 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-16 top-1/2 -translate-y-1/2 w-12 h-12 text-brand-navy-900"
-                            initial={{ rotate: -15, scale: 0.8, opacity: 0 }}
-                            animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                            className="absolute -left-20 top-1/2 -translate-y-1/2 w-16 h-16 text-brand-navy-900"
+                            initial={{ scale: 0, rotate: -45 }}
+                            animate={{
+                                scale: 1,
+                                rotate: 0,
+                                y: ["-50%", "-65%", "-50%", "-55%", "-50%"]
+                            }}
                             transition={{
-                                duration: 1.2,
-                                ease: "backOut",
-                                delay: 0.2
+                                duration: 2,
+                                times: [0, 0.2, 0.5, 0.7, 1],
+                                ease: "easeOut"
                             }}
                         >
                             <svg viewBox="0 0 64 64" fill="none" className="w-full h-full drop-shadow-md">
-                                {/* Y-shaped tubing */}
-                                <path
-                                    d="M20 8 Q20 20 28 28 Q32 32 32 40"
-                                    stroke="currentColor"
-                                    strokeWidth="3.5"
-                                    strokeLinecap="round"
-                                    fill="none"
-                                />
-                                <path
-                                    d="M44 8 Q44 20 36 28 Q32 32 32 40"
-                                    stroke="currentColor"
-                                    strokeWidth="3.5"
-                                    strokeLinecap="round"
-                                    fill="none"
-                                />
-                                {/* Ear tips */}
-                                <circle cx="20" cy="6" r="3.5" fill="currentColor" />
-                                <circle cx="44" cy="6" r="3.5" fill="currentColor" />
-                                {/* Chest piece */}
-                                <circle cx="32" cy="52" r="11" stroke="currentColor" strokeWidth="3.5" fill="none" />
-                                <circle cx="32" cy="52" r="4" fill="currentColor" />
-                                {/* Connection to chest piece */}
-                                <line x1="32" y1="40" x2="32" y2="42" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
+                                {/* Character Stethoscope */}
+                                <motion.g
+                                    animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
+                                    transition={{ delay: 2, duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                                >
+                                    {/* Head/Ear pieces */}
+                                    <path
+                                        d="M20 12 Q20 2 32 2 Q44 2 44 12"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                        strokeLinecap="round"
+                                        fill="none"
+                                    />
+                                    <circle cx="20" cy="12" r="3" fill="currentColor" />
+                                    <circle cx="44" cy="12" r="3" fill="currentColor" />
+
+                                    {/* Body/Tubing */}
+                                    <path
+                                        d="M20 12 L20 24 Q20 36 32 36 Q44 36 44 24 L44 12" // U-shape
+                                        stroke="currentColor"
+                                        strokeWidth="0" // Hidden guide
+                                        fill="none"
+                                    />
+                                    <path
+                                        d="M20 12 V20 Q20 34 32 34 Q44 34 44 20 V12"
+                                        stroke="currentColor"
+                                        strokeWidth="3.5"
+                                        strokeLinecap="round"
+                                        fill="none"
+                                    />
+
+                                    {/* Stem */}
+                                    <line x1="32" y1="34" x2="32" y2="48" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
+
+                                    {/* Chest piece (The 'foot') */}
+                                    <circle cx="32" cy="54" r="9" stroke="currentColor" strokeWidth="3.5" fill="white" />
+                                    <circle cx="32" cy="54" r="4" fill="currentColor" />
+
+                                    {/* Eyes (to make it alive!) */}
+                                    <circle cx="27" cy="20" r="1.5" fill="brand-navy-900" />
+                                    <circle cx="37" cy="20" r="1.5" fill="brand-navy-900" />
+                                </motion.g>
                             </svg>
                         </motion.div>
                         <h1 className="text-6xl font-bold text-brand-navy-900 tracking-tighter drop-shadow-sm">Doc</h1>
