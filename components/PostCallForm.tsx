@@ -681,20 +681,19 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         {/* Social Links - shown during form questions */}
         {showSidebar && (
           <div className="mt-6 pt-4 border-t border-gray-800">
-            <p className="text-gray-500 text-xs text-center mb-3">Follow Meroka</p>
-            <div className="flex justify-center gap-4">
+            <p className="text-gray-500 text-xs text-center mb-3">
+              Follow{" "}
               <a
                 href="https://www.meroka.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackClick("form_meroka", "https://www.meroka.com/")}
-                className="text-gray-400 hover:text-white transition-colors"
-                title="Meroka Website"
+                className="text-gray-400 hover:text-white transition-colors underline"
               >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm6.918 6h-3.215c-.188-1.424-.42-2.65-.672-3.715A8.014 8.014 0 0118.918 8zM12 4.042c.462.858.905 2.156 1.233 3.958h-2.466c.328-1.802.771-3.1 1.233-3.958zM4.042 12c0-.69.087-1.36.25-2h3.636a30.6 30.6 0 000 4H4.292a7.928 7.928 0 01-.25-2zm1.04 4h3.215c.188 1.424.42 2.65.672 3.715A8.014 8.014 0 015.082 16zm3.215-8H5.082a8.014 8.014 0 013.887-3.715c-.252 1.065-.484 2.291-.672 3.715zM12 19.958c-.462-.858-.905-2.156-1.233-3.958h2.466c-.328 1.802-.771 3.1-1.233 3.958zM13.541 14h-3.082a28.6 28.6 0 010-4h3.082a28.6 28.6 0 010 4zm1.428 5.715c.252-1.065.484-2.291.672-3.715h3.215a8.014 8.014 0 01-3.887 3.715zM16.072 14a30.6 30.6 0 000-4h3.636c.163.64.25 1.31.25 2s-.087 1.36-.25 2h-3.636z" />
-                </svg>
+                Meroka
               </a>
+            </p>
+            <div className="flex justify-center gap-4">
               <a
                 href="https://x.com/MerokaInc"
                 target="_blank"
