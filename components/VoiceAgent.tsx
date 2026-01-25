@@ -713,30 +713,29 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-20 top-1/2 -translate-y-1/2 w-28 h-28"
-                            initial={{ scale: 0, rotate: -15, opacity: 0 }}
+                            className="absolute -left-24 top-1/2 w-36 h-36"
+                            initial={{ scale: 0, rotate: -10, opacity: 0 }}
                             animate={{
                                 scale: 1,
                                 rotate: 0,
                                 opacity: 1,
-                                y: ["-50%", "-60%", "-50%", "-55%", "-50%"]
                             }}
+                            style={{ y: "-50%" }}
                             transition={{
-                                duration: 2,
-                                times: [0, 0.2, 0.5, 0.7, 1],
+                                duration: 0.6,
                                 ease: "easeOut"
                             }}
                         >
                             {/* Floating animation for the image */}
                             <motion.div
-                                animate={{ y: [-5, 5, -5], rotate: [0, 2, -2, 0] }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                animate={{ y: [-3, 3, -3], rotate: [-2, 2, -2] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                                 className="w-full h-full"
                             >
                                 <img
                                     src="/doc-logo-playful-2.svg"
                                     alt="Doc Logo"
-                                    className="w-full h-full object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-contain drop-shadow-md"
                                 />
                             </motion.div>
                         </motion.div>
