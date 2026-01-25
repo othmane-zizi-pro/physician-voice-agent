@@ -1,0 +1,33 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Subtle warm gradient background -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFCFA"/>
+      <stop offset="100%" stop-color="#F5F0E8"/>
+    </linearGradient>
+    <!-- Subtle shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0.5" stdDeviation="0.5" flood-color="#0E1219" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded background with gradient -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+
+  <!-- Dynamic stethoscope squiggle -->
+  <g filter="url(#shadow)">
+    <path d="M8 6
+             C 5.5 12.5 4.5 17 10 20
+             C 15.5 23 19.5 15.5 17 10
+             C 14.5 4.5 10 6.5 12 14
+             C 14 21.5 23 24 24 20"
+          stroke="#0E1219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Ear tip at start -->
+    <circle cx="8" cy="6" r="1.8" fill="#0E1219"/>
+
+    <!-- Chest piece at end -->
+    <circle cx="24" cy="20" r="3.8" fill="#0E1219"/>
+    <circle cx="24" cy="20" r="1.6" fill="#FDFCFA"/>
+  </g>
+</svg>

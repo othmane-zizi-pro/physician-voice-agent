@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: "Doc | Voice Therapy for Physicians",
   description: "An AI companion for burnt-out physicians. Vent about the system with someone who actually gets it.",
   icons: {
-    icon: "/favicon.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/icon.svg",
+    apple: "/apple-touch-icon.svg",
   },
   openGraph: {
     title: "Doc | Voice Therapy for Physicians",
