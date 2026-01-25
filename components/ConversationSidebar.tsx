@@ -10,7 +10,7 @@ import {
   Clock,
   ChevronRight,
   Loader2,
-  Stethoscope,
+  History,
   Search,
   Trash2,
   Download,
@@ -403,10 +403,10 @@ ${conv.transcript}
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-brand-neutral-100/60">
           <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-brand-brown/10">
-              <Stethoscope size={16} className="text-brand-brown" />
+            <div className="p-1.5 rounded-lg bg-brand-neutral-50">
+              <History size={16} className="text-brand-navy-600" />
             </div>
-            <span className="font-semibold text-brand-navy-900 text-[15px]">Doc</span>
+            <span className="font-semibold text-brand-navy-900 text-[15px]">History</span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
