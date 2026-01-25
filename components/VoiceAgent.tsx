@@ -677,7 +677,29 @@ export default function VoiceAgent() {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="relative inline-block mb-3">
-            <Stethoscope className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900 animate-bounce" style={{ animationDuration: '2s' }} strokeWidth={1.75} />
+            <svg
+              className="absolute -left-14 top-1/2 -translate-y-1/2 w-11 h-11 text-brand-navy-900 animate-pulse"
+              style={{ animationDuration: '3s' }}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {/* Earpieces */}
+              <path d="M4 4v4a4 4 0 0 0 4 4h0" />
+              <path d="M20 4v4a4 4 0 0 1-4 4h0" />
+              {/* Tubing coming together */}
+              <path d="M8 12v2a4 4 0 0 0 4 4h0a4 4 0 0 0 4-4v-2" />
+              {/* Chest piece tube */}
+              <path d="M12 18v3" />
+              {/* Chest piece (diaphragm) */}
+              <circle cx="12" cy="22" r="1.5" fill="currentColor" />
+              {/* Ear tips */}
+              <circle cx="4" cy="3" r="1" fill="currentColor" />
+              <circle cx="20" cy="3" r="1" fill="currentColor" />
+            </svg>
             <h1 className="text-5xl font-bold text-brand-navy-900 tracking-tight">Doc</h1>
             <p className="text-brand-navy-600 text-sm">by <a
               href="https://www.meroka.com/"
