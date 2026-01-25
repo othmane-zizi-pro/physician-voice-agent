@@ -713,31 +713,24 @@ export default function VoiceAgent() {
                 >
                     <div className="relative inline-block mb-3">
                         <motion.div
-                            className="absolute -left-24 top-1/2 w-36 h-36"
-                            initial={{ scale: 0, rotate: -10, opacity: 0 }}
+                            className="absolute -left-14 -top-2 w-16 h-16"
+                            initial={{ scale: 0, rotate: -15, opacity: 0, y: 10 }}
                             animate={{
                                 scale: 1,
                                 rotate: 0,
                                 opacity: 1,
+                                y: 0,
                             }}
-                            style={{ y: "-50%" }}
                             transition={{
-                                duration: 0.6,
+                                duration: 0.8,
                                 ease: "easeOut"
                             }}
                         >
-                            {/* Floating animation for the image */}
-                            <motion.div
-                                animate={{ y: [-3, 3, -3], rotate: [-2, 2, -2] }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                                className="w-full h-full"
-                            >
-                                <img
-                                    src="/doc-logo-playful-2.svg"
-                                    alt="Doc Logo"
-                                    className="w-full h-full object-contain drop-shadow-md"
-                                />
-                            </motion.div>
+                            <img
+                                src="/doc-logo-playful-2.svg"
+                                alt="Doc Logo"
+                                className="w-full h-full object-contain drop-shadow-sm"
+                            />
                         </motion.div>
                         <h1 className="text-6xl font-bold text-brand-navy-900 tracking-tighter drop-shadow-sm">Doc</h1>
                         <p className="text-brand-navy-500 text-sm font-medium tracking-wide">by <a
