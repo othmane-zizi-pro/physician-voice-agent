@@ -878,7 +878,7 @@ export default function VoiceAgent() {
               value={confessionText}
               onChange={(e) => setConfessionText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 10 && !isSubmittingConfession) {
+                if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 1 && !isSubmittingConfession) {
                   e.preventDefault();
                   submitConfession();
                 }
@@ -892,9 +892,9 @@ export default function VoiceAgent() {
             <button
               type="button"
               onClick={() => submitConfession()}
-              disabled={confessionText.trim().length < 10 || isSubmittingConfession}
+              disabled={confessionText.trim().length < 1 || isSubmittingConfession}
               className={`ml-2 p-2 rounded-full transition-all ${
-                confessionText.trim().length >= 10 && !isSubmittingConfession
+                confessionText.trim().length >= 1 && !isSubmittingConfession
                   ? "bg-brand-brown hover:bg-brand-brown-dark text-white"
                   : "bg-brand-neutral-100 text-brand-navy-300"
               }`}
