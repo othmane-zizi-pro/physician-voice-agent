@@ -194,14 +194,16 @@ async def entrypoint(ctx: agents.JobContext):
         nonlocal user_speech_start, user_speech_text
         user_speech_start = time.time() - session_start_time
         user_speech_text = []
-        logger.debug(f"User started speaking at {user_speech_start:.2f}s")
+        logger.info(f"User started speaking at {user_speech_start:.2f}s")
 
     @session.on("user_stopped_speaking")
     def on_user_stopped_speaking():
         nonlocal user_speech_start, user_speech_text
+        logger.info(f"User stopped speaking. Collected text: {user_speech_text}")
         if user_speech_start is not None and user_speech_text:
             end_time = time.time() - session_start_time
             full_text = " ".join(user_speech_text)
+            logger.info(f"Broadcasting user transcript: {full_text[:100]}...")
             # Fire and forget the broadcast
             import asyncio
             asyncio.create_task(broadcast_transcript("user", full_text, user_speech_start, end_time))
@@ -213,14 +215,16 @@ async def entrypoint(ctx: agents.JobContext):
         nonlocal agent_speech_start, agent_speech_text
         agent_speech_start = time.time() - session_start_time
         agent_speech_text = []
-        logger.debug(f"Agent started speaking at {agent_speech_start:.2f}s")
+        logger.info(f"Agent started speaking at {agent_speech_start:.2f}s")
 
     @session.on("agent_stopped_speaking")
     def on_agent_stopped_speaking():
         nonlocal agent_speech_start, agent_speech_text
+        logger.info(f"Agent stopped speaking. Collected text: {agent_speech_text}")
         if agent_speech_start is not None and agent_speech_text:
             end_time = time.time() - session_start_time
             full_text = " ".join(agent_speech_text)
+            logger.info(f"Broadcasting agent transcript: {full_text[:100]}...")
             import asyncio
             asyncio.create_task(broadcast_transcript("agent", full_text, agent_speech_start, end_time))
         agent_speech_start = None
@@ -229,16 +233,18 @@ async def entrypoint(ctx: agents.JobContext):
     @session.on("user_speech_committed")
     def on_user_speech(msg):
         nonlocal user_speech_text
+        logger.info(f"user_speech_committed event: {msg}")
         if hasattr(msg, 'content') and msg.content:
             user_speech_text.append(msg.content)
-            logger.debug(f"User said: {msg.content}")
+            logger.info(f"User said: {msg.content}")
 
     @session.on("agent_speech_committed")
     def on_agent_speech(msg):
         nonlocal agent_speech_text
+        logger.info(f"agent_speech_committed event: {msg}")
         if hasattr(msg, 'content') and msg.content:
             agent_speech_text.append(msg.content)
-            logger.debug(f"Agent said: {msg.content}")
+            logger.info(f"Agent said: {msg.content}")
 
     await session.start(
         room=ctx.room,
