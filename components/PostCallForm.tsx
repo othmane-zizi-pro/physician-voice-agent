@@ -285,7 +285,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       saveLead({
         works_in_healthcare: false,
       });
-      setStep("video_clip");
+      // Skip video_clip step for now (disabled for debugging)
+      onComplete();
     }
   };
 
@@ -316,7 +317,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         is_physician_owner: workplaceType === "independent" && roleType === "owner",
         works_at_independent_clinic: workplaceType === "independent",
       });
-      setStep("video_clip");
+      // Skip video_clip step for now (disabled for debugging)
+      onComplete();
     }
   };
 
@@ -336,7 +338,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       works_at_independent_clinic: workplaceType === "independent",
     });
     setIsSubmitting(false);
-    setStep("video_clip");
+    // Skip video_clip step for now (disabled for debugging)
+    onComplete();
   };
 
   const saveLead = async (data: any) => {
