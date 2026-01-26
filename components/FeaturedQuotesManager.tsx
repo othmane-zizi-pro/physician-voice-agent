@@ -82,9 +82,16 @@ function SortableQuote({ quote, index, onRemove, isRemoving }: SortableQuoteProp
         <p className="text-brand-navy-900 italic truncate">
           &ldquo;{quote.quote}&rdquo;
         </p>
-        <p className="text-brand-navy-500 text-sm mt-1">
-          {quote.location || "Unknown location"}
-        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-brand-navy-500 text-sm">
+            {quote.location || "Unknown location"}
+          </p>
+          {!quote.call_id && (
+            <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded font-medium">
+              Sample
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Top 7 Badge */}

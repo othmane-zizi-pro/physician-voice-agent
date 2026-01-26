@@ -154,6 +154,12 @@ export default function AdminDashboard() {
   } | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
+  // Create sample quote modal
+  const [showCreateQuoteModal, setShowCreateQuoteModal] = useState(false);
+  const [newQuoteText, setNewQuoteText] = useState("");
+  const [newQuoteLocation, setNewQuoteLocation] = useState("");
+  const [creatingQuote, setCreatingQuote] = useState(false);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/admin/login");
@@ -509,6 +515,34 @@ export default function AdminDashboard() {
       await bulkRemoveQuotes();
     }
     setConfirmAction(null);
+  };
+
+  // Create a sample quote (not from a call)
+  const createSampleQuote = async () => {
+    if (!newQuoteText.trim()) return;
+
+    setCreatingQuote(true);
+    try {
+      const response = await fetch("/api/featured-quotes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          call_id: null,
+          quote: newQuoteText.trim(),
+          location: newQuoteLocation.trim() || null,
+        }),
+      });
+
+      if (response.ok) {
+        await fetchData();
+        setShowCreateQuoteModal(false);
+        setNewQuoteText("");
+        setNewQuoteLocation("");
+      }
+    } catch (error) {
+      console.error("Failed to create sample quote:", error);
+    }
+    setCreatingQuote(false);
   };
 
   return (
@@ -1034,7 +1068,15 @@ export default function AdminDashboard() {
             {/* Quote Candidates */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-brand-navy-900">Add Quotes</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-brand-navy-900">Add Quotes</h3>
+                  <button
+                    onClick={() => setShowCreateQuoteModal(true)}
+                    className="px-3 py-1.5 text-xs font-medium bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors"
+                  >
+                    + Create Sample
+                  </button>
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setQuotesFilter("all")}
@@ -1685,6 +1727,77 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Create Sample Quote Modal */}
+      <AnimatePresence>
+        {showCreateQuoteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowCreateQuoteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-bold text-brand-navy-900 mb-4">Create Sample Quote</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-brand-navy-700 mb-1">
+                    Quote <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={newQuoteText}
+                    onChange={(e) => setNewQuoteText(e.target.value)}
+                    placeholder="Enter the quote text..."
+                    rows={4}
+                    className="w-full px-4 py-3 border border-brand-neutral-200 rounded-xl text-brand-navy-900 placeholder-brand-navy-400 focus:outline-none focus:border-brand-brown focus:ring-2 focus:ring-brand-brown/20 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-brand-navy-700 mb-1">
+                    Location <span className="text-brand-navy-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuoteLocation}
+                    onChange={(e) => setNewQuoteLocation(e.target.value)}
+                    placeholder="e.g. Boston, MA"
+                    className="w-full px-4 py-3 border border-brand-neutral-200 rounded-xl text-brand-navy-900 placeholder-brand-navy-400 focus:outline-none focus:border-brand-brown focus:ring-2 focus:ring-brand-brown/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowCreateQuoteModal(false);
+                    setNewQuoteText("");
+                    setNewQuoteLocation("");
+                  }}
+                  className="px-4 py-2 text-brand-navy-600 hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createSampleQuote}
+                  disabled={!newQuoteText.trim() || creatingQuote}
+                  className="px-4 py-2 bg-brand-brown text-white rounded-lg hover:bg-brand-brown-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingQuote ? "Creating..." : "Create Quote"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Quote Preview Modal - Linked to showPreview state */}
       <AnimatePresence>
