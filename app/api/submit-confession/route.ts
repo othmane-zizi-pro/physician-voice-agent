@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate content length
-    if (content.length < 10) {
+    if (content.length < 1) {
       return NextResponse.json(
-        { error: "Please write at least a few words about what's frustrating you" },
+        { error: "Please write something" },
         { status: 400 }
       );
     }
