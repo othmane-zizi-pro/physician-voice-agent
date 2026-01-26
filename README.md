@@ -18,7 +18,7 @@ This repo contains a .env.dev file with some working API keys and such that are 
 cp .env.dev .env.local
 ```
 
-**NOTICE**: Thera are a handful of secret values that are not dummied out in the .env.dev file. Nigel or Othmane can help you get the real values:
+**NOTICE**: Thera are a handful of secret values that are dummied out in the .env.dev file. These secrets are stored in 1Password right now in a vault called "Pod A", Nigel can give you access to it.
 
 - `LIVEKIT_API_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
