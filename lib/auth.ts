@@ -87,15 +87,34 @@ export async function getSession(): Promise<SessionPayload | null> {
   try {
     const nextAuthSession = await getServerSession();
     if (nextAuthSession?.user?.email) {
-      // Return a compatible session payload
-      // userId will be the database UUID if available, otherwise email
-      const userId = (nextAuthSession as any).userId || nextAuthSession.user.email;
-      return {
-        userId,
-        email: nextAuthSession.user.email,
-        name: nextAuthSession.user.name || null,
-        avatarUrl: nextAuthSession.user.image || null,
-      };
+      // Look up the user ID from the database
+      // (getServerSession without authOptions doesn't run the session callback)
+      let userId: string | null = null;
+      try {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+        const { data: dbUser } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", nextAuthSession.user.email)
+          .single();
+        userId = dbUser?.id || null;
+      } catch {
+        // DB lookup failed - userId will be null
+      }
+
+      // Only return session if we have a valid UUID
+      if (userId) {
+        return {
+          userId,
+          email: nextAuthSession.user.email,
+          name: nextAuthSession.user.name || null,
+          avatarUrl: nextAuthSession.user.image || null,
+        };
+      }
     }
   } catch {
     // NextAuth not available or error - ignore
