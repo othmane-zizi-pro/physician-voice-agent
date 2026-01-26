@@ -98,24 +98,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Quote is required" }, { status: 400 });
     }
 
-    // Get the next display_order
-    const { data: maxOrder } = await supabase
+    // Get all existing quotes to shift them down
+    const { data: existingQuotes } = await supabase
       .from("featured_quotes")
-      .select("display_order")
-      .order("display_order", { ascending: false })
-      .limit(1)
-      .single();
+      .select("id, display_order")
+      .order("display_order", { ascending: true });
 
-    const nextOrder = (maxOrder?.display_order || 0) + 1;
+    // Shift all existing quotes down by 1 to make room at the top
+    if (existingQuotes && existingQuotes.length > 0) {
+      for (const q of existingQuotes) {
+        await supabase
+          .from("featured_quotes")
+          .update({ display_order: q.display_order + 1 })
+          .eq("id", q.id);
+      }
+    }
 
-    // Insert the new featured quote
+    // Insert the new featured quote at position 1 (top)
     const { data, error } = await supabase
       .from("featured_quotes")
       .insert({
         call_id,
         quote,
         location: location || null,
-        display_order: nextOrder,
+        display_order: 1,
         is_active: true,
       })
       .select()
