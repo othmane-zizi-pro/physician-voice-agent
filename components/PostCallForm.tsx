@@ -131,6 +131,18 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
   const [transcriptObject, setTranscriptObject] = useState<TranscriptEntry[] | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
 
+  // Progress tracking for clip generation
+  const [generatingStep, setGeneratingStep] = useState(0);
+  const [waitingForRecording, setWaitingForRecording] = useState(false);
+
+  // Progress steps for visual feedback
+  const generatingSteps = [
+    { label: "Preparing recording", description: "Fetching audio from cloud storage" },
+    { label: "Creating visuals", description: "Generating chat bubble overlay" },
+    { label: "Encoding video", description: "Combining audio with visuals" },
+    { label: "Finalizing", description: "Uploading your clip" },
+  ];
+
   // Use new brand colors
   // const bgMain = "bg-[#F8F6F3]";
   // const boxBg = "bg-[#E8E2DC]";
@@ -157,6 +169,9 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       return;
     }
 
+    // Start showing waiting state
+    setWaitingForRecording(true);
+
     const fetchCallData = async () => {
       console.log('[PostCallForm] Fetching call data for:', callId);
       const { data, error } = await supabase
@@ -181,12 +196,16 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       }
       if (data?.recording_url) {
         setRecordingUrl(data.recording_url);
+        setWaitingForRecording(false); // Recording is ready
       }
     };
 
     fetchCallData();
-    const interval = setInterval(fetchCallData, 3000);
-    const timeout = setTimeout(() => clearInterval(interval), 60000);
+    const interval = setInterval(fetchCallData, 2000); // Poll every 2s for faster response
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setWaitingForRecording(false); // Stop waiting after timeout
+    }, 90000); // Extended timeout to 90s for slower connections
 
     return () => {
       clearInterval(interval);
@@ -197,6 +216,14 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
   const handleSelectExchange = async (exchangeIndex: number) => {
     setClipMode('generating');
     setClipError(null);
+    setGeneratingStep(0);
+
+    // Simulate progress through steps while API processes
+    // These timings approximate the actual backend steps
+    const progressTimers: NodeJS.Timeout[] = [];
+    progressTimers.push(setTimeout(() => setGeneratingStep(1), 2000));  // After presign URL
+    progressTimers.push(setTimeout(() => setGeneratingStep(2), 4000));  // After image generation
+    progressTimers.push(setTimeout(() => setGeneratingStep(3), 15000)); // During Lambda encoding
 
     try {
       const response = await fetch('/api/generate-clip', {
@@ -208,6 +235,9 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
         }),
       });
 
+      // Clear progress timers
+      progressTimers.forEach(clearTimeout);
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -217,6 +247,8 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
       setClipUrl(data.clipUrl);
       setClipMode('result');
     } catch (error) {
+      // Clear progress timers on error
+      progressTimers.forEach(clearTimeout);
       setClipError(error instanceof Error ? error.message : 'Failed to generate clip');
       setClipMode('select');
     }
@@ -603,9 +635,22 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-12 flex flex-col items-center">
+                        <div className="text-center py-12 flex flex-col items-center px-4">
                           <Loader2 size={24} className="text-[#9A4616] animate-spin mb-3" />
-                          <p className="text-[#3C5676] text-sm">Processing conversation...</p>
+                          <p className="text-[#0E1219] font-medium mb-1">
+                            {waitingForRecording ? "Preparing your recording" : "Loading conversation"}
+                          </p>
+                          <p className="text-[#3C5676] text-sm text-center max-w-xs">
+                            {waitingForRecording
+                              ? "Your call recording is being processed. This usually takes 10-30 seconds."
+                              : "Please wait while we load the transcript..."}
+                          </p>
+                          {waitingForRecording && (
+                            <div className="mt-4 flex items-center gap-2 text-xs text-[#A9BCD0]">
+                              <div className="w-2 h-2 bg-[#9A4616] rounded-full animate-pulse" />
+                              <span>Processing in cloud</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -620,22 +665,88 @@ export default function PostCallForm({ callId, transcript, onComplete }: PostCal
                 )}
 
                 {clipMode === 'generating' && (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center py-8">
+                    {/* Animated icon */}
+                    <div className="relative w-16 h-16 mb-6 flex items-center justify-center">
                       <motion.div
                         className="absolute inset-0 border-4 border-[#9A4616]/20 rounded-full"
                         animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
-                      <motion.div
-                        className="absolute inset-0 border-4 border-[#9A4616]/40 rounded-full"
-                        animate={{ scale: [1, 1.1, 1], opacity: [0.8, 0, 0.8] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                      />
-                      <Film size={32} className="text-[#9A4616] relative z-10" />
+                      <Film size={28} className="text-[#9A4616] relative z-10" />
                     </div>
-                    <p className="text-[#0E1219] font-bold text-lg">Generating Clip...</p>
-                    <p className="text-[#3C5676] text-sm mt-1">Stitching audio and subtitles</p>
+
+                    {/* Title */}
+                    <p className="text-[#0E1219] font-bold text-lg mb-1">Creating your clip</p>
+                    <p className="text-[#3C5676] text-sm mb-6">This takes about 20-40 seconds</p>
+
+                    {/* Progress steps */}
+                    <div className="w-full max-w-xs space-y-3">
+                      {generatingSteps.map((step, index) => {
+                        const isActive = index === generatingStep;
+                        const isCompleted = index < generatingStep;
+                        return (
+                          <motion.div
+                            key={step.label}
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-xl transition-all",
+                              isActive && "bg-[#9A4616]/5 border border-[#9A4616]/20",
+                              isCompleted && "opacity-60",
+                              !isActive && !isCompleted && "opacity-40"
+                            )}
+                            initial={false}
+                            animate={{
+                              scale: isActive ? 1 : 0.98,
+                            }}
+                          >
+                            {/* Step indicator */}
+                            <div className={cn(
+                              "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
+                              isCompleted && "bg-green-500",
+                              isActive && "bg-[#9A4616]",
+                              !isActive && !isCompleted && "bg-[#E8E2DC]"
+                            )}>
+                              {isCompleted ? (
+                                <Check size={14} className="text-white" />
+                              ) : isActive ? (
+                                <Loader2 size={14} className="text-white animate-spin" />
+                              ) : (
+                                <span className="text-xs text-[#A9BCD0] font-medium">{index + 1}</span>
+                              )}
+                            </div>
+                            {/* Step text */}
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "text-sm font-medium truncate",
+                                isActive ? "text-[#0E1219]" : "text-[#3C5676]"
+                              )}>
+                                {step.label}
+                              </p>
+                              {isActive && (
+                                <motion.p
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  className="text-xs text-[#A9BCD0] truncate"
+                                >
+                                  {step.description}
+                                </motion.p>
+                              )}
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Cancel option */}
+                    <button
+                      onClick={() => {
+                        setClipMode('select');
+                        setGeneratingStep(0);
+                      }}
+                      className="mt-6 text-[#A9BCD0] text-sm hover:text-[#3C5676] transition-colors"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 )}
 
