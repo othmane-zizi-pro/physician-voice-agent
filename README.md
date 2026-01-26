@@ -10,18 +10,36 @@ A sardonic AI voice companion for burnt-out physicians. Vent about PE acquisitio
 2. Sign up / log in
 3. Copy your **Public Key** from the dashboard
 
-### 2. Set Up Environment
+### 2. Set Up Environment (API Keys, etc.)
+
+This repo contains a .env.dev file with some working API keys and such that are enough to get you started. Most of these keys are distinct from production, so you can mess around without fear.
 
 ```bash
-cp .env.example .env.local
+cp .env.dev .env.local
 ```
 
-Edit `.env.local`:
-```
-NEXT_PUBLIC_VAPI_PUBLIC_KEY=your_public_key_here
+**NOTICE**: Thera are a handful of secret values that are dummied out in the .env.dev file. These secrets are stored in 1Password right now in a vault called "Pod A", Nigel can give you access to it.
+
+- `LIVEKIT_API_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY`
+- `GOOGLE_CLIENT_SECRET`
+- `GEMINI_API_KEY`
+
+### 3. Push schema to Supabase
+
+(This might not be needed if you're using an existing Supabase project.)
+
+```bash
+# Install Supabase CLI (on Mac)
+brew install supabase/tap/supabase
+# Link the local repo to one of your Supabase projects.
+supabase link
+# Run backlog of schema migrations.
+supabase db push
 ```
 
-### 3. Install & Run
+### 4. Install & Run
 
 ```bash
 npm install
