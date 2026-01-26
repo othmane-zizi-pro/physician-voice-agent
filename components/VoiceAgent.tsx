@@ -1230,7 +1230,7 @@ export default function VoiceAgent() {
                         onClick={() => trackClick("footer_meroka", "https://www.meroka.com/")}
                         className="flex items-center hover:opacity-80 transition-opacity"
                     >
-                        <svg viewBox="480 860 1060 250" className="h-4 opacity-70" xmlns="http://www.w3.org/2000/svg">
+                        <svg viewBox="480 860 1060 250" className="h-4 opacity-70 -translate-y-0.5" xmlns="http://www.w3.org/2000/svg">
                             <g fill="#073863">
                                 <path d="M583.9,1001.36c0,0-8.68-10.85-23.72-24.15c-24.1,46.33-63.34,83.45-63.34,83.45s36.73-3.76,66.81-64.5c10.61,10.22,13.88,14.85,13.88,14.85L583.9,1001.36z"/>
                                 <path d="M733.92,1001.82c0,0,6.65-11.76,21.69-25.07c24.1,46.33,65.37,84.36,65.37,84.36s-38.76-4.68-68.84-65.42c-7.71,10.17-11.86,15.76-11.86,15.76L733.92,1001.82z"/>
