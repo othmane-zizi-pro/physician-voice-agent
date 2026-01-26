@@ -8,6 +8,7 @@ import { Mic, MicOff, Phone, PhoneOff, Share2, Link2, Clock, Send, Stethoscope }
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
+import { trackLinkedInConversion } from "@/lib/linkedin";
 import PostCallForm from "./PostCallForm";
 import UserAuthButton from "./UserAuthButton";
 import ConversationSidebar from "./ConversationSidebar";
@@ -428,6 +429,9 @@ export default function VoiceAgent() {
         }
 
         setCallStatus("connecting");
+
+        // Track LinkedIn conversion (fire-and-forget, non-blocking)
+        trackLinkedInConversion({ eventType: "call_started" });
 
         try {
             // Get LiveKit token from backend

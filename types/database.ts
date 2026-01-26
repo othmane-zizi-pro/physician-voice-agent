@@ -395,6 +395,58 @@ export interface Database {
           }
         ];
       };
+      linkedin_conversions: {
+        Row: {
+          id: string;
+          created_at: string;
+          event_type: string;
+          li_fat_id: string | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          linkedin_response_status: number | null;
+          linkedin_response_body: Record<string, unknown> | null;
+          success: boolean;
+          call_id: string | null;
+          page_url: string | null;
+          referrer: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          event_type?: string;
+          li_fat_id?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          linkedin_response_status?: number | null;
+          linkedin_response_body?: Record<string, unknown> | null;
+          success?: boolean;
+          call_id?: string | null;
+          page_url?: string | null;
+          referrer?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          event_type?: string;
+          li_fat_id?: string | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          linkedin_response_status?: number | null;
+          linkedin_response_body?: Record<string, unknown> | null;
+          success?: boolean;
+          call_id?: string | null;
+          page_url?: string | null;
+          referrer?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "linkedin_conversions_call_id_fkey";
+            columns: ["call_id"];
+            referencedRelation: "calls";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -427,3 +479,5 @@ export type UserInsert = Database["public"]["Tables"]["users"]["Insert"];
 export type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
 export type ConversationSummary = Database["public"]["Tables"]["conversation_summaries"]["Row"];
 export type ConversationSummaryInsert = Database["public"]["Tables"]["conversation_summaries"]["Insert"];
+export type LinkedInConversion = Database["public"]["Tables"]["linkedin_conversions"]["Row"];
+export type LinkedInConversionInsert = Database["public"]["Tables"]["linkedin_conversions"]["Insert"];

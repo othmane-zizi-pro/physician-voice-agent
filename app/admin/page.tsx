@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
-import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User } from "@/types/database";
+import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User, LinkedInConversion } from "@/types/database";
 import FeaturedQuotesManager from "@/components/FeaturedQuotesManager";
 import QuotePreviewModal from "@/components/QuotePreviewModal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -26,7 +26,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits" | "linkedin";
 type QuotesFilter = "all" | "featured" | "not-featured";
 type SessionTypeFilter = "all" | "voice" | "text";
 
@@ -120,6 +120,7 @@ export default function AdminDashboard() {
   const [featuredQuotes, setFeaturedQuotes] = useState<FeaturedQuote[]>([]);
   const [linkClicks, setLinkClicks] = useState<LinkClick[]>([]);
   const [pageVisits, setPageVisits] = useState<PageVisit[]>([]);
+  const [linkedinConversions, setLinkedinConversions] = useState<LinkedInConversion[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -185,12 +186,13 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     setLoading(true);
-    const [callsRes, leadsRes, featuredRes, clicksRes, visitsRes] = await Promise.all([
+    const [callsRes, leadsRes, featuredRes, clicksRes, visitsRes, linkedinRes] = await Promise.all([
       supabase.from("calls").select("*").order("created_at", { ascending: false }),
       supabase.from("leads").select("*").order("created_at", { ascending: false }),
       supabase.from("featured_quotes").select("*").order("display_order", { ascending: true }),
       supabase.from("link_clicks").select("*").order("created_at", { ascending: false }),
       supabase.from("page_visits").select("*").order("created_at", { ascending: false }).limit(500),
+      supabase.from("linkedin_conversions").select("*").order("created_at", { ascending: false }).limit(500),
     ]);
 
     if (callsRes.data) setCalls(callsRes.data);
@@ -198,6 +200,7 @@ export default function AdminDashboard() {
     if (featuredRes.data) setFeaturedQuotes(featuredRes.data);
     if (clicksRes.data) setLinkClicks(clicksRes.data);
     if (visitsRes.data) setPageVisits(visitsRes.data);
+    if (linkedinRes.data) setLinkedinConversions(linkedinRes.data);
     setLastRefresh(new Date());
     setLoading(false);
   };
@@ -269,6 +272,36 @@ export default function AdminDashboard() {
 
     return hours;
   };
+
+  // Generate hourly LinkedIn conversions data for chart
+  const getHourlyLinkedInData = () => {
+    const now = new Date();
+    const hours: { hour: string; count: number; label: string }[] = [];
+
+    for (let i = 23; i >= 0; i--) {
+      const hourStart = new Date(now);
+      hourStart.setHours(now.getHours() - i, 0, 0, 0);
+      const hourEnd = new Date(hourStart);
+      hourEnd.setHours(hourStart.getHours() + 1);
+
+      const count = linkedinConversions.filter((c) => {
+        const convDate = new Date(c.created_at);
+        return convDate >= hourStart && convDate < hourEnd;
+      }).length;
+
+      const label = hourStart.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
+      hours.push({ hour: hourStart.toISOString(), count, label });
+    }
+
+    return hours;
+  };
+
+  // LinkedIn stats
+  const linkedinTotal = linkedinConversions.length;
+  const linkedinSuccess = linkedinConversions.filter((c) => c.success).length;
+  const linkedinWithLiFatId = linkedinConversions.filter((c) => c.li_fat_id).length;
+  const linkedinSuccessRate = linkedinTotal > 0 ? Math.round((linkedinSuccess / linkedinTotal) * 100) : 0;
+  const linkedinAttributionRate = linkedinTotal > 0 ? Math.round((linkedinWithLiFatId / linkedinTotal) * 100) : 0;
 
   // Stats
   const totalCalls = calls.length;
@@ -625,10 +658,21 @@ export default function AdminDashboard() {
         >
           Traffic ({pageVisits.length})
         </button>
+        <button
+          onClick={() => setActiveTab("linkedin")}
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
+            activeTab === "linkedin"
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
+        >
+          LinkedIn ({linkedinConversions.length})
+        </button>
       </div>
 
       {/* Search */}
-      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && activeTab !== "visits" && (
+      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && activeTab !== "visits" && activeTab !== "linkedin" && (
         <div className="mb-6 flex flex-wrap gap-4 items-center relative z-10">
           <input
             type="text"
@@ -1532,6 +1576,116 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* LinkedIn Tab */}
+      {activeTab === "linkedin" && (
+        <div className="space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Total Sent</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">{linkedinTotal}</div>
+              <div className="text-xs text-brand-navy-400 mt-1">conversion events</div>
+            </div>
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Success Rate</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {linkedinSuccessRate}%
+                <span className="text-sm font-normal text-brand-navy-400 ml-2">
+                  ({linkedinSuccess} / {linkedinTotal})
+                </span>
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">sent to LinkedIn API</div>
+            </div>
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">With li_fat_id</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {linkedinAttributionRate}%
+                <span className="text-sm font-normal text-brand-navy-400 ml-2">
+                  ({linkedinWithLiFatId} / {linkedinTotal})
+                </span>
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">from LinkedIn ads</div>
+            </div>
+          </div>
+
+          {/* Hourly Chart */}
+          <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+            <h3 className="text-lg font-bold text-brand-navy-900 mb-4">Conversions (Last 24 Hours)</h3>
+            <div className="h-64 flex items-end gap-1 border-b border-brand-neutral-200 pb-2">
+              {getHourlyLinkedInData().map((data) => (
+                <div key={data.hour} className="flex-1 flex flex-col items-center group relative">
+                  <div
+                    className="w-full bg-blue-500/80 rounded-t-sm hover:bg-blue-600 transition-all min-h-[4px]"
+                    style={{
+                      height: `${Math.max((data.count / (Math.max(...getHourlyLinkedInData().map(d => d.count)) || 1)) * 100, 2)}%`
+                    }}
+                  />
+                  <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-brand-navy-900 text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap z-50">
+                    {data.label}: {data.count} conversions
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-brand-navy-400">
+              <span>24h ago</span>
+              <span>Now</span>
+            </div>
+          </div>
+
+          {/* Recent Conversions Table */}
+          <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Event</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">li_fat_id</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Status</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Response</th>
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">IP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linkedinConversions.map((conv) => (
+                  <tr key={conv.id} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm whitespace-nowrap">
+                      {formatDate(conv.created_at)}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm font-medium">
+                      {conv.event_type}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-500 text-xs font-mono max-w-[120px] truncate">
+                      {conv.li_fat_id ? conv.li_fat_id.substring(0, 16) + "..." : "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      {conv.success ? (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                          Success
+                        </span>
+                      ) : conv.li_fat_id ? (
+                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                          Failed
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
+                          Skipped
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-400 text-xs">
+                      {conv.linkedin_response_status || "-"}
+                    </td>
+                    <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
+                      {conv.ip_address || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Quote Preview Modal - Linked to showPreview state */}
       <AnimatePresence>
         {showPreview && (
@@ -1568,6 +1722,35 @@ export default function AdminDashboard() {
           isLoading={bulkProcessing}
         />
       )}
+
+      {/* Footer */}
+      <footer className="mt-12 pt-6 border-t border-brand-neutral-200/50 flex justify-center">
+        <svg
+          viewBox="480 860 1060 250"
+          className="h-8 opacity-40 hover:opacity-60 transition-opacity"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g>
+            <g>
+              <g>
+                <path fill="#073863" d="M583.9,1001.36c0,0-8.68-10.85-23.72-24.15c-24.1,46.33-63.34,83.45-63.34,83.45s36.73-3.76,66.81-64.5c10.61,10.22,13.88,14.85,13.88,14.85L583.9,1001.36z"/>
+                <path fill="#073863" d="M733.92,1001.82c0,0,6.65-11.76,21.69-25.07c24.1,46.33,65.37,84.36,65.37,84.36s-38.76-4.68-68.84-65.42c-7.71,10.17-11.86,15.76-11.86,15.76L733.92,1001.82z"/>
+                <path fill="#073863" d="M540.37,1052.85c0,0,55.39-58.72,89.23-118.3c28.92-57.56,30.37-61.61,30.37-61.61s49.75,112.51,118.88,182.51c-49.17-7.23-98.63-107.31-98.63-107.31s-2.31,48.01,32.39,76.65c-41.41-21.63-62.03-65.3-62.03-65.3c-2.42-6.23-4.08-10.69-5.43-13.87c-2.14-5.02-6.61-4.67-9.49-0.02C595.72,1009.9,564.56,1041.66,540.37,1052.85z"/>
+                <path fill="#073863" d="M723.86,1075.39c-0.72,0.92-1.45,1.81-2.17,2.63c-4.39,4.99-10.85,7.86-17.73,7.86h-42.91c-6.14,0-11.32,4.33-12.04,10.08l-1.45,11.47l-4.76-154.11h-6.37l-0.18,2.17c-0.4,4.88-8.69,106.02-10.75,138.84c-6.43-8.81-14.69-8.31-16.34-8.1c-4.51-0.05-8.79-1.97-11.47-5.19c-0.12-0.14-0.23-0.28-0.34-0.42c-3.52-4.57-6-7.2-8.28-8.81c-3.38-2.39-8.11-2.39-11.49,0c-2.27,1.61-4.75,4.24-8.28,8.81c-0.11,0.15-0.23,0.29-0.35,0.44c-2.71,3.24-7.05,5.17-11.63,5.17h-60.46v4.7h60.46c6.09,0,11.91-2.6,15.54-6.95c0.16-0.19,0.32-0.39,0.48-0.59c3.18-4.11,5.41-6.52,7.24-7.82c1.62-1.15,3.88-1.15,5.5,0c1.84,1.3,4.07,3.71,7.24,7.82c0.16,0.2,0.31,0.4,0.46,0.58c3.64,4.36,9.46,6.97,15.55,6.97l0.2,0l0.22-0.04c0.4-0.06,9.65-1.29,14.97,12.39h5.3c0.17-9.76,5.54-77.51,8.78-117.7l4.37,141.49h6.93l3.86-30.56c0.43-3.38,3.47-5.93,7.09-5.93h42.91c8.37,0,16.24-3.49,21.58-9.56c0.78-0.89,1.57-1.84,2.35-2.84c8.36-10.73,11.55-13.64,18.06-13.64v-4.7C736.42,1059.84,731.82,1065.17,723.86,1075.39z"/>
+                <path fill="#073863" d="M788.01,1085.87c-6.88,0-13.35-2.86-17.73-7.86c-0.72-0.82-1.45-1.71-2.17-2.63c-7.97-10.22-12.57-15.55-22.08-15.55v4.7c6.5,0,9.69,2.91,18.06,13.64c0.78,0.99,1.57,1.95,2.35,2.84c5.34,6.08,13.2,9.56,21.58,9.56h32.97v-4.7H788.01z"/>
+              </g>
+              <g>
+                <path fill="#073863" d="M885.52,1092.76V964.19h33.79l36.71,98.98l37.07-98.98h31.96v128.57h-21.73v-98.25l0.18-15.89h-0.37l-5.84,15.52l-37.07,98.62h-15.89l-36.71-98.98l-5.66-15.34h-0.37l0.18,16.07v98.25H885.52z"/>
+                <path fill="#073863" d="M1091.89,1095.5c-8.77,0-16.56-2.04-23.38-6.12c-6.82-4.08-12.21-9.89-16.16-17.44c-3.96-7.55-5.94-16.37-5.94-26.48c0-10.1,2.01-18.99,6.03-26.66s9.43-13.67,16.25-17.99c6.82-4.32,14.36-6.48,22.65-6.48c8.16,0,15.43,1.95,21.82,5.84c6.39,3.9,11.44,9.65,15.16,17.26c3.71,7.61,5.57,16.96,5.57,28.03h-65.56c0.24,11.81,2.89,20.61,7.94,26.39c5.05,5.78,11.72,8.68,20,8.68c6.45,0,11.99-1.92,16.62-5.75c4.62-3.84,7.85-9.22,9.68-16.16h12.6c-2.31,11.69-7.28,20.76-14.88,27.21C1112.68,1092.28,1103.21,1095.5,1091.89,1095.5z M1090.98,1007.47c-5.6,0-10.32,2.1-14.15,6.3c-3.84,4.2-6.42,10.5-7.76,18.9h42.19c-0.73-8.28-2.89-14.55-6.48-18.81C1101.17,1009.61,1096.58,1007.47,1090.98,1007.47z"/>
+                <path fill="#073863" d="M1204.94,1017.7c-2.92-0.73-5.78-1.1-8.58-1.1c-6.82,0-12.18,2.22-16.07,6.67c-3.9,4.45-5.84,11.11-5.84,20v49.49h-20.64v-95.7h19.54v25.57c2.19-8.64,6.12-15.49,11.78-20.55c5.66-5.05,12.26-7.64,19.81-7.76V1017.7z"/>
+                <path fill="#073863" d="M1258.99,1095.5c-8.65,0-16.38-2.04-23.19-6.12c-6.82-4.08-12.21-9.86-16.16-17.35c-3.96-7.49-5.94-16.34-5.94-26.57c0-10.35,2.01-19.36,6.03-27.03c4.02-7.67,9.56-13.61,16.62-17.81c7.06-4.2,15.04-6.3,23.92-6.3c8.89,0,16.74,2.07,23.56,6.21c6.82,4.14,12.15,9.92,15.98,17.35c3.84,7.43,5.75,16.19,5.75,26.3c0,10.47-2.01,19.54-6.03,27.21c-4.02,7.67-9.53,13.61-16.53,17.81C1276.01,1093.4,1268,1095.5,1258.99,1095.5z M1260.09,1082.35c6.94,0,12.6-2.92,16.98-8.77c4.38-5.84,6.57-15.22,6.57-28.12c0-12.54-2.25-22.01-6.76-28.4c-4.51-6.39-10.41-9.59-17.72-9.59c-7.06,0-12.75,2.92-17.07,8.77c-4.32,5.84-6.48,15.16-6.48,27.94c0,12.54,2.25,22.04,6.76,28.49C1246.88,1079.13,1252.78,1082.35,1260.09,1082.35z"/>
+                <path fill="#073863" d="M1325.29,1092.76V964.19h20.64v77.07l40.73-44.2h20.82l-35.25,35.8l37.07,59.9H1385l-27.03-45.47l-12.05,12.24v33.24H1325.29z"/>
+                <path fill="#073863" d="M1441.62,1095.32c-8.16,0-14.79-2.34-19.91-7.03c-5.11-4.69-7.67-10.62-7.67-17.81c0-7.3,2.31-13.27,6.94-17.9c4.63-4.62,12.42-8.28,23.38-10.96c7.42-1.7,13.06-3.35,16.89-4.93c3.84-1.58,6.45-3.38,7.85-5.39c1.4-2.01,2.1-4.35,2.1-7.03c0-3.9-1.64-7.33-4.93-10.32c-3.29-2.98-7.98-4.47-14.06-4.47c-5.97,0-11.05,1.77-15.25,5.3c-4.2,3.53-6.85,8.65-7.94,15.34h-12.6c1.34-10.96,5.72-19.66,13.15-26.11c7.43-6.45,16.68-9.68,27.76-9.68c10.84,0,19.51,3.04,26.02,9.13c6.51,6.09,9.77,14.13,9.77,24.11v43.65c0,3.65,0.79,6.3,2.38,7.95c1.58,1.64,4.14,2.59,7.67,2.83v10.77c-2.31,1.1-5.78,1.64-10.41,1.64c-6.09,0-10.81-1.62-14.15-4.84c-3.35-3.23-5.33-7.64-5.94-13.24c-2.56,5.97-6.51,10.62-11.87,13.97C1455.44,1093.64,1449.04,1095.32,1441.62,1095.32z M1449.65,1080.53c6.69,0,12.17-2.25,16.44-6.76c4.26-4.5,6.39-10.35,6.39-17.53v-17.17c-3.65,5.48-10.59,9.8-20.82,12.97c-5.97,1.95-10.2,4.23-12.69,6.85c-2.5,2.62-3.74,5.69-3.74,9.22c0,3.53,1.28,6.48,3.84,8.86S1445.15,1080.53,1449.65,1080.53z"/>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </footer>
     </div>
   );
 }
