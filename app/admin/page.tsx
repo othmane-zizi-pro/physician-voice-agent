@@ -1724,7 +1724,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Footer */}
-      <footer className="mt-12 pt-6 border-t border-brand-neutral-200/50 flex justify-center">
+      <footer className="mt-8 pt-4 pb-2 border-t border-brand-neutral-200/50 flex justify-center">
         <svg
           viewBox="480 860 1060 250"
           className="h-8 opacity-40 hover:opacity-60 transition-opacity"
