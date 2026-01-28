@@ -318,19 +318,27 @@ export default function AdminDashboard() {
     const days: { date: string; uniqueVisits: number; qualifiedCalls: number }[] = [];
     const now = new Date();
 
+    // Helper for local date string
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const utcToLocalDateStr = (utc: string) => {
+      const d = new Date(utc);
+      return toLocalDateStr(d);
+    };
+
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = toLocalDateStr(date);
       const displayDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-      // Count unique IPs from page_visits for this day
-      const dayVisits = pageVisits.filter((v) => v.created_at.startsWith(dateStr));
+      // Count unique IPs from page_visits for this day (convert UTC to local)
+      const dayVisits = pageVisits.filter((v) => utcToLocalDateStr(v.created_at) === dateStr);
       const uniqueIps = new Set(dayVisits.map((v) => v.ip_address).filter(Boolean));
 
-      // Count calls > 15 seconds for this day
+      // Count calls > 15 seconds for this day (convert UTC to local)
       const dayCalls = calls.filter(
-        (c) => c.created_at.startsWith(dateStr) && (c.duration_seconds || 0) > 15
+        (c) => utcToLocalDateStr(c.created_at) === dateStr && (c.duration_seconds || 0) > 15
       );
 
       days.push({
@@ -354,9 +362,16 @@ export default function AdminDashboard() {
   const avgDuration = voiceCalls > 0 ? Math.round(totalDuration / voiceCalls) : 0;
 
   // Today's unique callers with calls >15s
-  const today = new Date().toISOString().split("T")[0];
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const getLocalDate = (utc: string) => {
+    const d = new Date(utc);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
   const todayCallsOver15s = calls.filter(
-    (c) => c.created_at.startsWith(today) && (c.duration_seconds || 0) > 15
+    (c) => getLocalDate(c.created_at) === todayStr && (c.duration_seconds || 0) > 15
   );
   const todayUniqueCallersOver15s = new Set(
     todayCallsOver15s.map((c) => c.ip_address).filter(Boolean)
@@ -387,10 +402,16 @@ export default function AdminDashboard() {
   const uniqueVisitorCount = calls.filter((c) => c.ip_address && !isRepeatVisitor(c.ip_address)).length;
   const repeatVisitorCount = calls.filter((c) => c.ip_address && isRepeatVisitor(c.ip_address)).length;
 
+  // Helper to get local date string from UTC timestamp
+  const getLocalDateString = (utcTimestamp: string): string => {
+    const date = new Date(utcTimestamp);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
   // Filter
   const filteredCalls = calls.filter((c) => {
-    // Date filter
-    if (selectedDate && !c.created_at.startsWith(selectedDate)) return false;
+    // Date filter (convert UTC to local date for comparison)
+    if (selectedDate && getLocalDateString(c.created_at) !== selectedDate) return false;
 
     // Session type filter
     if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
@@ -413,26 +434,31 @@ export default function AdminDashboard() {
 
   // Stats for selected date
   const selectedDateCalls = selectedDate
-    ? calls.filter((c) => c.created_at.startsWith(selectedDate))
+    ? calls.filter((c) => getLocalDateString(c.created_at) === selectedDate)
     : calls;
   const selectedDateCallsOver15s = selectedDateCalls.filter((c) => (c.duration_seconds || 0) > 15);
   const selectedDateUniqueCallersOver15s = new Set(
     selectedDateCallsOver15s.map((c) => c.ip_address).filter(Boolean)
   ).size;
 
+  // Helper to get local date string from Date object
+  const formatLocalDate = (date: Date): string => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
   // Date navigation helpers
   const goToPreviousDay = () => {
-    const current = selectedDate ? new Date(selectedDate) : new Date();
+    const current = selectedDate ? new Date(selectedDate + "T12:00:00") : new Date();
     current.setDate(current.getDate() - 1);
-    setSelectedDate(current.toISOString().split("T")[0]);
+    setSelectedDate(formatLocalDate(current));
   };
 
   const goToNextDay = () => {
     if (!selectedDate) return;
-    const current = new Date(selectedDate);
+    const current = new Date(selectedDate + "T12:00:00");
     current.setDate(current.getDate() + 1);
-    const nextDate = current.toISOString().split("T")[0];
-    const today = new Date().toISOString().split("T")[0];
+    const nextDate = formatLocalDate(current);
+    const today = formatLocalDate(new Date());
     if (nextDate <= today) {
       setSelectedDate(nextDate);
     }
@@ -440,11 +466,11 @@ export default function AdminDashboard() {
 
   const formatSelectedDate = (dateStr: string | null) => {
     if (!dateStr) return "All Time";
-    const date = new Date(dateStr + "T00:00:00");
-    const today = new Date().toISOString().split("T")[0];
+    const date = new Date(dateStr + "T12:00:00");
+    const today = formatLocalDate(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
+    const yesterdayStr = formatLocalDate(yesterday);
 
     if (dateStr === today) return "Today";
     if (dateStr === yesterdayStr) return "Yesterday";
@@ -975,7 +1001,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   onClick={goToNextDay}
-                  disabled={!selectedDate || selectedDate >= new Date().toISOString().split("T")[0]}
+                  disabled={!selectedDate || selectedDate >= formatLocalDate(new Date())}
                   className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   title="Next day"
                 >
@@ -988,10 +1014,10 @@ export default function AdminDashboard() {
               {/* Quick Day Buttons */}
               <div className="hidden md:flex items-center gap-1">
                 <button
-                  onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}
+                  onClick={() => setSelectedDate(formatLocalDate(new Date()))}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-lg transition-all border",
-                    selectedDate === new Date().toISOString().split("T")[0]
+                    selectedDate === formatLocalDate(new Date())
                       ? "bg-brand-navy-900 text-white border-brand-navy-900"
                       : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
                   )}
@@ -1002,14 +1028,14 @@ export default function AdminDashboard() {
                   onClick={() => {
                     const yesterday = new Date();
                     yesterday.setDate(yesterday.getDate() - 1);
-                    setSelectedDate(yesterday.toISOString().split("T")[0]);
+                    setSelectedDate(formatLocalDate(yesterday));
                   }}
                   className={cn(
                     "px-3 py-1.5 text-xs font-medium rounded-lg transition-all border",
                     (() => {
                       const yesterday = new Date();
                       yesterday.setDate(yesterday.getDate() - 1);
-                      return selectedDate === yesterday.toISOString().split("T")[0];
+                      return selectedDate === formatLocalDate(yesterday);
                     })()
                       ? "bg-brand-navy-900 text-white border-brand-navy-900"
                       : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
