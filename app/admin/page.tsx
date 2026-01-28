@@ -351,14 +351,28 @@ export default function AdminDashboard() {
     return days;
   }, [pageVisits, calls]);
 
-  // Unique callers chart data (last 14 days, calls >15s, unique IPs per day)
+  // Unique callers chart data (last 14 days, calls >15s, unique IPs per day + first-time callers)
   const uniqueCallersChartData = useMemo(() => {
-    const days: { date: string; fullDate: string; uniqueCallers: number }[] = [];
+    const days: { date: string; fullDate: string; uniqueCallers: number; firstTimeCallers: number }[] = [];
     const now = new Date();
 
     const toLocalDateStr = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const utcToLocalDateStr = (utc: string) => toLocalDateStr(new Date(utc));
+
+    // Build a map of IP -> first call date (for calls >15s)
+    const ipFirstCallDate: Record<string, string> = {};
+    const qualifiedCalls = calls.filter((c) => (c.duration_seconds || 0) > 15 && c.ip_address);
+    // Sort by date ascending to find first call per IP
+    const sortedCalls = [...qualifiedCalls].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    for (const call of sortedCalls) {
+      const ip = call.ip_address!;
+      if (!ipFirstCallDate[ip]) {
+        ipFirstCallDate[ip] = utcToLocalDateStr(call.created_at);
+      }
+    }
 
     for (let i = 13; i >= 0; i--) {
       const date = new Date(now);
@@ -372,10 +386,16 @@ export default function AdminDashboard() {
       );
       const uniqueIps = new Set(dayCalls.map((c) => c.ip_address).filter(Boolean));
 
+      // Count first-time callers: IPs whose first-ever call >15s was on this day
+      const firstTimeCallers = Array.from(uniqueIps).filter(
+        (ip) => ipFirstCallDate[ip as string] === dateStr
+      ).length;
+
       days.push({
         date: displayDate,
         fullDate: dateStr,
         uniqueCallers: uniqueIps.size,
+        firstTimeCallers,
       });
     }
 
@@ -1044,11 +1064,19 @@ export default function AdminDashboard() {
                 <h3 className="text-lg font-semibold text-brand-navy-900">Unique Callers</h3>
                 <p className="text-sm text-brand-navy-400">Daily unique IPs with calls &gt;15s (last 14 days)</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-brand-navy-900">
-                  {uniqueCallersChartData.reduce((sum, d) => sum + d.uniqueCallers, 0)}
+              <div className="flex gap-6 text-right">
+                <div>
+                  <div className="text-2xl font-bold text-brand-navy-900">
+                    {uniqueCallersChartData.reduce((sum, d) => sum + d.uniqueCallers, 0)}
+                  </div>
+                  <div className="text-xs text-brand-navy-400">total unique</div>
                 </div>
-                <div className="text-xs text-brand-navy-400">total unique callers</div>
+                <div>
+                  <div className="text-2xl font-bold text-emerald-600">
+                    {uniqueCallersChartData.reduce((sum, d) => sum + d.firstTimeCallers, 0)}
+                  </div>
+                  <div className="text-xs text-brand-navy-400">first-time</div>
+                </div>
               </div>
             </div>
             <div className="h-48">
@@ -1075,13 +1103,29 @@ export default function AdminDashboard() {
                       fontSize: "12px",
                     }}
                   />
+                  <Legend
+                    verticalAlign="top"
+                    height={28}
+                    iconType="line"
+                    wrapperStyle={{ fontSize: "11px" }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="uniqueCallers"
+                    name="Unique Callers"
                     stroke="#2563eb"
                     strokeWidth={2}
                     dot={{ fill: "#2563eb", strokeWidth: 0, r: 3 }}
                     activeDot={{ r: 5, fill: "#2563eb" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="firstTimeCallers"
+                    name="First-Time Callers"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ fill: "#10b981", strokeWidth: 0, r: 3 }}
+                    activeDot={{ r: 5, fill: "#10b981" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
