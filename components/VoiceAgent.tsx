@@ -285,6 +285,7 @@ export default function VoiceAgent() {
                     transcriptObject,
                     durationSeconds,
                 }),
+                keepalive: true, // Ensures request completes even if page is closing
             });
 
             const result = await response.json();
@@ -318,6 +319,7 @@ export default function VoiceAgent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ seconds: callDuration }),
+                keepalive: true, // Ensures request completes even if page is closing
             })
                 .then((res) => res.json())
                 .then((data) => {
