@@ -351,6 +351,37 @@ export default function AdminDashboard() {
     return days;
   }, [pageVisits, calls]);
 
+  // Unique callers chart data (last 14 days, calls >15s, unique IPs per day)
+  const uniqueCallersChartData = useMemo(() => {
+    const days: { date: string; fullDate: string; uniqueCallers: number }[] = [];
+    const now = new Date();
+
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const utcToLocalDateStr = (utc: string) => toLocalDateStr(new Date(utc));
+
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = toLocalDateStr(date);
+      const displayDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+      // Get unique IPs for calls >15s on this day
+      const dayCalls = calls.filter(
+        (c) => utcToLocalDateStr(c.created_at) === dateStr && (c.duration_seconds || 0) > 15
+      );
+      const uniqueIps = new Set(dayCalls.map((c) => c.ip_address).filter(Boolean));
+
+      days.push({
+        date: displayDate,
+        fullDate: dateStr,
+        uniqueCallers: uniqueIps.size,
+      });
+    }
+
+    return days;
+  }, [calls]);
+
   // Stats
   const totalCalls = calls.length;
   const voiceCalls = calls.filter((c) => c.session_type !== "text").length;
@@ -1006,6 +1037,57 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
+          {/* Unique Callers Chart */}
+          <div className="glass rounded-2xl p-6 border border-brand-neutral-200/50">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-brand-navy-900">Unique Callers</h3>
+                <p className="text-sm text-brand-navy-400">Daily unique IPs with calls &gt;15s (last 14 days)</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-brand-navy-900">
+                  {uniqueCallersChartData.reduce((sum, d) => sum + d.uniqueCallers, 0)}
+                </div>
+                <div className="text-xs text-brand-navy-400">total unique callers</div>
+              </div>
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={uniqueCallersChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="uniqueCallers"
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    dot={{ fill: "#2563eb", strokeWidth: 0, r: 3 }}
+                    activeDot={{ r: 5, fill: "#2563eb" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Date Navigation & Stats */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
