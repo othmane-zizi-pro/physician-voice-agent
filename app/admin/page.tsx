@@ -127,8 +127,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
-  const [durationFilter, setDurationFilter] = useState<"all" | "over15">("all");
-  const [visitorFilter, setVisitorFilter] = useState<"all" | "unique" | "repeat">("all");
+  const [durationFilter, setDurationFilter] = useState<"all" | "over15">("over15"); // Default to >15s
+  const [visitorFilter, setVisitorFilter] = useState<"all" | "new" | "repeat" | "uniqueIps">("uniqueIps"); // Default to unique IPs
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all time, string = specific date (YYYY-MM-DD)
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -398,9 +398,11 @@ export default function AdminDashboard() {
     return ipCallCounts[ip] || 0;
   };
 
-  // Count unique and repeat visitors
-  const uniqueVisitorCount = calls.filter((c) => c.ip_address && !isRepeatVisitor(c.ip_address)).length;
+  // Count unique and repeat visitors (new = first-time, repeat = has called before)
+  const newVisitorCount = calls.filter((c) => c.ip_address && !isRepeatVisitor(c.ip_address)).length;
   const repeatVisitorCount = calls.filter((c) => c.ip_address && isRepeatVisitor(c.ip_address)).length;
+  // Count unique IPs (deduplicated)
+  const uniqueIpCount = new Set(calls.map((c) => c.ip_address).filter(Boolean)).size;
 
   // Helper to get local date string from UTC timestamp
   const getLocalDateString = (utcTimestamp: string): string => {
@@ -409,28 +411,44 @@ export default function AdminDashboard() {
   };
 
   // Filter
-  const filteredCalls = calls.filter((c) => {
-    // Date filter (convert UTC to local date for comparison)
-    if (selectedDate && getLocalDateString(c.created_at) !== selectedDate) return false;
+  const filteredCalls = useMemo(() => {
+    // First apply basic filters
+    let filtered = calls.filter((c) => {
+      // Date filter (convert UTC to local date for comparison)
+      if (selectedDate && getLocalDateString(c.created_at) !== selectedDate) return false;
 
-    // Session type filter
-    if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
-    if (sessionTypeFilter === "text" && c.session_type !== "text") return false;
+      // Session type filter
+      if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
+      if (sessionTypeFilter === "text" && c.session_type !== "text") return false;
 
-    // Duration filter
-    if (durationFilter === "over15" && (c.duration_seconds || 0) <= 15) return false;
+      // Duration filter
+      if (durationFilter === "over15" && (c.duration_seconds || 0) <= 15) return false;
 
-    // Visitor type filter
-    if (visitorFilter === "unique" && isRepeatVisitor(c.ip_address)) return false;
-    if (visitorFilter === "repeat" && !isRepeatVisitor(c.ip_address)) return false;
+      // New/Repeat visitor filter (not uniqueIps - that's handled separately)
+      if (visitorFilter === "new" && isRepeatVisitor(c.ip_address)) return false;
+      if (visitorFilter === "repeat" && !isRepeatVisitor(c.ip_address)) return false;
 
-    // Search filter
-    return (
-      c.transcript?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.quotable_quote?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.ip_address?.includes(searchQuery)
-    );
-  });
+      // Search filter
+      return (
+        c.transcript?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.quotable_quote?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.ip_address?.includes(searchQuery)
+      );
+    });
+
+    // If uniqueIps filter is active, deduplicate by IP (keep most recent per IP)
+    if (visitorFilter === "uniqueIps") {
+      const seenIps = new Set<string>();
+      filtered = filtered.filter((c) => {
+        if (!c.ip_address) return true; // Keep calls without IP
+        if (seenIps.has(c.ip_address)) return false;
+        seenIps.add(c.ip_address);
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [calls, selectedDate, sessionTypeFilter, durationFilter, visitorFilter, searchQuery, isRepeatVisitor]);
 
   // Stats for selected date
   const selectedDateCalls = selectedDate
@@ -935,10 +953,24 @@ export default function AdminDashboard() {
               </button>
               <div className="w-px h-6 bg-brand-neutral-200 mx-1" />
               <button
-                onClick={() => setVisitorFilter(visitorFilter === "unique" ? "all" : "unique")}
+                onClick={() => setVisitorFilter(visitorFilter === "uniqueIps" ? "all" : "uniqueIps")}
                 className={cn(
                   "px-3 py-2 text-sm rounded-lg transition-all duration-200 border inline-flex items-center gap-1.5",
-                  visitorFilter === "unique"
+                  visitorFilter === "uniqueIps"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                </svg>
+                Unique IPs ({uniqueIpCount})
+              </button>
+              <button
+                onClick={() => setVisitorFilter(visitorFilter === "new" ? "all" : "new")}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border inline-flex items-center gap-1.5",
+                  visitorFilter === "new"
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                     : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
                 )}
@@ -946,7 +978,7 @@ export default function AdminDashboard() {
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
                 </svg>
-                New ({uniqueVisitorCount})
+                New ({newVisitorCount})
               </button>
               <button
                 onClick={() => setVisitorFilter(visitorFilter === "repeat" ? "all" : "repeat")}
