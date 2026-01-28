@@ -128,6 +128,7 @@ export default function AdminDashboard() {
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
   const [durationFilter, setDurationFilter] = useState<"all" | "over15">("all");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all time, string = specific date (YYYY-MM-DD)
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
@@ -362,6 +363,9 @@ export default function AdminDashboard() {
 
   // Filter
   const filteredCalls = calls.filter((c) => {
+    // Date filter
+    if (selectedDate && !c.created_at.startsWith(selectedDate)) return false;
+
     // Session type filter
     if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
     if (sessionTypeFilter === "text" && c.session_type !== "text") return false;
@@ -376,6 +380,46 @@ export default function AdminDashboard() {
       c.ip_address?.includes(searchQuery)
     );
   });
+
+  // Stats for selected date
+  const selectedDateCalls = selectedDate
+    ? calls.filter((c) => c.created_at.startsWith(selectedDate))
+    : calls;
+  const selectedDateCallsOver15s = selectedDateCalls.filter((c) => (c.duration_seconds || 0) > 15);
+  const selectedDateUniqueCallersOver15s = new Set(
+    selectedDateCallsOver15s.map((c) => c.ip_address).filter(Boolean)
+  ).size;
+
+  // Date navigation helpers
+  const goToPreviousDay = () => {
+    const current = selectedDate ? new Date(selectedDate) : new Date();
+    current.setDate(current.getDate() - 1);
+    setSelectedDate(current.toISOString().split("T")[0]);
+  };
+
+  const goToNextDay = () => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + 1);
+    const nextDate = current.toISOString().split("T")[0];
+    const today = new Date().toISOString().split("T")[0];
+    if (nextDate <= today) {
+      setSelectedDate(nextDate);
+    }
+  };
+
+  const formatSelectedDate = (dateStr: string | null) => {
+    if (!dateStr) return "All Time";
+    const date = new Date(dateStr + "T00:00:00");
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+    if (dateStr === today) return "Today";
+    if (dateStr === yesterdayStr) return "Yesterday";
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
 
   const filteredLeads = leads.filter(
     (l) =>
@@ -845,8 +889,90 @@ export default function AdminDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          {/* Export Button */}
-          <div className="flex justify-end">
+          {/* Date Navigation & Stats */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {/* Date Navigator */}
+              <div className="flex items-center gap-1 bg-white/50 backdrop-blur-sm border border-brand-neutral-200 rounded-xl p-1">
+                <button
+                  onClick={goToPreviousDay}
+                  className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                  title="Previous day"
+                >
+                  <svg className="w-4 h-4 text-brand-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className={cn(
+                    "px-3 py-1.5 text-sm font-medium rounded-lg transition-all min-w-[120px]",
+                    selectedDate === null
+                      ? "bg-brand-navy-900 text-white"
+                      : "text-brand-navy-600 hover:bg-brand-neutral-100"
+                  )}
+                >
+                  {formatSelectedDate(selectedDate)}
+                </button>
+                <button
+                  onClick={goToNextDay}
+                  disabled={!selectedDate || selectedDate >= new Date().toISOString().split("T")[0]}
+                  className="p-2 hover:bg-brand-neutral-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Next day"
+                >
+                  <svg className="w-4 h-4 text-brand-navy-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Quick Day Buttons */}
+              <div className="hidden md:flex items-center gap-1">
+                <button
+                  onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-lg transition-all border",
+                    selectedDate === new Date().toISOString().split("T")[0]
+                      ? "bg-brand-navy-900 text-white border-brand-navy-900"
+                      : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                  )}
+                >
+                  Today
+                </button>
+                <button
+                  onClick={() => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    setSelectedDate(yesterday.toISOString().split("T")[0]);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-lg transition-all border",
+                    (() => {
+                      const yesterday = new Date();
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      return selectedDate === yesterday.toISOString().split("T")[0];
+                    })()
+                      ? "bg-brand-navy-900 text-white border-brand-navy-900"
+                      : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                  )}
+                >
+                  Yesterday
+                </button>
+              </div>
+
+              {/* Unique Callers Stat for Selected Date */}
+              <div className="glass px-4 py-2 rounded-xl border border-emerald-200/50 bg-emerald-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-emerald-600">{selectedDateUniqueCallersOver15s}</span>
+                  <div className="text-xs text-emerald-700">
+                    <div className="font-medium">unique callers</div>
+                    <div className="text-emerald-600/70">&gt;15s {selectedDate ? "" : "(all time)"}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Export Button */}
             <button
               onClick={() => exportCallsToCSV(filteredCalls)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-brand-navy-900 text-white rounded-lg hover:bg-brand-navy-800 transition-colors text-sm font-medium"
