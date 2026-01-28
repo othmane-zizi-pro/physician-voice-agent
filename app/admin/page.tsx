@@ -139,20 +139,42 @@ export default function AdminDashboard() {
   // Chart ref for export
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // Export chart as PNG
+  // Export chart as PNG with fixed dimensions for Word documents
   const exportChartAsPng = async () => {
     if (!chartRef.current) return;
     try {
+      // Store original styles
+      const originalWidth = chartRef.current.style.width;
+      const originalMaxWidth = chartRef.current.style.maxWidth;
+
+      // Set fixed width for export (good for Word documents)
+      chartRef.current.style.width = "800px";
+      chartRef.current.style.maxWidth = "800px";
+
+      // Wait for reflow
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(chartRef.current, {
         backgroundColor: "#ffffff",
         scale: 2, // Higher resolution
+        width: 800,
       });
+
+      // Restore original styles
+      chartRef.current.style.width = originalWidth;
+      chartRef.current.style.maxWidth = originalMaxWidth;
+
       const link = document.createElement("a");
       link.download = `unique-callers-chart-${new Date().toISOString().split("T")[0]}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (error) {
       console.error("Failed to export chart:", error);
+      // Restore styles on error
+      if (chartRef.current) {
+        chartRef.current.style.width = "";
+        chartRef.current.style.maxWidth = "";
+      }
     }
   };
 
