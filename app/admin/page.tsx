@@ -128,7 +128,7 @@ export default function AdminDashboard() {
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
   const [durationFilter, setDurationFilter] = useState<"all" | "over15">("over15"); // Default to >15s
-  const [visitorFilter, setVisitorFilter] = useState<"all" | "new" | "repeat" | "uniqueIps">("uniqueIps"); // Default to unique IPs
+  const [visitorFilter, setVisitorFilter] = useState<"all" | "new" | "repeat" | "uniqueIps" | "firstTimeUnique">("firstTimeUnique"); // Default to first-time unique
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all time, string = specific date (YYYY-MM-DD)
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -455,6 +455,26 @@ export default function AdminDashboard() {
   // Count unique IPs (deduplicated)
   const uniqueIpCount = new Set(calls.map((c) => c.ip_address).filter(Boolean)).size;
 
+  // Map of IP -> first call ID (for calls >15s) to identify first-time callers
+  const ipFirstCallId = useMemo(() => {
+    const map: Record<string, string> = {};
+    const qualifiedCalls = calls.filter((c) => (c.duration_seconds || 0) > 15 && c.ip_address);
+    // Sort by date ascending to find first call per IP
+    const sortedCalls = [...qualifiedCalls].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    for (const call of sortedCalls) {
+      const ip = call.ip_address!;
+      if (!map[ip]) {
+        map[ip] = call.id;
+      }
+    }
+    return map;
+  }, [calls]);
+
+  // Count first-time unique callers (IPs with a first call >15s)
+  const firstTimeUniqueCount = Object.keys(ipFirstCallId).length;
+
   // Helper to get local date string from UTC timestamp
   const getLocalDateString = (utcTimestamp: string): string => {
     const date = new Date(utcTimestamp);
@@ -498,8 +518,16 @@ export default function AdminDashboard() {
       });
     }
 
+    // If firstTimeUnique filter is active, only show each IP's first call >15s
+    if (visitorFilter === "firstTimeUnique") {
+      filtered = filtered.filter((c) => {
+        if (!c.ip_address) return false; // Exclude calls without IP
+        return ipFirstCallId[c.ip_address] === c.id;
+      });
+    }
+
     return filtered;
-  }, [calls, selectedDate, sessionTypeFilter, durationFilter, visitorFilter, searchQuery, isRepeatVisitor]);
+  }, [calls, selectedDate, sessionTypeFilter, durationFilter, visitorFilter, searchQuery, isRepeatVisitor, ipFirstCallId]);
 
   // Stats for selected date
   const selectedDateCalls = selectedDate
@@ -1003,6 +1031,20 @@ export default function AdminDashboard() {
                 &gt;15s ({callsOver15s})
               </button>
               <div className="w-px h-6 bg-brand-neutral-200 mx-1" />
+              <button
+                onClick={() => setVisitorFilter(visitorFilter === "firstTimeUnique" ? "all" : "firstTimeUnique")}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border inline-flex items-center gap-1.5",
+                  visitorFilter === "firstTimeUnique"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                </svg>
+                First-Time ({firstTimeUniqueCount})
+              </button>
               <button
                 onClick={() => setVisitorFilter(visitorFilter === "uniqueIps" ? "all" : "uniqueIps")}
                 className={cn(
