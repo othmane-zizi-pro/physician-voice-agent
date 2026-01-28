@@ -33,6 +33,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <head>
+        {/* LinkedIn Insight Tag */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              _linkedin_partner_id = "519323189";
+              window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
+              window._linkedin_data_partner_ids.push(_linkedin_partner_id);
+            `,
+          }}
+        />
+        <script
+          async
+          src="https://snap.licdn.com/li.lms-analytics/insight.min.js"
+        />
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            alt=""
+            src="https://px.ads.linkedin.com/collect/?pid=519323189&fmt=gif"
+          />
+        </noscript>
+      </head>
       <body className="antialiased min-h-screen font-sans">
         <SessionProvider>
           <AuthProvider>
