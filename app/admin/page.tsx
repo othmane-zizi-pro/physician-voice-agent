@@ -128,6 +128,7 @@ export default function AdminDashboard() {
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
   const [durationFilter, setDurationFilter] = useState<"all" | "over15">("all");
+  const [visitorFilter, setVisitorFilter] = useState<"all" | "unique" | "repeat">("all");
   const [selectedDate, setSelectedDate] = useState<string | null>(null); // null = all time, string = specific date (YYYY-MM-DD)
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -361,6 +362,31 @@ export default function AdminDashboard() {
     todayCallsOver15s.map((c) => c.ip_address).filter(Boolean)
   ).size;
 
+  // Track repeat visitors (IPs that appear more than once across all calls)
+  const ipCallCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    calls.forEach((c) => {
+      if (c.ip_address) {
+        counts[c.ip_address] = (counts[c.ip_address] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [calls]);
+
+  const isRepeatVisitor = (ip: string | null) => {
+    if (!ip) return false;
+    return (ipCallCounts[ip] || 0) > 1;
+  };
+
+  const getVisitorCallCount = (ip: string | null) => {
+    if (!ip) return 0;
+    return ipCallCounts[ip] || 0;
+  };
+
+  // Count unique and repeat visitors
+  const uniqueVisitorCount = calls.filter((c) => c.ip_address && !isRepeatVisitor(c.ip_address)).length;
+  const repeatVisitorCount = calls.filter((c) => c.ip_address && isRepeatVisitor(c.ip_address)).length;
+
   // Filter
   const filteredCalls = calls.filter((c) => {
     // Date filter
@@ -372,6 +398,10 @@ export default function AdminDashboard() {
 
     // Duration filter
     if (durationFilter === "over15" && (c.duration_seconds || 0) <= 15) return false;
+
+    // Visitor type filter
+    if (visitorFilter === "unique" && isRepeatVisitor(c.ip_address)) return false;
+    if (visitorFilter === "repeat" && !isRepeatVisitor(c.ip_address)) return false;
 
     // Search filter
     return (
@@ -877,6 +907,35 @@ export default function AdminDashboard() {
               >
                 &gt;15s ({callsOver15s})
               </button>
+              <div className="w-px h-6 bg-brand-neutral-200 mx-1" />
+              <button
+                onClick={() => setVisitorFilter(visitorFilter === "unique" ? "all" : "unique")}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border inline-flex items-center gap-1.5",
+                  visitorFilter === "unique"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                </svg>
+                New ({uniqueVisitorCount})
+              </button>
+              <button
+                onClick={() => setVisitorFilter(visitorFilter === "repeat" ? "all" : "repeat")}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border inline-flex items-center gap-1.5",
+                  visitorFilter === "repeat"
+                    ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                </svg>
+                Repeat ({repeatVisitorCount})
+              </button>
             </div>
           )}
         </div>
@@ -1079,8 +1138,33 @@ export default function AdminDashboard() {
                         <span className="text-brand-navy-300">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
-                      {call.ip_address || "-"}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-brand-navy-400 text-xs font-mono">{call.ip_address || "-"}</span>
+                        {call.ip_address && (
+                          isRepeatVisitor(call.ip_address) ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-full"
+                              title={`${getVisitorCallCount(call.ip_address)} total calls from this IP`}
+                            >
+                              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                              </svg>
+                              {getVisitorCallCount(call.ip_address)}x
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full"
+                              title="First time caller"
+                            >
+                              <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                              </svg>
+                              NEW
+                            </span>
+                          )
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <button
