@@ -127,6 +127,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>("all");
   const [sessionTypeFilter, setSessionTypeFilter] = useState<SessionTypeFilter>("all");
+  const [durationFilter, setDurationFilter] = useState<"all" | "over15">("all");
   const [addingToFeatured, setAddingToFeatured] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
@@ -344,16 +345,29 @@ export default function AdminDashboard() {
   const totalCalls = calls.length;
   const voiceCalls = calls.filter((c) => c.session_type !== "text").length;
   const textConfessions = calls.filter((c) => c.session_type === "text").length;
+  const callsOver15s = calls.filter((c) => (c.duration_seconds || 0) > 15).length;
   const physicianOwners = leads.filter((l) => l.is_physician_owner).length;
   const interestedLeads = leads.filter((l) => l.interested_in_collective).length;
   const totalDuration = calls.reduce((acc, c) => acc + (c.duration_seconds || 0), 0);
   const avgDuration = voiceCalls > 0 ? Math.round(totalDuration / voiceCalls) : 0;
+
+  // Today's unique callers with calls >15s
+  const today = new Date().toISOString().split("T")[0];
+  const todayCallsOver15s = calls.filter(
+    (c) => c.created_at.startsWith(today) && (c.duration_seconds || 0) > 15
+  );
+  const todayUniqueCallersOver15s = new Set(
+    todayCallsOver15s.map((c) => c.ip_address).filter(Boolean)
+  ).size;
 
   // Filter
   const filteredCalls = calls.filter((c) => {
     // Session type filter
     if (sessionTypeFilter === "voice" && c.session_type === "text") return false;
     if (sessionTypeFilter === "text" && c.session_type !== "text") return false;
+
+    // Duration filter
+    if (durationFilter === "over15" && (c.duration_seconds || 0) <= 15) return false;
 
     // Search filter
     return (
@@ -600,7 +614,7 @@ export default function AdminDashboard() {
         transition={{ duration: 0.5 }}
       >
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 relative z-10">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8 relative z-10">
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
@@ -614,6 +628,14 @@ export default function AdminDashboard() {
           </motion.div>
           <motion.div
             whileHover={{ scale: 1.02 }}
+            className="glass p-5 rounded-2xl border border-emerald-200/50 shadow-glass bg-emerald-50/30"
+          >
+            <p className="text-emerald-700 text-sm font-medium uppercase tracking-wider">Today &gt;15s</p>
+            <p className="text-3xl font-bold text-emerald-600 mt-1">{todayUniqueCallersOver15s}</p>
+            <p className="text-xs text-emerald-600/70 mt-1 font-medium">unique callers</p>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
             className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
           >
             <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Avg Duration</p>
@@ -624,8 +646,9 @@ export default function AdminDashboard() {
             whileHover={{ scale: 1.02 }}
             className="glass p-5 rounded-2xl border border-white/20 shadow-glass"
           >
-            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Confessions</p>
-            <p className="text-3xl font-bold text-brand-brown mt-1">{textConfessions}</p>
+            <p className="text-brand-navy-600 text-sm font-medium uppercase tracking-wider">Calls &gt;15s</p>
+            <p className="text-3xl font-bold text-brand-navy-900 mt-1">{callsOver15s}</p>
+            <p className="text-xs text-brand-navy-400 mt-1 font-medium">all time</p>
           </motion.div>
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -797,6 +820,18 @@ export default function AdminDashboard() {
                 )}
               >
                 Text ({textConfessions})
+              </button>
+              <div className="w-px h-6 bg-brand-neutral-200 mx-1" />
+              <button
+                onClick={() => setDurationFilter(durationFilter === "over15" ? "all" : "over15")}
+                className={cn(
+                  "px-3 py-2 text-sm rounded-lg transition-all duration-200 border",
+                  durationFilter === "over15"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white/50 text-brand-navy-600 border-brand-neutral-200 hover:bg-white"
+                )}
+              >
+                &gt;15s ({callsOver15s})
               </button>
             </div>
           )}
