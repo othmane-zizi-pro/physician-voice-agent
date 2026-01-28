@@ -488,7 +488,13 @@ export default function VoiceAgent() {
                     // Attach audio track to play agent's voice
                     const audioElement = track.attach();
                     audioElement.id = 'agent-audio';
+                    audioElement.autoplay = true;
+                    (audioElement as any).playsInline = true; // For iOS compatibility
                     document.body.appendChild(audioElement);
+                    // Explicitly play (needed for some browsers)
+                    audioElement.play().catch((err) => {
+                        console.warn("Audio autoplay blocked:", err);
+                    });
                     setCurrentSpeaker("assistant");
                 }
             });

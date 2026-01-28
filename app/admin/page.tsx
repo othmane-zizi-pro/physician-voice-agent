@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User, LinkedInConversion } from "@/types/database";
@@ -12,6 +12,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,7 +27,7 @@ const CallsMap = dynamic(() => import("@/components/CallsMap"), {
   ),
 });
 
-type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits" | "linkedin";
+type Tab = "calls" | "leads" | "quotes" | "map" | "form-flow" | "clicks" | "visits" | "linkedin" | "metrics";
 type QuotesFilter = "all" | "featured" | "not-featured";
 type SessionTypeFilter = "all" | "voice" | "text";
 
@@ -308,6 +309,36 @@ export default function AdminDashboard() {
   const linkedinWithLiFatId = linkedinConversions.filter((c) => c.li_fat_id).length;
   const linkedinSuccessRate = linkedinTotal > 0 ? Math.round((linkedinSuccess / linkedinTotal) * 100) : 0;
   const linkedinAttributionRate = linkedinTotal > 0 ? Math.round((linkedinWithLiFatId / linkedinTotal) * 100) : 0;
+
+  // Metrics data for chart (last 30 days)
+  const metricsData = useMemo(() => {
+    const days: { date: string; uniqueVisits: number; qualifiedCalls: number }[] = [];
+    const now = new Date();
+
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split("T")[0];
+      const displayDate = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+      // Count unique IPs from page_visits for this day
+      const dayVisits = pageVisits.filter((v) => v.created_at.startsWith(dateStr));
+      const uniqueIps = new Set(dayVisits.map((v) => v.ip_address).filter(Boolean));
+
+      // Count calls > 15 seconds for this day
+      const dayCalls = calls.filter(
+        (c) => c.created_at.startsWith(dateStr) && (c.duration_seconds || 0) > 15
+      );
+
+      days.push({
+        date: displayDate,
+        uniqueVisits: uniqueIps.size,
+        qualifiedCalls: dayCalls.length,
+      });
+    }
+
+    return days;
+  }, [pageVisits, calls]);
 
   // Stats
   const totalCalls = calls.length;
@@ -703,10 +734,21 @@ export default function AdminDashboard() {
         >
           LinkedIn ({linkedinConversions.length})
         </button>
+        <button
+          onClick={() => setActiveTab("metrics")}
+          className={cn(
+            "px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium",
+            activeTab === "metrics"
+              ? "bg-white text-brand-navy-900 shadow-sm"
+              : "text-brand-navy-600 hover:bg-white/50"
+          )}
+        >
+          Metrics
+        </button>
       </div>
 
       {/* Search */}
-      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && activeTab !== "visits" && activeTab !== "linkedin" && (
+      {activeTab !== "map" && activeTab !== "form-flow" && activeTab !== "clicks" && activeTab !== "visits" && activeTab !== "linkedin" && activeTab !== "metrics" && (
         <div className="mb-6 flex flex-wrap gap-4 items-center relative z-10">
           <input
             type="text"
@@ -1719,6 +1761,121 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 text-brand-navy-400 text-xs font-mono">
                       {conv.ip_address || "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Metrics Tab */}
+      {activeTab === "metrics" && (
+        <div className="space-y-6">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Total Visits (30d)</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {metricsData.reduce((sum, d) => sum + d.uniqueVisits, 0)}
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">unique IPs</div>
+            </div>
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Total Calls &gt;15s (30d)</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {metricsData.reduce((sum, d) => sum + d.qualifiedCalls, 0)}
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">engaged conversations</div>
+            </div>
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Avg Daily Visits</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {metricsData.length > 0 ? Math.round(metricsData.reduce((sum, d) => sum + d.uniqueVisits, 0) / metricsData.length) : 0}
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">per day</div>
+            </div>
+            <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+              <div className="text-sm text-brand-navy-500 font-medium">Conversion Rate</div>
+              <div className="text-3xl font-bold text-brand-navy-900 mt-1">
+                {(() => {
+                  const totalVisits = metricsData.reduce((sum, d) => sum + d.uniqueVisits, 0);
+                  const totalCalls = metricsData.reduce((sum, d) => sum + d.qualifiedCalls, 0);
+                  return totalVisits > 0 ? `${Math.round((totalCalls / totalVisits) * 100)}%` : "0%";
+                })()}
+              </div>
+              <div className="text-xs text-brand-navy-400 mt-1">visits to calls</div>
+            </div>
+          </div>
+
+          {/* Chart */}
+          <div className="glass p-6 rounded-2xl border border-white/40 shadow-glass">
+            <h3 className="text-lg font-bold text-brand-navy-900 mb-4">Daily Metrics (Last 30 Days)</h3>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={metricsData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tickLine={{ stroke: '#e5e5e5' }}
+                  />
+                  <YAxis
+                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                    tickLine={{ stroke: '#e5e5e5' }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="uniqueVisits"
+                    name="Unique Visits"
+                    stroke="#6366f1"
+                    strokeWidth={2}
+                    dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="qualifiedCalls"
+                    name="Calls >15s"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Daily Breakdown Table */}
+          <div className="glass rounded-2xl overflow-hidden shadow-glass border border-white/40">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-brand-neutral-200/50 bg-brand-neutral-50/50">
+                  <th className="text-left text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Date</th>
+                  <th className="text-right text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Unique Visits</th>
+                  <th className="text-right text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Calls &gt;15s</th>
+                  <th className="text-right text-brand-navy-500 text-xs font-bold uppercase tracking-wider px-6 py-4">Conversion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...metricsData].reverse().map((day) => (
+                  <tr key={day.date} className="border-b border-brand-neutral-100 hover:bg-brand-ice/30 transition-colors">
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm font-medium">{day.date}</td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm text-right">{day.uniqueVisits}</td>
+                    <td className="px-6 py-4 text-brand-navy-900 text-sm text-right">{day.qualifiedCalls}</td>
+                    <td className="px-6 py-4 text-brand-navy-500 text-sm text-right">
+                      {day.uniqueVisits > 0 ? `${Math.round((day.qualifiedCalls / day.uniqueVisits) * 100)}%` : "-"}
                     </td>
                   </tr>
                 ))}
