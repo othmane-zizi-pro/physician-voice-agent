@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import type { Call, Lead, FeaturedQuote, LinkClick, PageVisit, User, LinkedInConversion } from "@/types/database";
@@ -12,7 +12,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from "recharts";
+import html2canvas from "html2canvas";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -134,6 +135,26 @@ export default function AdminDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Chart ref for export
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // Export chart as PNG
+  const exportChartAsPng = async () => {
+    if (!chartRef.current) return;
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2, // Higher resolution
+      });
+      const link = document.createElement("a");
+      link.download = `unique-callers-chart-${new Date().toISOString().split("T")[0]}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (error) {
+      console.error("Failed to export chart:", error);
+    }
+  };
 
   // Users state
   const [users, setUsers] = useState<UserWithStats[]>([]);
@@ -1100,30 +1121,41 @@ export default function AdminDashboard() {
           className="space-y-4"
         >
           {/* Unique Callers Chart */}
-          <div className="glass rounded-2xl p-6 border border-brand-neutral-200/50">
+          <div ref={chartRef} className="glass rounded-2xl p-6 border border-brand-neutral-200/50 bg-white">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-brand-navy-900">Unique Callers</h3>
                 <p className="text-sm text-brand-navy-400">Daily unique IPs with calls &gt;15s (last 14 days)</p>
               </div>
-              <div className="flex gap-6 text-right">
-                <div>
-                  <div className="text-2xl font-bold text-brand-navy-900">
-                    {uniqueCallersChartData.reduce((sum, d) => sum + d.uniqueCallers, 0)}
+              <div className="flex items-center gap-6">
+                <div className="flex gap-6 text-right">
+                  <div>
+                    <div className="text-2xl font-bold text-brand-navy-900">
+                      {uniqueCallersChartData.reduce((sum, d) => sum + d.uniqueCallers, 0)}
+                    </div>
+                    <div className="text-xs text-brand-navy-400">total unique</div>
                   </div>
-                  <div className="text-xs text-brand-navy-400">total unique</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-emerald-600">
-                    {uniqueCallersChartData.reduce((sum, d) => sum + d.firstTimeCallers, 0)}
+                  <div>
+                    <div className="text-2xl font-bold text-emerald-600">
+                      {uniqueCallersChartData.reduce((sum, d) => sum + d.firstTimeCallers, 0)}
+                    </div>
+                    <div className="text-xs text-brand-navy-400">first-time</div>
                   </div>
-                  <div className="text-xs text-brand-navy-400">first-time</div>
                 </div>
+                <button
+                  onClick={exportChartAsPng}
+                  className="p-2 text-brand-navy-400 hover:text-brand-navy-600 hover:bg-brand-neutral-100 rounded-lg transition-colors"
+                  title="Export as PNG"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
               </div>
             </div>
-            <div className="h-48">
+            <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={uniqueCallersChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <LineChart data={uniqueCallersChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="date"
@@ -1157,18 +1189,22 @@ export default function AdminDashboard() {
                     name="Unique Callers"
                     stroke="#2563eb"
                     strokeWidth={2}
-                    dot={{ fill: "#2563eb", strokeWidth: 0, r: 3 }}
-                    activeDot={{ r: 5, fill: "#2563eb" }}
-                  />
+                    dot={{ fill: "#2563eb", strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, fill: "#2563eb" }}
+                  >
+                    <LabelList dataKey="uniqueCallers" position="top" fill="#2563eb" fontSize={10} offset={8} />
+                  </Line>
                   <Line
                     type="monotone"
                     dataKey="firstTimeCallers"
                     name="First-Time Callers"
                     stroke="#10b981"
                     strokeWidth={2}
-                    dot={{ fill: "#10b981", strokeWidth: 0, r: 3 }}
-                    activeDot={{ r: 5, fill: "#10b981" }}
-                  />
+                    dot={{ fill: "#10b981", strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, fill: "#10b981" }}
+                  >
+                    <LabelList dataKey="firstTimeCallers" position="bottom" fill="#10b981" fontSize={10} offset={8} />
+                  </Line>
                 </LineChart>
               </ResponsiveContainer>
             </div>
