@@ -12,7 +12,6 @@ import { trackLinkedInConversion } from "@/lib/linkedin";
 import PostCallForm from "./PostCallForm";
 import UserAuthButton from "./UserAuthButton";
 import ConversationSidebar from "./ConversationSidebar";
-import SignUpPrompt from "./SignUpPrompt";
 import type { TranscriptEntry } from "@/types/database";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -118,12 +117,11 @@ export default function VoiceAgent() {
     const [isChatMode, setIsChatMode] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    // Sign-up prompt state (for anonymous users after first conversation)
-    const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
+    // Thank you screen state
+    const [showThankYou, setShowThankYou] = useState(false);
 
     // Track if user already completed form this session (to avoid asking twice)
     const hasCompletedFormRef = useRef(false);
-    const hasShownSignUpPromptRef = useRef(false);
 
     // Auth state - using NextAuth
     const { data: session } = useSession();
@@ -846,19 +844,49 @@ export default function VoiceAgent() {
 
             {/* Content container */}
             <div className="relative z-10 flex flex-col items-center justify-center flex-grow w-full max-w-4xl mx-auto py-8">
-                {/* Header - Simple headline (hidden in chat mode) */}
+                {/* Header with Doc branding (hidden in chat mode) */}
                 {!isChatMode && (
                     <motion.div
-                        className="text-center mb-8"
+                        className="text-center mb-10"
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <h1 className="text-4xl md:text-5xl font-bold text-brand-navy-900 tracking-tight">
-                            Ready when you are.
-                        </h1>
-                        <p className="text-brand-navy-500 text-lg mt-3 font-light">
-                            Your AI companion for venting about healthcare.
+                        <div className="relative inline-block mb-3">
+                            <motion.div
+                                className="absolute -left-14 top-1.75 w-12 h-12"
+                                initial={{ scale: 0.8, rotate: -10, y: 5 }}
+                                animate={{
+                                    scale: [0.8, 1.05, 0.98, 1],
+                                    rotate: [-10, 12, 4, 8],
+                                    y: [5, -2, 1, 0],
+                                }}
+                                transition={{
+                                    duration: 2.5,
+                                    ease: "easeOut",
+                                    times: [0, 0.4, 0.7, 1],
+                                }}
+                            >
+                                <img
+                                    src="/doc-logo-playful-2.svg"
+                                    alt="Doc Logo"
+                                    className="w-full h-full object-contain drop-shadow-sm"
+                                />
+                            </motion.div>
+                            <h1 className="text-6xl font-bold text-brand-navy-900 tracking-tighter drop-shadow-sm">Doc</h1>
+                            <p className="text-brand-navy-500 text-sm font-medium tracking-wide">by <a
+                                href="https://www.meroka.com/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
+                                className="hover:text-brand-brown transition-colors underline decoration-brand-brown/30 underline-offset-2 tracking-tight"
+                            >Meroka</a></p>
+                        </div>
+
+                        <p className="text-brand-navy-700 text-xl max-w-lg leading-relaxed mx-auto font-light">
+                            The AI companion for burnt-out healthcare workers.
+                            <br />
+                            <span className="text-brand-navy-900 font-normal">Vent about the system with someone who gets it.</span>
                         </p>
                     </motion.div>
                 )}
@@ -1341,19 +1369,43 @@ export default function VoiceAgent() {
                         setLastTranscript("");
                         hasCompletedFormRef.current = true;
 
-                        // Show sign-up prompt for anonymous users after their first conversation
-                        if (!session && !hasShownSignUpPromptRef.current) {
-                            hasShownSignUpPromptRef.current = true;
-                            // Small delay for smoother UX
-                            setTimeout(() => setShowSignUpPrompt(true), 500);
-                        }
+                        // Show thank you screen
+                        setShowThankYou(true);
                     }}
                 />
             )}
 
-            {/* Sign-up prompt for anonymous users */}
-            {showSignUpPrompt && (
-                <SignUpPrompt onClose={() => setShowSignUpPrompt(false)} />
+            {/* Thank you screen */}
+            {showThankYou && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-brand-navy-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+                    onClick={() => setShowThankYou(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="text-6xl mb-4">🙏</div>
+                        <h2 className="text-2xl font-bold text-brand-navy-900 mb-2">
+                            Thanks for venting
+                        </h2>
+                        <p className="text-brand-navy-600 mb-6 leading-relaxed">
+                            Take care of yourself out there. Doc&apos;s here whenever you need to unload again.
+                        </p>
+                        <button
+                            onClick={() => setShowThankYou(false)}
+                            className="w-full py-3 px-6 bg-brand-brown hover:bg-brand-brown-dark text-white font-medium rounded-xl transition-colors"
+                        >
+                            Done
+                        </button>
+                    </motion.div>
+                </motion.div>
             )}
         </div>);
 }
