@@ -112,12 +112,17 @@ export default function AboutPage() {
 
           {/* The Collective */}
           <section>
-            <h2 className="text-xl font-semibold text-brand-navy-900 mb-4">Building a Collective</h2>
+            <h2 className="text-xl font-semibold text-brand-navy-900 mb-4">Building a Network</h2>
             <p className="text-brand-navy-700 leading-relaxed mb-4">
-              We&apos;re gathering the pain points, frustrations, and experiences of US independent physicians and healthcare workers.
+              We&apos;re building a network to give power back to independent physicians through three pillars:
             </p>
-            <p className="text-brand-navy-600 leading-relaxed">
-              Why? Because when we understand what&apos;s really broken—from the people living it every day—we can build solutions that actually matter. Not another wellness app that tells you to meditate. Real tools and advocacy based on real problems.
+            <ul className="list-disc pl-6 space-y-3 text-brand-navy-600">
+              <li><strong>Community:</strong> Connecting independent physicians who are facing the same battles—so you&apos;re not fighting alone</li>
+              <li><strong>Finance:</strong> Tools and resources to help independent practices stay independent and thrive</li>
+              <li><strong>Technology:</strong> Building solutions that actually reduce burden instead of adding to it</li>
+            </ul>
+            <p className="text-brand-navy-600 leading-relaxed mt-4">
+              Doc is the first step—understanding what&apos;s really broken from the people living it every day. Your frustrations help us build what comes next.
             </p>
           </section>
 
