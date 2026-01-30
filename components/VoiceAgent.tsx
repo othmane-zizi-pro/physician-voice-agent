@@ -1024,7 +1024,7 @@ export default function VoiceAgent() {
                                 {/* Text Input */}
                                 <input
                                     type="text"
-                                    placeholder={isChatMode ? "Reply to Doc..." : "What's on your mind?"}
+                                    placeholder={isChatMode ? "Reply to Doc..." : "Long day? Vent here..."}
                                     className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base"
                                     value={confessionText}
                                     onChange={(e) => setConfessionText(e.target.value)}
