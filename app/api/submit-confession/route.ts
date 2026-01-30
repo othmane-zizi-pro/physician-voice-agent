@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   );
 
   try {
-    const { content } = await request.json();
+    const { content, sessionType } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
@@ -33,9 +33,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (content.length > 5000) {
+    // Allow longer content for chat transcripts (50k chars), shorter for single messages (5k chars)
+    const maxLength = sessionType === "chat" ? 50000 : 5000;
+    if (content.length > maxLength) {
       return NextResponse.json(
-        { error: "Content is too long. Please keep it under 5000 characters." },
+        { error: `Content is too long. Please keep it under ${maxLength} characters.` },
         { status: 400 }
       );
     }
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
       .from("calls")
       .insert({
         transcript: content,
-        session_type: "text",
+        session_type: sessionType || "text", // "text" for single message, "chat" for full conversation
         ip_address: ipAddress,
         user_id: userId, // Link to user if logged in, null if anonymous
       })

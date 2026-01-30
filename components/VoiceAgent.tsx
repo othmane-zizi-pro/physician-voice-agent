@@ -700,7 +700,7 @@ export default function VoiceAgent() {
             const response = await fetch("/api/submit-confession", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: transcript }),
+                body: JSON.stringify({ content: transcript, sessionType: "chat" }),
             });
 
             const data = await response.json();
