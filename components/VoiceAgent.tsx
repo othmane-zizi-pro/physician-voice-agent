@@ -847,12 +847,12 @@ export default function VoiceAgent() {
                 {/* Header with Doc branding (hidden in chat mode) */}
                 {!isChatMode && (
                     <motion.div
-                        className="text-center mb-10"
+                        className="text-center mb-8"
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <div className="relative inline-block mb-3">
+                        <div className="relative inline-block mb-4">
                             <motion.div
                                 className="absolute -left-14 top-1.75 w-12 h-12"
                                 initial={{ scale: 0.8, rotate: -10, y: 5 }}
@@ -883,11 +883,30 @@ export default function VoiceAgent() {
                             >Meroka</a></p>
                         </div>
 
-                        <p className="text-brand-navy-700 text-xl max-w-lg leading-relaxed mx-auto font-light">
-                            The AI companion for <span className="font-semibold text-brand-navy-900">disillusioned US independent physician owners</span>.
+                        {/* Main value proposition */}
+                        <h2 className="text-2xl md:text-3xl font-semibold text-brand-navy-900 max-w-2xl mx-auto mb-3 leading-tight">
+                            Help us understand how to help <span className="text-brand-navy-600">you</span> better.
+                        </h2>
+
+                        <p className="text-brand-navy-600 text-lg max-w-xl mx-auto mb-6 leading-relaxed">
+                            We&apos;re building tools for US independent physician owners.
                             <br />
-                            <span className="text-brand-navy-900 font-normal underline decoration-brand-navy-400 underline-offset-4">Vent about the system with someone who gets it.</span>
+                            <span className="font-medium text-brand-navy-800">If you&apos;re frustrated with the system, we want to know.</span>
                         </p>
+
+                        {/* How it works - simple */}
+                        <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-brand-navy-500 mb-2">
+                            <span className="flex items-center gap-2 bg-brand-ice/50 px-3 py-1.5 rounded-full">
+                                <Mic size={14} className="text-brand-navy-600" />
+                                Talk to Doc
+                            </span>
+                            <span className="text-brand-navy-300">or</span>
+                            <span className="flex items-center gap-2 bg-brand-ice/50 px-3 py-1.5 rounded-full">
+                                <Send size={14} className="text-brand-navy-600" />
+                                Type it out
+                            </span>
+                        </div>
+                        <p className="text-brand-navy-400 text-sm">Whatever works for you.</p>
                     </motion.div>
                 )}
 
@@ -1048,20 +1067,25 @@ export default function VoiceAgent() {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="relative flex items-center bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-4 py-3 focus-within:border-brand-navy-600/50 focus-within:shadow-lg transition-all">
-                                {/* Text Input */}
-                                <input
-                                    type="text"
+                            <div className="relative flex items-end bg-white border-2 border-brand-navy-200 rounded-2xl px-4 py-3 focus-within:border-brand-navy-500 focus-within:shadow-xl focus-within:shadow-brand-navy-100/50 transition-all shadow-lg">
+                                {/* Text Input - Multiline textarea */}
+                                <textarea
                                     placeholder={isChatMode ? "Reply to Doc..." : "Long day? Vent here..."}
-                                    className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base"
+                                    className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base resize-none min-h-[24px] max-h-[120px]"
                                     value={confessionText}
-                                    onChange={(e) => setConfessionText(e.target.value)}
+                                    onChange={(e) => {
+                                        setConfessionText(e.target.value);
+                                        // Auto-resize textarea
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    }}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 1 && !isSubmittingConfession) {
                                             e.preventDefault();
                                             sendChatMessage();
                                         }
                                     }}
+                                    rows={1}
                                     maxLength={2000}
                                     disabled={isSubmittingConfession}
                                 />
