@@ -66,7 +66,7 @@ export default function AboutPage() {
           <section>
             <h2 className="text-xl font-semibold text-brand-navy-900 mb-4">Who is Meroka?</h2>
             <p className="text-brand-navy-700 leading-relaxed mb-4">
-              Meroka is a team focused on supporting independent physicians and healthcare workers in the US. We&apos;re not a big insurance company. We&apos;re not here to mine your data for profit.
+              Meroka is a team focused on supporting US independent physician owners. We&apos;re not a big insurance company. We&apos;re not here to mine your data for profit.
             </p>
             <p className="text-brand-navy-600 leading-relaxed">
               We&apos;re building tools that actually help—starting with Doc, an AI companion that lets you vent without judgment, without a waitlist, without copays.
