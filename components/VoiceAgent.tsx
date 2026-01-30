@@ -1324,19 +1324,19 @@ export default function VoiceAgent() {
                 <p>Not a real therapist. For entertainment and venting purposes only.</p>
                 <div className="flex items-center justify-center gap-3 mt-2">
                     <a
-                        href="/privacy"
-                        onClick={() => trackClick("footer_privacy", "/privacy")}
-                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
-                    >
-                        Privacy Policy
-                    </a>
-                    <span className="text-brand-navy-200">|</span>
-                    <a
                         href="/about"
                         onClick={() => trackClick("footer_about", "/about")}
                         className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
                     >
                         Who We Are
+                    </a>
+                    <span className="text-brand-navy-200">|</span>
+                    <a
+                        href="/privacy"
+                        onClick={() => trackClick("footer_privacy", "/privacy")}
+                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
+                    >
+                        Privacy Policy
                     </a>
                     <span className="text-brand-navy-200">|</span>
                     <a
