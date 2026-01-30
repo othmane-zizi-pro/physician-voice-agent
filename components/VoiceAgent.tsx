@@ -883,30 +883,11 @@ export default function VoiceAgent() {
                             >Meroka</a></p>
                         </div>
 
-                        {/* Main value proposition */}
-                        <h2 className="text-2xl md:text-3xl font-semibold text-brand-navy-900 max-w-2xl mx-auto mb-3 leading-tight">
-                            Help us understand how to help <span className="text-brand-navy-600">you</span> better.
-                        </h2>
-
-                        <p className="text-brand-navy-600 text-lg max-w-xl mx-auto mb-6 leading-relaxed">
-                            We&apos;re building tools for US independent physician owners.
+                        <p className="text-brand-navy-600 text-xl max-w-lg leading-relaxed mx-auto">
+                            The AI companion for burnt-out healthcare workers.
                             <br />
-                            <span className="font-medium text-brand-navy-800">If you&apos;re frustrated with the system, we want to know.</span>
+                            <span className="font-semibold text-brand-navy-900">Vent about the system with someone who gets it.</span>
                         </p>
-
-                        {/* How it works - simple */}
-                        <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-brand-navy-500 mb-2">
-                            <span className="flex items-center gap-2 bg-brand-ice/50 px-3 py-1.5 rounded-full">
-                                <Mic size={14} className="text-brand-navy-600" />
-                                Talk to Doc
-                            </span>
-                            <span className="text-brand-navy-300">or</span>
-                            <span className="flex items-center gap-2 bg-brand-ice/50 px-3 py-1.5 rounded-full">
-                                <Send size={14} className="text-brand-navy-600" />
-                                Type it out
-                            </span>
-                        </div>
-                        <p className="text-brand-navy-400 text-sm">Whatever works for you.</p>
                     </motion.div>
                 )}
 
