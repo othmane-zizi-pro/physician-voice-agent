@@ -1042,7 +1042,7 @@ export default function VoiceAgent() {
                     {callStatus === "idle" && !isRateLimited && (
                         <motion.div
                             key="idle-input"
-                            className="w-full max-w-2xl mx-auto mb-6"
+                            className="w-full max-w-3xl mx-auto mb-6"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
@@ -1052,7 +1052,7 @@ export default function VoiceAgent() {
                                 {/* Text Input - Multiline textarea */}
                                 <textarea
                                     placeholder={isChatMode ? "Reply to Doc..." : "Long day? Vent here..."}
-                                    className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base resize-none min-h-[24px] max-h-[120px]"
+                                    className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base resize-none min-h-[24px] max-h-[120px] text-center placeholder:text-center"
                                     value={confessionText}
                                     onChange={(e) => {
                                         setConfessionText(e.target.value);
