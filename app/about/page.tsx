@@ -42,7 +42,7 @@ export default function AboutPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <h1 className="text-4xl font-bold text-brand-navy-900 mb-2 tracking-tight">Who We Are</h1>
-          <p className="text-brand-navy-400 mb-12 text-sm">Building a collective for healthcare workers</p>
+          <p className="text-brand-navy-400 mb-12 text-sm">Building a network for independent physicians</p>
         </motion.div>
 
         <motion.div
@@ -58,7 +58,7 @@ export default function AboutPage() {
               <strong>We want to understand how we can help physicians and healthcare workers better.</strong>
             </p>
             <p className="text-brand-navy-600 leading-relaxed">
-              Doc was created because we believe healthcare workers deserve to be heard. The system is broken, and the people keeping it running are burning out. We&apos;re building a collective voice for those who feel unheard.
+              Doc was created because we believe healthcare workers deserve to be heard. The system is broken, and the people keeping it running are burning out. We&apos;re building a network for those who feel alone in the fight.
             </p>
           </section>
 
@@ -106,7 +106,7 @@ export default function AboutPage() {
               <li><strong>Product improvement:</strong> Your feedback helps us make Doc better at understanding and supporting you</li>
             </ul>
             <p className="text-brand-navy-600 leading-relaxed mt-4">
-              When you use Doc, you&apos;re not just venting into the void. You&apos;re adding your voice to a collective that we hope can drive real change.
+              When you use Doc, you&apos;re not just venting into the void. You&apos;re joining a network of physicians working toward real change.
             </p>
           </section>
 
