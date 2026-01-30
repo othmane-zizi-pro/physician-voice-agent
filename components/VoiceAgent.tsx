@@ -116,6 +116,7 @@ export default function VoiceAgent() {
     const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
     const [isChatMode, setIsChatMode] = useState(false);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const chatCallIdRef = useRef<string | null>(null); // Track call ID for current chat session
 
     // Thank you screen state
     const [showThankYou, setShowThankYou] = useState(false);
@@ -618,6 +619,30 @@ export default function VoiceAgent() {
     // Doc's opening message
     const DOC_OPENER = "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.";
 
+    // Helper to format chat messages as transcript
+    const formatChatTranscript = useCallback((messages: Array<{ role: "user" | "assistant"; content: string }>) => {
+        return messages
+            .map((msg) => `${msg.role === "user" ? "You" : "Doc"}: ${msg.content}`)
+            .join("\n");
+    }, []);
+
+    // Helper to update chat transcript in database
+    const updateChatTranscript = useCallback(async (callId: string, messages: Array<{ role: "user" | "assistant"; content: string }>) => {
+        const transcript = formatChatTranscript(messages);
+        try {
+            await fetch("/api/calls/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    callId,
+                    transcript,
+                }),
+            });
+        } catch (error) {
+            console.error("Failed to update chat transcript:", error);
+        }
+    }, [formatChatTranscript]);
+
     // Send chat message
     const sendChatMessage = useCallback(async () => {
         if (!confessionText.trim() || isSubmittingConfession) return;
@@ -633,11 +658,31 @@ export default function VoiceAgent() {
         // Enter chat mode
         setIsChatMode(true);
 
-        // If first message, add Doc's opener first, then user's message
-        // UPDATE: We now hide the opener from the UI, so we just add the user message
-        setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+        // Add user message to UI
+        const updatedMessages = [...chatMessages, { role: "user" as const, content: userMessage }];
+        setChatMessages(updatedMessages);
 
-        // Build messages array for API (include opener if first message)
+        // On first message, create a call record to get callId
+        if (isFirstMessage) {
+            try {
+                const createResponse = await fetch("/api/submit-confession", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        content: `You: ${userMessage}`,
+                        sessionType: "chat"
+                    }),
+                });
+                const createData = await createResponse.json();
+                if (createResponse.ok && createData.callId) {
+                    chatCallIdRef.current = createData.callId;
+                }
+            } catch (error) {
+                console.error("Failed to create chat record:", error);
+            }
+        }
+
+        // Build messages array for API (include opener for context)
         const messagesForApi = [
             { role: "assistant" as const, content: DOC_OPENER },
             ...chatMessages,
@@ -663,7 +708,13 @@ export default function VoiceAgent() {
             }
 
             // Add Doc's response to chat
-            setChatMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
+            const messagesWithResponse = [...updatedMessages, { role: "assistant" as const, content: data.response }];
+            setChatMessages(messagesWithResponse);
+
+            // Update transcript in database (auto-save after each exchange)
+            if (chatCallIdRef.current) {
+                updateChatTranscript(chatCallIdRef.current, messagesWithResponse);
+            }
 
             // Scroll to bottom of chat
             setTimeout(() => {
@@ -678,44 +729,34 @@ export default function VoiceAgent() {
         }
 
         setIsSubmittingConfession(false);
-    }, [confessionText, isSubmittingConfession, chatMessages]);
+    }, [confessionText, isSubmittingConfession, chatMessages, updateChatTranscript]);
 
     // End chat and show post-call form
-    const endChat = useCallback(async () => {
+    // Transcript is already saved via auto-save, so we just show the form
+    const endChat = useCallback(() => {
         if (chatMessages.length === 0) {
             setIsChatMode(false);
             return;
         }
 
-        // Save the chat transcript
-        const transcript = chatMessages
-            .map((msg) => `${msg.role === "user" ? "You" : "Doc"}: ${msg.content}`)
-            .join("\n");
+        // Transcript already saved via auto-save, just set up for post-call form
+        const transcript = formatChatTranscript(chatMessages);
+        setLastTranscript(transcript);
 
-        try {
-            const response = await fetch("/api/submit-confession", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: transcript, sessionType: "chat" }),
-            });
+        if (chatCallIdRef.current) {
+            setLastCallId(chatCallIdRef.current);
+        }
 
-            const data = await response.json();
-
-            if (response.ok) {
-                setLastCallId(data.callId);
-                setLastTranscript(transcript);
-                if (!hasCompletedFormRef.current) {
-                    setShowPostCallForm(true);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to save chat:", error);
+        // Show post-call form if not already completed
+        if (!hasCompletedFormRef.current) {
+            setShowPostCallForm(true);
         }
 
         // Reset chat state
         setChatMessages([]);
         setIsChatMode(false);
-    }, [chatMessages]);
+        chatCallIdRef.current = null;
+    }, [chatMessages, formatChatTranscript]);
 
     return (
         <div className="flex flex-col items-center min-h-screen p-8 pt-12 relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
