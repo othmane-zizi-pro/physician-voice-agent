@@ -617,6 +617,9 @@ export default function VoiceAgent() {
         setShowTimeLimitMessage(false);
     }, []);
 
+    // Doc's opening message
+    const DOC_OPENER = "Hey. Long day? I've got nowhere to be if you need to vent about the latest circle of healthcare hell.";
+
     // Send chat message
     const sendChatMessage = useCallback(async () => {
         if (!confessionText.trim() || isSubmittingConfession) return;
@@ -626,16 +629,33 @@ export default function VoiceAgent() {
         setIsSubmittingConfession(true);
         setConfessionError(null);
 
-        // Enter chat mode and add user message
+        // Check if this is the first message (start of chat)
+        const isFirstMessage = chatMessages.length === 0;
+
+        // Enter chat mode
         setIsChatMode(true);
-        setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+
+        // If first message, add Doc's opener first, then user's message
+        if (isFirstMessage) {
+            setChatMessages([
+                { role: "assistant", content: DOC_OPENER },
+                { role: "user", content: userMessage }
+            ]);
+        } else {
+            setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+        }
+
+        // Build messages array for API (include opener if first message)
+        const messagesForApi = isFirstMessage
+            ? [{ role: "assistant" as const, content: DOC_OPENER }]
+            : chatMessages;
 
         try {
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    messages: chatMessages,
+                    messages: messagesForApi,
                     message: userMessage,
                 }),
             });
