@@ -634,19 +634,15 @@ export default function VoiceAgent() {
         setIsChatMode(true);
 
         // If first message, add Doc's opener first, then user's message
-        if (isFirstMessage) {
-            setChatMessages([
-                { role: "assistant", content: DOC_OPENER },
-                { role: "user", content: userMessage }
-            ]);
-        } else {
-            setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-        }
+        // UPDATE: We now hide the opener from the UI, so we just add the user message
+        setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
 
         // Build messages array for API (include opener if first message)
-        const messagesForApi = isFirstMessage
-            ? [{ role: "assistant" as const, content: DOC_OPENER }]
-            : chatMessages;
+        const messagesForApi = [
+            { role: "assistant" as const, content: DOC_OPENER },
+            ...chatMessages,
+            { role: "user" as const, content: userMessage }
+        ];
 
         try {
             const response = await fetch("/api/chat", {
@@ -995,40 +991,45 @@ export default function VoiceAgent() {
                             {chatMessages.map((msg, i) => (
                                 <motion.div
                                     key={i}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ duration: 0.3, ease: "easeOut" }}
                                     className={cn(
-                                        "flex",
+                                        "flex w-full mb-4",
                                         msg.role === "user" ? "justify-end" : "justify-start"
                                     )}
                                 >
                                     <div
                                         className={cn(
-                                            "max-w-[85%] rounded-2xl px-4 py-3",
+                                            "max-w-[85%] px-5 py-3.5 shadow-sm relative",
                                             msg.role === "user"
-                                                ? "bg-brand-navy-600 text-white rounded-br-sm"
-                                                : "bg-white/80 backdrop-blur-sm border border-brand-neutral-200 text-brand-navy-800 rounded-bl-sm shadow-sm"
+                                                ? "bg-gradient-to-br from-brand-navy-600 to-brand-navy-700 text-white rounded-[24px] rounded-br-[4px]"
+                                                : "bg-white/80 backdrop-blur-md border border-white/60 text-brand-navy-800 rounded-[24px] rounded-bl-[4px]"
                                         )}
                                     >
                                         {msg.role === "assistant" && (
-                                            <p className="text-xs text-brand-navy-600 font-medium mb-1">Doc</p>
+                                            <div className="absolute -top-5 left-1 text-xs font-semibold text-brand-navy-400/80 flex items-center gap-1">
+                                                <span>Doc</span>
+                                            </div>
                                         )}
-                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                     </div>
                                 </motion.div>
                             ))}
                             {isSubmittingConfession && (
                                 <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex justify-start"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="flex justify-start w-full"
                                 >
-                                    <div className="bg-white/80 backdrop-blur-sm border border-brand-neutral-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                                        <p className="text-xs text-brand-navy-600 font-medium mb-1">Doc</p>
+                                    <div className="bg-white/80 backdrop-blur-md border border-white/60 rounded-[24px] rounded-bl-[4px] px-5 py-4 shadow-sm relative">
+                                        <div className="absolute -top-5 left-1 text-xs font-semibold text-brand-navy-400/80 flex items-center gap-1">
+                                            <span>Doc</span>
+                                        </div>
                                         <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                                            <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                            <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                                            <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                                         </div>
                                     </div>
                                 </motion.div>
