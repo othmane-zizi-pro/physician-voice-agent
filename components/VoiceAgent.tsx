@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrack, RemoteTrackPublication } from "livekit-client";
-import { Mic, MicOff, Phone, PhoneOff, Share2, Link2, Clock, Send, Stethoscope } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Share2, Link2, Clock, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import { trackClick } from "@/lib/trackClick";
@@ -772,48 +772,18 @@ export default function VoiceAgent() {
 
             {/* Content container */}
             <div className="relative z-10 flex flex-col items-center justify-center flex-grow w-full max-w-4xl mx-auto py-8">
-                {/* Header */}
+                {/* Header - Simple headline */}
                 <motion.div
-                    className="text-center mb-10"
+                    className="text-center mb-8"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
                 >
-                    <div className="relative inline-block mb-3">
-                        <motion.div
-                            className="absolute -left-14 top-1.75 w-12 h-12"
-                            initial={{ scale: 0.8, rotate: -10, y: 5 }}
-                            animate={{
-                                scale: [0.8, 1.05, 0.98, 1],
-                                rotate: [-10, 12, 4, 8],
-                                y: [5, -2, 1, 0],
-                            }}
-                            transition={{
-                                duration: 2.5,
-                                ease: "easeOut",
-                                times: [0, 0.4, 0.7, 1],
-                            }}
-                        >
-                            <img
-                                src="/doc-logo-playful-2.svg"
-                                alt="Doc Logo"
-                                className="w-full h-full object-contain drop-shadow-sm"
-                            />
-                        </motion.div>
-                        <h1 className="text-6xl font-bold text-brand-navy-900 tracking-tighter drop-shadow-sm">Doc</h1>
-                        <p className="text-brand-navy-500 text-sm font-medium tracking-wide">by <a
-                            href="https://www.meroka.com/"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
-                            className="hover:text-brand-brown transition-colors underline decoration-brand-brown/30 underline-offset-2 tracking-tight"
-                        >Meroka</a></p>
-                    </div>
-
-                    <p className="text-brand-navy-700 text-xl max-w-lg leading-relaxed mx-auto font-light">
-                        The AI companion for burnt-out healthcare workers.
-                        <br />
-                        <span className="text-brand-navy-900 font-normal">Vent about the system with someone who gets it.</span>
+                    <h1 className="text-4xl md:text-5xl font-bold text-brand-navy-900 tracking-tight">
+                        Ready when you are.
+                    </h1>
+                    <p className="text-brand-navy-500 text-lg mt-3 font-light">
+                        Your AI companion for venting about healthcare.
                     </p>
                 </motion.div>
 
@@ -860,117 +830,6 @@ export default function VoiceAgent() {
                     </motion.div>
                 )}
 
-                {/* Call Button Area */}
-                <div className="relative mb-16 mt-4">
-                    {/* Animated rings when active */}
-                    <AnimatePresence>
-                        {callStatus === "active" && (
-                            <>
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 0.2, scale: 1.5 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                    className="absolute inset-0 bg-brand-brown rounded-full -z-10"
-                                />
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 0.1, scale: 1.8 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                                    className="absolute inset-0 bg-brand-brown rounded-full -z-20"
-                                />
-                            </>
-                        )}
-                    </AnimatePresence>
-
-                    {/* Main call button */}
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={callStatus === "idle" ? startCall : endCall}
-                        disabled={callStatus === "connecting" || callStatus === "ending" || isRateLimited}
-                        className={cn(
-                            "relative z-10 w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all duration-500 shadow-2xl",
-                            isRateLimited
-                                ? "bg-brand-navy-200 cursor-not-allowed text-brand-navy-400"
-                                : callStatus === "idle"
-                                    ? "bg-gradient-to-br from-brand-brown-light to-brand-brown text-white shadow-brand-brown/40 border-4 border-white/20"
-                                    : callStatus === "active"
-                                        ? "bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/40 border-4 border-red-400/30"
-                                        : "bg-brand-navy-200 cursor-not-allowed"
-                        )}
-                    >
-                        <AnimatePresence mode="wait">
-                            {callStatus === "idle" && !isRateLimited && (
-                                <motion.div
-                                    key="idle"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                >
-                                    <Phone size={48} strokeWidth={1.5} />
-                                </motion.div>
-                            )}
-                            {callStatus === "idle" && isRateLimited && (
-                                <motion.div
-                                    key="limited"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                >
-                                    <Clock size={48} strokeWidth={1.5} />
-                                </motion.div>
-                            )}
-                            {callStatus === "connecting" && (
-                                <motion.div
-                                    key="connecting"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0 border-4 border-white/30 border-t-white rounded-full animate-spin"
-                                />
-                            )}
-                            {callStatus === "active" && (
-                                <motion.div
-                                    key="active"
-                                    initial={{ opacity: 0, scale: 0.5 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.5 }}
-                                    className="flex flex-col items-center"
-                                >
-                                    <PhoneOff size={32} strokeWidth={1.5} />
-                                    <span className="text-xs mt-2 font-medium tracking-widest opacity-90 font-mono">
-                                        {formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds - currentCallSeconds)}
-                                    </span>
-                                </motion.div>
-                            )}
-                            {callStatus === "ending" && (
-                                <motion.div
-                                    key="ending"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0 border-4 border-white/30 border-t-white rounded-full animate-spin"
-                                />
-                            )}
-                        </AnimatePresence>
-                    </motion.button>
-                </div>
-
-                {/* Low time warning */}
-                <AnimatePresence>
-                    {showLowTimeWarning && callStatus === "active" && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="absolute top-24 left-1/2 -translate-x-1/2 bg-amber-100/90 backdrop-blur border border-amber-200 text-amber-800 px-4 py-1.5 rounded-full text-xs font-semibold shadow-lg z-20 whitespace-nowrap"
-                        >
-                            Less than 1 minute remaining
-                        </motion.div>
-                    )}
-                </AnimatePresence>
 
                 {/* Time limit reached message modal */}
                 <AnimatePresence>
@@ -1009,146 +868,205 @@ export default function VoiceAgent() {
                     )}
                 </AnimatePresence>
 
-                {/* Status text */}
-                <div className="text-center h-8 mb-10">
-                    <AnimatePresence mode="wait">
-                        {callStatus === "idle" && !isRateLimited && (
-                            <motion.p key="start" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-brand-navy-500 text-lg font-medium">
-                                Tap to start venting
-                            </motion.p>
-                        )}
-                        {callStatus === "idle" && isRateLimited && (
-                            <motion.p key="limited" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-brand-navy-400 font-medium">
-                                Come back later for more venting
-                            </motion.p>
-                        )}
-                        {callStatus === "connecting" && (
-                            <motion.p key="connecting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-brand-brown font-medium animate-pulse">
-                                Connecting to Doc...
-                            </motion.p>
-                        )}
-                        {callStatus === "active" && (
-                            <motion.div key="active" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center gap-3 text-brand-navy-800">
-                                {currentSpeaker === "assistant" ? (
-                                    <>
-                                        <span className="font-semibold text-brand-brown">Doc is talking</span>
-                                        <div className="flex items-center gap-1 h-4">
-                                            {[...Array(4)].map((_, i) => (
-                                                <motion.div
-                                                    key={i}
-                                                    className="w-1 bg-brand-brown rounded-full"
-                                                    animate={{ height: [4, 16, 4] }}
-                                                    transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
-                                                />
-                                            ))}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <span className="text-brand-navy-400 font-medium animate-pulse">Listening...</span>
-                                )}
-                            </motion.div>
-                        )}
-                        {callStatus === "ending" && (
-                            <motion.p key="ending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-brand-navy-400">
-                                Ending call...
-                            </motion.p>
-                        )}
-                    </AnimatePresence>
-                </div>
 
-                {/* Trust signals */}
-                <div className="flex items-center gap-6 mb-8 text-xs font-medium text-brand-navy-400 uppercase tracking-widest">
-                    <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        Anonymous
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-brand-navy-200"></span>
-                    <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        No account needed
-                    </span>
-                    <span className="w-1 h-1 rounded-full bg-brand-navy-200"></span>
-                    <span className="flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        Free
-                    </span>
-                </div>
-
-                {/* Text confession input bar */}
-                {callStatus === "idle" && !isRateLimited && (
-                    <motion.div
-                        className="w-full max-w-lg mb-8 relative z-10"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                    >
-                        <div className="relative flex items-center bg-white/60 backdrop-blur-md border border-brand-neutral-200 rounded-full px-2 py-2 focus-within:border-brand-brown/50 focus-within:bg-white focus-within:shadow-glass hover:shadow-glass transition-all duration-300">
-                            <input
-                                type="text"
-                                value={confessionText}
-                                onChange={(e) => setConfessionText(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 1 && !isSubmittingConfession) {
-                                        e.preventDefault();
-                                        submitConfession();
-                                    }
-                                }}
-                                placeholder={'Or just type: "I haven\'t had a real lunch break in three years..."'}
-                                className="flex-1 bg-transparent text-brand-navy-900 placeholder-brand-navy-400 text-sm px-4 focus:outline-none"
-                                maxLength={2000}
-                                disabled={isSubmittingConfession}
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() => submitConfession()}
-                                disabled={confessionText.trim().length < 1 || isSubmittingConfession}
-                                className={cn(
-                                    "p-2.5 rounded-full transition-all duration-300",
-                                    confessionText.trim().length >= 1 && !isSubmittingConfession
-                                        ? "bg-brand-brown hover:bg-brand-brown-dark text-white shadow-md transform hover:scale-105"
-                                        : "bg-brand-neutral-100 text-brand-navy-300 cursor-not-allowed"
-                                )}
-                            >
-                                {isSubmittingConfession ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <Send size={18} />
-                                )}
-                            </button>
-                        </div>
-
-                        {confessionError && (
-                            <p className="mt-2 text-red-500 text-sm text-center">{confessionError}</p>
-                        )}
-                    </motion.div>
-                )}
-
-                {/* Mute button (only when active) */}
-                <AnimatePresence>
-                    {callStatus === "active" && (
-                        <motion.button
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            onClick={toggleMute}
-                            className={cn(
-                                "p-4 rounded-full transition-all duration-200 shadow-sm border",
-                                isMuted
-                                    ? "bg-red-50 border-red-100 text-red-500 hover:bg-red-100"
-                                    : "bg-white border-brand-neutral-200 text-brand-navy-600 hover:bg-brand-neutral-50 hover:text-brand-navy-900"
-                            )}
+                {/* Unified Input Bar - ChatGPT style */}
+                <AnimatePresence mode="wait">
+                    {callStatus === "idle" && !isRateLimited && (
+                        <motion.div
+                            key="idle-input"
+                            className="w-full max-w-2xl mx-auto mb-6"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
                         >
-                            {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                        </motion.button>
+                            <div className="relative flex items-center bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-4 py-3 focus-within:border-brand-brown/50 focus-within:shadow-lg transition-all">
+                                {/* Text Input */}
+                                <input
+                                    type="text"
+                                    placeholder="What's on your mind?"
+                                    className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base"
+                                    value={confessionText}
+                                    onChange={(e) => setConfessionText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 1 && !isSubmittingConfession) {
+                                            e.preventDefault();
+                                            submitConfession();
+                                        }
+                                    }}
+                                    maxLength={2000}
+                                    disabled={isSubmittingConfession}
+                                />
+
+                                {/* Send button - visible when text is entered */}
+                                {confessionText.trim().length > 0 && (
+                                    <button
+                                        onClick={submitConfession}
+                                        disabled={isSubmittingConfession}
+                                        className="p-2 hover:bg-brand-neutral-100 rounded-full transition-colors mr-1"
+                                        title="Send message"
+                                    >
+                                        {isSubmittingConfession ? (
+                                            <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                                        ) : (
+                                            <Send size={20} className="text-brand-navy-500 hover:text-brand-brown" />
+                                        )}
+                                    </button>
+                                )}
+
+                                {/* Voice Button - Primary CTA */}
+                                <button
+                                    onClick={startCall}
+                                    className="p-2.5 bg-brand-brown text-white rounded-full hover:bg-brand-brown-dark transition-colors shadow-md hover:shadow-lg"
+                                    title="Talk to Doc"
+                                >
+                                    <Mic size={20} />
+                                </button>
+                            </div>
+
+                            {confessionError && (
+                                <p className="mt-2 text-red-500 text-sm text-center">{confessionError}</p>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Connecting state */}
+                    {callStatus === "connecting" && (
+                        <motion.div
+                            key="connecting"
+                            className="w-full max-w-2xl mx-auto mb-6"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                        >
+                            <div className="flex items-center justify-center gap-3 bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-6 py-4">
+                                <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                                <span className="text-brand-brown font-medium">Connecting to Doc...</span>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Active call controls */}
+                    {callStatus === "active" && (
+                        <motion.div
+                            key="active-call"
+                            className="w-full max-w-2xl mx-auto mb-6"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                        >
+                            <div className="flex items-center justify-center gap-4 bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-6 py-4">
+                                {/* Speaking indicator */}
+                                <div className="flex items-center gap-3 flex-1">
+                                    {currentSpeaker === "assistant" ? (
+                                        <>
+                                            <div className="flex items-center gap-1 h-5">
+                                                {[...Array(4)].map((_, i) => (
+                                                    <motion.div
+                                                        key={i}
+                                                        className="w-1 bg-brand-brown rounded-full"
+                                                        animate={{ height: [4, 16, 4] }}
+                                                        transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="text-brand-brown font-medium">Doc is talking</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                            <span className="text-brand-navy-600 font-medium">Listening...</span>
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Timer */}
+                                <div className="flex items-center gap-2 text-brand-navy-500 font-mono text-sm bg-brand-navy-50 px-3 py-1 rounded-full">
+                                    <Clock size={14} />
+                                    <span>{formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds - currentCallSeconds)}</span>
+                                </div>
+
+                                {/* Mute button */}
+                                <button
+                                    onClick={toggleMute}
+                                    className={cn(
+                                        "p-3 rounded-full transition-all",
+                                        isMuted
+                                            ? "bg-red-100 text-red-500 hover:bg-red-200"
+                                            : "bg-brand-neutral-100 text-brand-navy-600 hover:bg-brand-neutral-200"
+                                    )}
+                                    title={isMuted ? "Unmute" : "Mute"}
+                                >
+                                    {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                                </button>
+
+                                {/* End call button */}
+                                <button
+                                    onClick={endCall}
+                                    className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md"
+                                    title="End call"
+                                >
+                                    <PhoneOff size={20} />
+                                </button>
+                            </div>
+
+                            {/* Low time warning */}
+                            {showLowTimeWarning && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mt-3 text-center"
+                                >
+                                    <span className="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-xs font-semibold">
+                                        Less than 1 minute remaining
+                                    </span>
+                                </motion.div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Ending state */}
+                    {callStatus === "ending" && (
+                        <motion.div
+                            key="ending"
+                            className="w-full max-w-2xl mx-auto mb-6"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <div className="flex items-center justify-center gap-3 bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-6 py-4">
+                                <div className="w-5 h-5 border-2 border-brand-navy-300/30 border-t-brand-navy-400 rounded-full animate-spin" />
+                                <span className="text-brand-navy-500 font-medium">Ending call...</span>
+                            </div>
+                        </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Trust signals - below input bar */}
+                {callStatus === "idle" && (
+                    <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-8 text-xs font-medium text-brand-navy-400 uppercase tracking-wider">
+                        <span className="flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Anonymous
+                        </span>
+                        <span className="hidden md:block w-1 h-1 rounded-full bg-brand-navy-200"></span>
+                        <span className="flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            No account
+                        </span>
+                        <span className="hidden md:block w-1 h-1 rounded-full bg-brand-navy-200"></span>
+                        <span className="flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Free
+                        </span>
+                    </div>
+                )}
 
                 {/* Transcript (recent messages) */}
                 <AnimatePresence>
