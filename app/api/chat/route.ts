@@ -99,19 +99,24 @@ export async function POST(request: NextRequest) {
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Build conversation history for Gemini
-    const history = messages.map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    }));
+    // Build the full prompt with system instructions and conversation history
+    let fullPrompt = DOC_SYSTEM_PROMPT + userContext + "\n\n";
 
-    const chat = model.startChat({
-      history,
-      systemInstruction: DOC_SYSTEM_PROMPT + userContext,
-    });
+    // Add conversation history
+    if (messages.length > 0) {
+      fullPrompt += "Previous conversation:\n";
+      for (const msg of messages) {
+        const speaker = msg.role === "user" ? "User" : "Doc";
+        fullPrompt += `${speaker}: ${msg.content}\n`;
+      }
+      fullPrompt += "\n";
+    }
 
-    const result = await chat.sendMessage(message);
-    const response = result.response.text();
+    // Add current message
+    fullPrompt += `User: ${message}\n\nDoc:`;
+
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response.text()?.trim();
 
     return NextResponse.json({
       response,
