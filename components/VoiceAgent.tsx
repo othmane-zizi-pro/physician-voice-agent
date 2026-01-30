@@ -1324,14 +1324,6 @@ export default function VoiceAgent() {
                 <p>Not a real therapist. For entertainment and venting purposes only.</p>
                 <div className="flex items-center justify-center gap-3 mt-2">
                     <a
-                        href="/about"
-                        onClick={() => trackClick("footer_about", "/about")}
-                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
-                    >
-                        Who We Are
-                    </a>
-                    <span className="text-brand-navy-200">|</span>
-                    <a
                         href="/privacy"
                         onClick={() => trackClick("footer_privacy", "/privacy")}
                         className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
@@ -1361,6 +1353,14 @@ export default function VoiceAgent() {
                                 <path d="M1441.62,1095.32c-8.16,0-14.79-2.34-19.91-7.03c-5.11-4.69-7.67-10.62-7.67-17.81c0-7.3,2.31-13.27,6.94-17.9c4.63-4.62,12.42-8.28,23.38-10.96c7.42-1.7,13.06-3.35,16.89-4.93c3.84-1.58,6.45-3.38,7.85-5.39c1.4-2.01,2.1-4.35,2.1-7.03c0-3.9-1.64-7.33-4.93-10.32c-3.29-2.98-7.98-4.47-14.06-4.47c-5.97,0-11.05,1.77-15.25,5.3c-4.2,3.53-6.85,8.65-7.94,15.34h-12.6c1.34-10.96,5.72-19.66,13.15-26.11c7.43-6.45,16.68-9.68,27.76-9.68c10.84,0,19.51,3.04,26.02,9.13c6.51,6.09,9.77,14.13,9.77,24.11v43.65c0,3.65,0.79,6.3,2.38,7.95c1.58,1.64,4.14,2.59,7.67,2.83v10.77c-2.31,1.1-5.78,1.64-10.41,1.64c-6.09,0-10.81-1.62-14.15-4.84c-3.35-3.23-5.33-7.64-5.94-13.24c-2.56,5.97-6.51,10.62-11.87,13.97C1455.44,1093.64,1449.04,1095.32,1441.62,1095.32z M1449.65,1080.53c6.69,0,12.17-2.25,16.44-6.76c4.26-4.5,6.39-10.35,6.39-17.53v-17.17c-3.65,5.48-10.59,9.8-20.82,12.97c-5.97,1.95-10.2,4.23-12.69,6.85c-2.5,2.62-3.74,5.69-3.74,9.22c0,3.53,1.28,6.48,3.84,8.86S1445.15,1080.53,1449.65,1080.53z"/>
                             </g>
                         </svg>
+                    </a>
+                    <span className="text-brand-navy-200">|</span>
+                    <a
+                        href="/about"
+                        onClick={() => trackClick("footer_about", "/about")}
+                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
+                    >
+                        Who We Are
                     </a>
                 </div>
             </div>
