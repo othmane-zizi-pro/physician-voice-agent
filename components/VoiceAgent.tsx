@@ -1332,6 +1332,14 @@ export default function VoiceAgent() {
                     </a>
                     <span className="text-brand-navy-200">|</span>
                     <a
+                        href="/about"
+                        onClick={() => trackClick("footer_about", "/about")}
+                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
+                    >
+                        Who We Are
+                    </a>
+                    <span className="text-brand-navy-200">|</span>
+                    <a
                         href="https://www.meroka.com/"
                         target="_blank"
                         rel="noopener noreferrer"
