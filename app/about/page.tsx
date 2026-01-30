@@ -140,8 +140,8 @@ export default function AboutPage() {
           <section>
             <h2 className="text-xl font-semibold text-brand-navy-900 mb-4">Questions?</h2>
             <p className="text-brand-navy-700 leading-relaxed">
-              We get it—trust is earned, not given. If you have questions about who we are, what we&apos;re doing, or how your data is used, reach out to us at{" "}
-              <a href="mailto:hello@meroka.com" className="text-brand-brown hover:underline">hello@meroka.com</a>.
+              We get it—trust is earned, not given. If you have questions about who we are, what we&apos;re doing, or how your data is used,{" "}
+              <a href="https://www.meroka.com/contact" target="_blank" rel="noopener noreferrer" className="text-brand-brown hover:underline">reach out to us</a>.
             </p>
           </section>
         </motion.div>
