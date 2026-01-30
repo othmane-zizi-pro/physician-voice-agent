@@ -55,7 +55,7 @@ export default function AboutPage() {
           <section>
             <h2 className="text-xl font-semibold text-brand-navy-900 mb-4">Our Mission</h2>
             <p className="text-brand-navy-700 leading-relaxed mb-4">
-              <strong>We want to understand how we can help physicians and healthcare workers better.</strong>
+              <strong>We&apos;re gathering pain points from US independent physician owners to better understand how we can serve you.</strong>
             </p>
             <p className="text-brand-navy-600 leading-relaxed">
               Doc was created because we believe healthcare workers deserve to be heard. The system is broken, and the people keeping it running are burning out. We&apos;re building a network for those who feel alone in the fight.
