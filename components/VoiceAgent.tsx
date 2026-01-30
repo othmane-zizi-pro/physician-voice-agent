@@ -826,24 +826,33 @@ export default function VoiceAgent() {
 
             {/* Content container */}
             <div className="relative z-10 flex flex-col items-center justify-center flex-grow w-full max-w-4xl mx-auto py-8">
-                {/* Header - Simple headline */}
-                <motion.div
-                    className="text-center mb-8"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: "easeOut" }}
-                >
-                    <h1 className="text-4xl md:text-5xl font-bold text-brand-navy-900 tracking-tight">
-                        Ready when you are.
-                    </h1>
-                    <p className="text-brand-navy-500 text-lg mt-3 font-light">
-                        Your AI companion for venting about healthcare.
-                    </p>
-                </motion.div>
+                {/* Header - Simple headline (hidden in chat mode) */}
+                {!isChatMode && (
+                    <motion.div
+                        className="text-center mb-8"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                    >
+                        <h1 className="text-4xl md:text-5xl font-bold text-brand-navy-900 tracking-tight">
+                            Ready when you are.
+                        </h1>
+                        <p className="text-brand-navy-500 text-lg mt-3 font-light">
+                            Your AI companion for venting about healthcare.
+                        </p>
+                    </motion.div>
+                )}
 
-                {/* Today's venting counter - below tagline */}
+                {/* Chat mode header - minimal */}
+                {isChatMode && (
+                    <div className="text-center mb-4">
+                        <p className="text-brand-navy-500 text-sm font-medium">Chatting with Doc</p>
+                    </div>
+                )}
+
+                {/* Today's venting counter - below tagline (hidden in chat mode) */}
                 <AnimatePresence>
-                    {todayCount !== null && callStatus === "idle" && (
+                    {todayCount !== null && callStatus === "idle" && !isChatMode && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -862,8 +871,8 @@ export default function VoiceAgent() {
                 </AnimatePresence>
 
 
-                {/* Rate limit indicator */}
-                {callStatus === "idle" && !isRateLimited && usageData.usedSeconds > 0 && (
+                {/* Rate limit indicator (hidden in chat mode) */}
+                {callStatus === "idle" && !isRateLimited && usageData.usedSeconds > 0 && !isChatMode && (
                     <div className="flex items-center gap-2 text-brand-navy-500 text-xs mb-6 font-medium bg-brand-navy-50/50 px-3 py-1 rounded-full">
                         <Clock size={12} />
                         <span>{formatTime(RATE_LIMIT_SECONDS - usageData.usedSeconds)} remaining today</span>
@@ -923,66 +932,59 @@ export default function VoiceAgent() {
                 </AnimatePresence>
 
 
-                {/* Chat Messages Display */}
-                {isChatMode && chatMessages.length > 0 && callStatus === "idle" && (
+                {/* Chat Messages Display - ChatGPT style (messages above, scrollable) */}
+                {isChatMode && callStatus === "idle" && (
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-2xl mx-auto mb-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="w-full max-w-2xl mx-auto flex-1 flex flex-col min-h-0 mb-4"
                     >
+                        {/* Scrollable messages area */}
                         <div
                             ref={chatContainerRef}
-                            className="bg-white/60 backdrop-blur-md border border-brand-neutral-200 rounded-2xl p-4 max-h-[400px] overflow-y-auto"
+                            className="flex-1 overflow-y-auto px-2 py-4 space-y-4 min-h-[200px] max-h-[50vh]"
                         >
-                            <div className="space-y-4">
-                                {chatMessages.map((msg, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
+                            {chatMessages.map((msg, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={cn(
+                                        "flex",
+                                        msg.role === "user" ? "justify-end" : "justify-start"
+                                    )}
+                                >
+                                    <div
                                         className={cn(
-                                            "flex",
-                                            msg.role === "user" ? "justify-end" : "justify-start"
+                                            "max-w-[85%] rounded-2xl px-4 py-3",
+                                            msg.role === "user"
+                                                ? "bg-brand-brown text-white rounded-br-sm"
+                                                : "bg-white/80 backdrop-blur-sm border border-brand-neutral-200 text-brand-navy-800 rounded-bl-sm shadow-sm"
                                         )}
                                     >
-                                        <div
-                                            className={cn(
-                                                "max-w-[80%] rounded-2xl px-4 py-2.5",
-                                                msg.role === "user"
-                                                    ? "bg-brand-brown text-white rounded-br-md"
-                                                    : "bg-brand-neutral-100 text-brand-navy-800 rounded-bl-md"
-                                            )}
-                                        >
-                                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                                        {msg.role === "assistant" && (
+                                            <p className="text-xs text-brand-brown font-medium mb-1">Doc</p>
+                                        )}
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                            {isSubmittingConfession && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex justify-start"
+                                >
+                                    <div className="bg-white/80 backdrop-blur-sm border border-brand-neutral-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+                                        <p className="text-xs text-brand-brown font-medium mb-1">Doc</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                                            <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                                         </div>
-                                    </motion.div>
-                                ))}
-                                {isSubmittingConfession && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        className="flex justify-start"
-                                    >
-                                        <div className="bg-brand-neutral-100 rounded-2xl rounded-bl-md px-4 py-3">
-                                            <div className="flex items-center gap-1">
-                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* End chat button */}
-                        <div className="flex justify-center mt-3">
-                            <button
-                                onClick={endChat}
-                                className="text-brand-navy-400 hover:text-brand-navy-600 text-sm font-medium transition-colors"
-                            >
-                                End conversation
-                            </button>
+                                    </div>
+                                </motion.div>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -1046,6 +1048,18 @@ export default function VoiceAgent() {
 
                             {confessionError && (
                                 <p className="mt-2 text-red-500 text-sm text-center">{confessionError}</p>
+                            )}
+
+                            {/* End conversation button - visible in chat mode */}
+                            {isChatMode && chatMessages.length > 0 && (
+                                <div className="flex justify-center mt-3">
+                                    <button
+                                        onClick={endChat}
+                                        className="text-brand-navy-400 hover:text-brand-navy-600 text-sm font-medium transition-colors"
+                                    >
+                                        End conversation
+                                    </button>
+                                </div>
                             )}
                         </motion.div>
                     )}
@@ -1162,8 +1176,8 @@ export default function VoiceAgent() {
                     )}
                 </AnimatePresence>
 
-                {/* Trust signals - below input bar */}
-                {callStatus === "idle" && (
+                {/* Trust signals - below input bar (hidden in chat mode) */}
+                {callStatus === "idle" && !isChatMode && (
                     <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-8 text-xs font-medium text-brand-navy-400 uppercase tracking-wider">
                         <span className="flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
