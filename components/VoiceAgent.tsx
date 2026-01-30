@@ -884,7 +884,7 @@ export default function VoiceAgent() {
                         </div>
 
                         <p className="text-brand-navy-700 text-xl max-w-lg leading-relaxed mx-auto font-light">
-                            The AI companion for disillusioned US independent physician owners.
+                            The AI companion for <span className="font-semibold text-brand-navy-900">disillusioned US independent physician owners</span>.
                             <br />
                             <span className="text-brand-navy-900 font-normal">Vent about the system with someone who gets it.</span>
                         </p>
