@@ -113,6 +113,11 @@ export default function VoiceAgent() {
     const [isSubmittingConfession, setIsSubmittingConfession] = useState(false);
     const [confessionError, setConfessionError] = useState<string | null>(null);
 
+    // Chat state
+    const [chatMessages, setChatMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+    const [isChatMode, setIsChatMode] = useState(false);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
+
     // Sign-up prompt state (for anonymous users after first conversation)
     const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
 
@@ -612,42 +617,91 @@ export default function VoiceAgent() {
         setShowTimeLimitMessage(false);
     }, []);
 
-    // Submit text confession
-    const submitConfession = useCallback(async () => {
+    // Send chat message
+    const sendChatMessage = useCallback(async () => {
         if (!confessionText.trim() || isSubmittingConfession) return;
 
+        const userMessage = confessionText.trim();
+        setConfessionText("");
         setIsSubmittingConfession(true);
         setConfessionError(null);
 
+        // Enter chat mode and add user message
+        setIsChatMode(true);
+        setChatMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+
         try {
-            const response = await fetch("/api/submit-confession", {
+            const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: confessionText.trim() }),
+                body: JSON.stringify({
+                    messages: chatMessages,
+                    message: userMessage,
+                }),
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                setConfessionError(data.error || "Failed to submit. Please try again.");
+                setConfessionError(data.error || "Failed to get response. Please try again.");
                 setIsSubmittingConfession(false);
                 return;
             }
 
-            // Success - show post-call form (only if not already completed this session)
-            setLastCallId(data.callId);
-            setLastTranscript(confessionText.trim());
-            if (!hasCompletedFormRef.current) {
-                setShowPostCallForm(true);
-            }
-            setConfessionText("");
+            // Add Doc's response to chat
+            setChatMessages((prev) => [...prev, { role: "assistant", content: data.response }]);
+
+            // Scroll to bottom of chat
+            setTimeout(() => {
+                chatContainerRef.current?.scrollTo({
+                    top: chatContainerRef.current.scrollHeight,
+                    behavior: "smooth",
+                });
+            }, 100);
         } catch (error) {
-            console.error("Failed to submit confession:", error);
+            console.error("Failed to send message:", error);
             setConfessionError("Something went wrong. Please try again.");
         }
 
         setIsSubmittingConfession(false);
-    }, [confessionText, isSubmittingConfession]);
+    }, [confessionText, isSubmittingConfession, chatMessages]);
+
+    // End chat and show post-call form
+    const endChat = useCallback(async () => {
+        if (chatMessages.length === 0) {
+            setIsChatMode(false);
+            return;
+        }
+
+        // Save the chat transcript
+        const transcript = chatMessages
+            .map((msg) => `${msg.role === "user" ? "You" : "Doc"}: ${msg.content}`)
+            .join("\n");
+
+        try {
+            const response = await fetch("/api/submit-confession", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: transcript }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setLastCallId(data.callId);
+                setLastTranscript(transcript);
+                if (!hasCompletedFormRef.current) {
+                    setShowPostCallForm(true);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to save chat:", error);
+        }
+
+        // Reset chat state
+        setChatMessages([]);
+        setIsChatMode(false);
+    }, [chatMessages]);
 
     return (
         <div className="flex flex-col items-center min-h-screen p-8 pt-12 relative overflow-x-hidden text-brand-navy-900 font-sans selection:bg-brand-ice">
@@ -869,6 +923,70 @@ export default function VoiceAgent() {
                 </AnimatePresence>
 
 
+                {/* Chat Messages Display */}
+                {isChatMode && chatMessages.length > 0 && callStatus === "idle" && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full max-w-2xl mx-auto mb-4"
+                    >
+                        <div
+                            ref={chatContainerRef}
+                            className="bg-white/60 backdrop-blur-md border border-brand-neutral-200 rounded-2xl p-4 max-h-[400px] overflow-y-auto"
+                        >
+                            <div className="space-y-4">
+                                {chatMessages.map((msg, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className={cn(
+                                            "flex",
+                                            msg.role === "user" ? "justify-end" : "justify-start"
+                                        )}
+                                    >
+                                        <div
+                                            className={cn(
+                                                "max-w-[80%] rounded-2xl px-4 py-2.5",
+                                                msg.role === "user"
+                                                    ? "bg-brand-brown text-white rounded-br-md"
+                                                    : "bg-brand-neutral-100 text-brand-navy-800 rounded-bl-md"
+                                            )}
+                                        >
+                                            <p className="text-sm leading-relaxed">{msg.content}</p>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                                {isSubmittingConfession && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="flex justify-start"
+                                    >
+                                        <div className="bg-brand-neutral-100 rounded-2xl rounded-bl-md px-4 py-3">
+                                            <div className="flex items-center gap-1">
+                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                                                <div className="w-2 h-2 bg-brand-navy-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* End chat button */}
+                        <div className="flex justify-center mt-3">
+                            <button
+                                onClick={endChat}
+                                className="text-brand-navy-400 hover:text-brand-navy-600 text-sm font-medium transition-colors"
+                            >
+                                End conversation
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Unified Input Bar - ChatGPT style */}
                 <AnimatePresence mode="wait">
                     {callStatus === "idle" && !isRateLimited && (
@@ -884,14 +1002,14 @@ export default function VoiceAgent() {
                                 {/* Text Input */}
                                 <input
                                     type="text"
-                                    placeholder="What's on your mind?"
+                                    placeholder={isChatMode ? "Reply to Doc..." : "What's on your mind?"}
                                     className="flex-1 bg-transparent outline-none text-brand-navy-900 placeholder-brand-navy-400 text-base"
                                     value={confessionText}
                                     onChange={(e) => setConfessionText(e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter" && !e.shiftKey && confessionText.trim().length >= 1 && !isSubmittingConfession) {
                                             e.preventDefault();
-                                            submitConfession();
+                                            sendChatMessage();
                                         }
                                     }}
                                     maxLength={2000}
@@ -901,7 +1019,7 @@ export default function VoiceAgent() {
                                 {/* Send button - visible when text is entered */}
                                 {confessionText.trim().length > 0 && (
                                     <button
-                                        onClick={submitConfession}
+                                        onClick={sendChatMessage}
                                         disabled={isSubmittingConfession}
                                         className="p-2 hover:bg-brand-neutral-100 rounded-full transition-colors mr-1"
                                         title="Send message"
@@ -914,14 +1032,16 @@ export default function VoiceAgent() {
                                     </button>
                                 )}
 
-                                {/* Voice Button - Primary CTA */}
-                                <button
-                                    onClick={startCall}
-                                    className="p-2.5 bg-brand-brown text-white rounded-full hover:bg-brand-brown-dark transition-colors shadow-md hover:shadow-lg"
-                                    title="Talk to Doc"
-                                >
-                                    <Mic size={20} />
-                                </button>
+                                {/* Voice Button - Primary CTA (hide during chat mode) */}
+                                {!isChatMode && (
+                                    <button
+                                        onClick={startCall}
+                                        className="p-2.5 bg-brand-brown text-white rounded-full hover:bg-brand-brown-dark transition-colors shadow-md hover:shadow-lg"
+                                        title="Talk to Doc"
+                                    >
+                                        <Mic size={20} />
+                                    </button>
+                                )}
                             </div>
 
                             {confessionError && (
