@@ -879,7 +879,7 @@ export default function VoiceAgent() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => trackClick("header_meroka", "https://www.meroka.com/")}
-                                className="hover:text-brand-brown transition-colors underline decoration-brand-brown/30 underline-offset-2 tracking-tight"
+                                className="hover:text-brand-navy-600 transition-colors underline decoration-brand-navy-600/30 underline-offset-2 tracking-tight"
                             >Meroka</a></p>
                         </div>
 
@@ -970,7 +970,7 @@ export default function VoiceAgent() {
                                 </div>
                                 <button
                                     onClick={dismissTimeLimitMessage}
-                                    className="w-full py-3 px-6 bg-brand-brown hover:bg-brand-brown-dark text-white font-medium rounded-xl transition-colors shadow-lg shadow-brand-brown/20"
+                                    className="w-full py-3 px-6 bg-brand-navy-600 hover:bg-brand-navy-700 text-white font-medium rounded-xl transition-colors shadow-lg shadow-brand-navy-600/20"
                                 >
                                     Got it
                                 </button>
@@ -1006,12 +1006,12 @@ export default function VoiceAgent() {
                                         className={cn(
                                             "max-w-[85%] rounded-2xl px-4 py-3",
                                             msg.role === "user"
-                                                ? "bg-brand-brown text-white rounded-br-sm"
+                                                ? "bg-brand-navy-600 text-white rounded-br-sm"
                                                 : "bg-white/80 backdrop-blur-sm border border-brand-neutral-200 text-brand-navy-800 rounded-bl-sm shadow-sm"
                                         )}
                                     >
                                         {msg.role === "assistant" && (
-                                            <p className="text-xs text-brand-brown font-medium mb-1">Doc</p>
+                                            <p className="text-xs text-brand-navy-600 font-medium mb-1">Doc</p>
                                         )}
                                         <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                                     </div>
@@ -1024,7 +1024,7 @@ export default function VoiceAgent() {
                                     className="flex justify-start"
                                 >
                                     <div className="bg-white/80 backdrop-blur-sm border border-brand-neutral-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-                                        <p className="text-xs text-brand-brown font-medium mb-1">Doc</p>
+                                        <p className="text-xs text-brand-navy-600 font-medium mb-1">Doc</p>
                                         <div className="flex items-center gap-1.5">
                                             <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
                                             <div className="w-2 h-2 bg-brand-navy-300 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -1048,7 +1048,7 @@ export default function VoiceAgent() {
                             exit={{ opacity: 0, y: -10 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="relative flex items-center bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-4 py-3 focus-within:border-brand-brown/50 focus-within:shadow-lg transition-all">
+                            <div className="relative flex items-center bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-4 py-3 focus-within:border-brand-navy-600/50 focus-within:shadow-lg transition-all">
                                 {/* Text Input */}
                                 <input
                                     type="text"
@@ -1075,9 +1075,9 @@ export default function VoiceAgent() {
                                         title="Send message"
                                     >
                                         {isSubmittingConfession ? (
-                                            <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
+                                            <div className="w-5 h-5 border-2 border-brand-navy-600/30 border-t-brand-navy-600 rounded-full animate-spin" />
                                         ) : (
-                                            <Send size={20} className="text-brand-navy-500 hover:text-brand-brown" />
+                                            <Send size={20} className="text-brand-navy-500 hover:text-brand-navy-600" />
                                         )}
                                     </button>
                                 )}
@@ -1086,7 +1086,7 @@ export default function VoiceAgent() {
                                 {!isChatMode && (
                                     <button
                                         onClick={startCall}
-                                        className="p-2.5 bg-brand-brown text-white rounded-full hover:bg-brand-brown-dark transition-colors shadow-md hover:shadow-lg"
+                                        className="p-2.5 bg-brand-navy-600 text-white rounded-full hover:bg-brand-navy-700 transition-colors shadow-md hover:shadow-lg"
                                         title="Talk to Doc"
                                     >
                                         <Mic size={20} />
@@ -1122,8 +1122,8 @@ export default function VoiceAgent() {
                             exit={{ opacity: 0, scale: 0.95 }}
                         >
                             <div className="flex items-center justify-center gap-3 bg-white/80 backdrop-blur-md border border-brand-neutral-200 rounded-2xl px-6 py-4">
-                                <div className="w-5 h-5 border-2 border-brand-brown/30 border-t-brand-brown rounded-full animate-spin" />
-                                <span className="text-brand-brown font-medium">Connecting to Doc...</span>
+                                <div className="w-5 h-5 border-2 border-brand-navy-600/30 border-t-brand-navy-600 rounded-full animate-spin" />
+                                <span className="text-brand-navy-600 font-medium">Connecting to Doc...</span>
                             </div>
                         </motion.div>
                     )}
@@ -1146,13 +1146,13 @@ export default function VoiceAgent() {
                                                 {[...Array(4)].map((_, i) => (
                                                     <motion.div
                                                         key={i}
-                                                        className="w-1 bg-brand-brown rounded-full"
+                                                        className="w-1 bg-brand-navy-600 rounded-full"
                                                         animate={{ height: [4, 16, 4] }}
                                                         transition={{ duration: 0.5, repeat: Infinity, delay: i * 0.1 }}
                                                     />
                                                 ))}
                                             </div>
-                                            <span className="text-brand-brown font-medium">Doc is talking</span>
+                                            <span className="text-brand-navy-600 font-medium">Doc is talking</span>
                                         </>
                                     ) : (
                                         <>
@@ -1268,7 +1268,7 @@ export default function VoiceAgent() {
                                             key={i}
                                             className={cn(
                                                 "text-sm leading-relaxed",
-                                                line.startsWith("You:") ? "text-brand-brown font-medium" : "text-brand-navy-700"
+                                                line.startsWith("You:") ? "text-brand-navy-600 font-medium" : "text-brand-navy-700"
                                             )}
                                         >
                                             {line}
@@ -1326,7 +1326,7 @@ export default function VoiceAgent() {
                     <a
                         href="/privacy"
                         onClick={() => trackClick("footer_privacy", "/privacy")}
-                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
+                        className="hover:text-brand-navy-600 transition-colors underline decoration-transparent hover:decoration-brand-navy-600"
                     >
                         Privacy Policy
                     </a>
@@ -1358,7 +1358,7 @@ export default function VoiceAgent() {
                     <a
                         href="/about"
                         onClick={() => trackClick("footer_about", "/about")}
-                        className="hover:text-brand-brown transition-colors underline decoration-transparent hover:decoration-brand-brown"
+                        className="hover:text-brand-navy-600 transition-colors underline decoration-transparent hover:decoration-brand-navy-600"
                     >
                         Who We Are
                     </a>
@@ -1408,7 +1408,7 @@ export default function VoiceAgent() {
                         </p>
                         <button
                             onClick={() => setShowThankYou(false)}
-                            className="w-full py-3 px-6 bg-brand-brown hover:bg-brand-brown-dark text-white font-medium rounded-xl transition-colors"
+                            className="w-full py-3 px-6 bg-brand-navy-600 hover:bg-brand-navy-700 text-white font-medium rounded-xl transition-colors"
                         >
                             Done
                         </button>
